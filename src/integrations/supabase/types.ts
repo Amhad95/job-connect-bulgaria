@@ -162,6 +162,7 @@ export type Database = {
           id: string
           jobs_list_url: string | null
           last_crawl_at: string | null
+          parent_source_id: string | null
           policy_mode: Database["public"]["Enums"]["policy_mode_enum"]
           policy_reason: string | null
           policy_status: Database["public"]["Enums"]["policy_status_enum"]
@@ -178,6 +179,7 @@ export type Database = {
           id?: string
           jobs_list_url?: string | null
           last_crawl_at?: string | null
+          parent_source_id?: string | null
           policy_mode?: Database["public"]["Enums"]["policy_mode_enum"]
           policy_reason?: string | null
           policy_status?: Database["public"]["Enums"]["policy_status_enum"]
@@ -194,6 +196,7 @@ export type Database = {
           id?: string
           jobs_list_url?: string | null
           last_crawl_at?: string | null
+          parent_source_id?: string | null
           policy_mode?: Database["public"]["Enums"]["policy_mode_enum"]
           policy_reason?: string | null
           policy_status?: Database["public"]["Enums"]["policy_status_enum"]
@@ -208,6 +211,13 @@ export type Database = {
             columns: ["employer_id"]
             isOneToOne: true
             referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_sources_parent_source_id_fkey"
+            columns: ["parent_source_id"]
+            isOneToOne: false
+            referencedRelation: "employer_sources"
             referencedColumns: ["id"]
           },
         ]
