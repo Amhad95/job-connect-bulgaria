@@ -2,54 +2,84 @@
 
 ## Problem Analysis
 
-Three issues:
+The crawler has three fundamental failures visible in the data:
 
-1. **Wrong source URLs** — All 9 employer sources point to generic careers homepages instead of the specific job listings pages you provided. The Map API discovers irrelevant links from these generic pages.
+1. **Indexing non-job pages as jobs** — Mondelez has 108 "active jobs" that are all corporate pages ("Awards", "5 Star", "Board of Directors", "Who We Are"). Endava has 18 "jobs" that are blog posts ("Meet Jan", "Meet Andreea"). The `looksLikeJobPath` filter accepts any URL with 2+ segments, which matches everything.
 
-2. **No individual job page scraping** — Phase 2 extraction scrapes the same URL stored as `canonical_url`, which is often the listing page link (not the individual job detail page). The extraction schema gets empty results because the listing page doesn't contain a single job's details. Individual job pages must be scraped to get descriptions.
+2. **No country filtering** — DXC has jobs from Malaysia, Australia, Tunisia — not Bulgaria. The listing page shows Bulgaria jobs, but the Scrape API returns ALL links on the page including global jobs.
 
-3. **Old jobs not filtered** — 143 jobs have `posted_at` older than 1 month but are still shown as ACTIVE. Need to filter these out in the query and mark stale jobs during crawl.
+3. **Wrong source for Kaufland** — Links go to `karieri.bg` (an aggregator) instead of Kaufland's own career portal at `kariera.kaufland.bg`.
+
+**Root cause**: Using Firecrawl Scrape with `formats: ["links"]` returns every hyperlink on the page. The `looksLikeJobPath` filter cannot distinguish job links from navigation/corporate links. This approach is fundamentally broken.
+
+## Solution: LLM-Powered Discovery
+
+Replace the link-scraping approach in Phase 1 with Firecrawl's **extract** feature using a schema that asks the LLM to identify actual job postings and their URLs from the listing page. The LLM understands page context and will only return real job listings.
 
 ## Implementation Steps
 
-### 1. Update `employer_sources` URLs (SQL migration)
-Update `jobs_list_url` for all 9 employers to the correct URLs provided:
+### 1. Rewrite Phase 1 in `crawl-source/index.ts`
 
-| Employer | New `jobs_list_url` |
-|----------|-------------------|
-| Nestle Bulgaria | `https://www.nestle.bg/bg/jobs/search-jobs?keyword=&country=BG` |
-| Mondelez Bulgaria | `https://www.mondelezinternational.com/careers/jobs/?term&countrycode=BG` |
-| Scalefocus | `https://www.scalefocus.com/open-positions` |
-| Payhawk | `https://payhawk.com/bg/karieri#open-positions` |
-| DXC Technology Bulgaria | `https://careers.dxc.com/job-search-results/?compliment[]=Bulgaria` |
-| Accenture Bulgaria | `https://www.accenture.com/bg-en/careers/jobsearch` |
-| Endava Bulgaria | `https://www.endava.com/careers/jobs?location=Sofia%2C+Bulgaria` |
-| Kaufland Bulgaria | `https://kariera.kaufland.bg/svobodni-pozitsii` |
-| Fibank | `https://www.fibank.bg/bg/za-nas/karieri` |
+Replace the Scrape-links approach with an extract-based approach:
 
-Also clear existing stale job_postings (set status=STALE where `posted_at < now() - 1 month`).
+```typescript
+// New extraction schema for listing pages
+const JOB_LISTING_SCHEMA = {
+  type: "object",
+  properties: {
+    jobs: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Job title" },
+          url: { type: "string", description: "Direct URL to the individual job posting page" },
+          location: { type: "string", description: "Job location if visible" },
+        },
+        required: ["title", "url"],
+      },
+      description: "List of actual job postings/openings found on this page. Only include real job vacancies, NOT blog posts, company info pages, news, or corporate content."
+    }
+  },
+  required: ["jobs"]
+};
+```
 
-### 2. Update `crawl-source/index.ts` — fix extraction to scrape individual pages
-The current Phase 2 already scrapes individual `canonical_url` pages. The real problem is that many `canonical_url` values are listing-page URLs (e.g., `/careers`) rather than individual job detail URLs — because the `looksLikeJobPath` filter is too narrow, and Map API returns listing pages that get stored as jobs.
+Use `formats: ["extract"]` with this schema. The LLM will return only actual job postings with their detail URLs.
 
-Changes:
-- **Relax `looksLikeJobPath`** — accept any path with 2+ segments that isn't obviously a static page (the Map API with `search: "job"` already filters for relevance)
-- **Skip jobs older than 1 month** — during extraction, if `posted_date` is > 30 days ago, set `status = 'STALE'` instead of ACTIVE
-- **Increase extraction cap** from 20 to 30 per run to process more jobs per crawl
+For same-domain links discovered this way, resolve relative URLs against the crawl URL origin. Skip blocked aggregators. Then proceed to upsert as before.
 
-### 3. Update `useJobs.ts` — filter out old jobs
-- Add `.gte("posted_at", thirtyDaysAgo)` or handle in the query to exclude jobs posted > 1 month ago
-- For jobs with null `posted_at`, keep them but sort them after dated jobs
-- Also apply a fallback: exclude jobs where `first_seen_at` is > 1 month ago AND `posted_at` is null (likely stale)
+### 2. Add extraction prompt for clarity
 
-### 4. Re-crawl all sources
-After deploying, trigger crawl-source for each of the 9 updated employers to discover jobs from the correct URLs and extract their descriptions.
+Include an `extract.prompt` to guide the LLM:
+```
+"Extract only actual job vacancy/opening listings from this careers page. Each job should have a title and a direct link to its detail page. Do NOT include blog posts, company info, news articles, or navigation links."
+```
+
+### 3. Fix Kaufland source URL
+
+Update `jobs_list_url` for Kaufland to the actual Kaufland careers domain, and update `website_domain` for link matching:
+- Kaufland currently points to `kariera.kaufland.bg/svobodni-pozitsii` which is correct, but the discovered links go to `karieri.bg` (a different domain/aggregator). Need to ensure links from `karieri.bg` are blocked or the Kaufland domain includes `kariera.kaufland.bg`.
+
+### 4. Clean up garbage data (SQL)
+
+- Mark all Mondelez non-job entries as INACTIVE (108 entries that are corporate pages)
+- Mark all Endava blog posts as INACTIVE 
+- Mark all DXC non-Bulgaria jobs as INACTIVE
+- Mark Kaufland `karieri.bg` entries as INACTIVE
+
+### 5. Remove overly permissive `looksLikeJobPath`
+
+Since Phase 1 now uses LLM extraction, the `looksLikeJobPath` function is no longer needed for discovery. Keep `passesBasicFilters` for a basic sanity check on extracted URLs only.
+
+### 6. Add `karieri.bg` to BLOCKED_AGGREGATORS
+
+It's a job board/aggregator, not an employer site.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| SQL migration | Update `jobs_list_url` for 9 employers; set old jobs to STALE |
-| `supabase/functions/crawl-source/index.ts` | Relax path filter; mark old jobs as STALE during extraction; increase extraction cap |
-| `src/hooks/useJobs.ts` | Filter out jobs older than 1 month |
+| `supabase/functions/crawl-source/index.ts` | Replace Phase 1 link-scraping with LLM extract; add `karieri.bg` to blocked aggregators; add extract prompt; remove `looksLikeJobPath` |
+| SQL migration | Clean up ~160 garbage job entries; fix Kaufland domain |
 
