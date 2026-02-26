@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Upload, ExternalLink, Shield, Trash2, Filter, FileText, KanbanSquare, ArrowRight, Briefcase, TrendingUp } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
-import { mockJobs } from "@/data/mockJobs";
+import { useJobs } from "@/hooks/useJobs";
 import heroIllustration from "@/assets/hero-illustration.svg";
 
 const popularSearches = [
@@ -14,8 +14,9 @@ const popularSearches = [
 
 export default function Index() {
   const { t } = useTranslation();
-  const trendingJobs = mockJobs.filter((j) => j.isNew).slice(0, 6);
-  const recentJobs = mockJobs.slice(0, 4);
+  const { data: jobs = [] } = useJobs();
+  const trendingJobs = jobs.slice(0, 6);
+  const recentJobs = jobs.slice(0, 4);
 
   return (
     <Layout>
