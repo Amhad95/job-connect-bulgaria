@@ -21,24 +21,15 @@ export default function Index() {
     <Layout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
-        <div className="container flex flex-col gap-6 py-8 md:py-14">
-          {/* Top row: headline left, SVG right */}
-          <div className="grid items-center gap-8 text-center md:grid-cols-2 md:text-left">
-            <div className="flex flex-col gap-4">
-              <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
-                {t("hero.headline")}
-              </h1>
-              <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
-                {t("hero.subheadline")}
-              </p>
-            </div>
-            <div className="flex items-center justify-center animate-fade-in">
-              <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-[320px] drop-shadow-lg" />
-            </div>
-          </div>
+        <div className="container grid items-center gap-8 py-16 md:grid-cols-2 md:py-24">
+          <div className="flex flex-col gap-6 text-center md:text-left">
+            <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
+              {t("hero.headline")}
+            </h1>
+            <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
+              {t("hero.subheadline")}
+            </p>
 
-          {/* Centered search, CTA, badges */}
-          <div className="flex flex-col items-center gap-6">
             {/* Search bar */}
             <div className="flex w-full max-w-xl items-center gap-2 animate-fade-in">
               <div className="relative flex-1">
@@ -56,7 +47,7 @@ export default function Index() {
               </Link>
             </div>
 
-            <Link to="/apply-kit">
+            <Link to="/apply-kit" className="self-center md:self-start">
               <Button variant="outline" className="gap-2">
                 <Upload className="h-4 w-4" />
                 {t("hero.secondaryCta")}
@@ -64,7 +55,7 @@ export default function Index() {
             </Link>
 
             {/* Popular searches */}
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2 md:justify-start">
               {popularSearches.map((s) => (
                 <Link
                   key={s}
@@ -75,6 +66,10 @@ export default function Index() {
                 </Link>
               ))}
             </div>
+          </div>
+
+          <div className="hidden md:flex items-center justify-center animate-fade-in">
+            <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-md drop-shadow-lg" />
           </div>
         </div>
       </section>
