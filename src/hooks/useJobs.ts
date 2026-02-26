@@ -44,14 +44,33 @@ async function fetchJobs(): Promise<DbJob[]> {
 
   const validJobs = (data ?? []).filter((row: any) => {
     // 1. Must have a real title
-    if (!row.title || row.title.includes("Untitled Position") || row.title.length < 3) return false;
+    if (!row.title || row.title.includes("Untitled Position") || row.title.length < 5) return false;
 
-    // 2. Must have some location context or be remote
+    // 2. Must have explicitly crawled posted date (fixes relative date NULLs forcing crawl-date sorting)
+    if (!row.posted_at) return false;
+
+    // 3. Location threshold (must drop global job list bleed-over)
+    const loc = (row.location_city || "").toLowerCase();
+    const foreign = ["london", "new york", "berlin", "paris", "madrid", "amsterdam", "dubai", "usa", "uk", "germany", "france", "spain", "italy", "poland", "romania", "greece", "turkey", "serbia"];
+    if (foreign.some(f => loc.includes(f))) return false;
     if (!row.location_city && row.work_mode !== "remote") return false;
 
-    // 3. Must have an extracted description text to meet threshold of crawled info
+    // 4. Must have a deep extracted description (fixes "Life at our company" sparse extracts)
     const content = Array.isArray(row.job_posting_content) ? row.job_posting_content[0] : row.job_posting_content;
-    if (!content?.description_text || content.description_text.length < 50) return false;
+    const desc = content?.description_text || "";
+    if (desc.length < 150) return false;
+
+    // 5. Must NOT be a generic URL (fixes main careers page bleeding in)
+    try {
+      const url = new URL(row.canonical_url);
+      const path = url.pathname.replace(/\/$/, "").toLowerCase();
+      const genericPaths = ["", "/", "/careers", "/jobs", "/karieri", "/bg/careers", "/en/careers", "/about", "/life"];
+      if (genericPaths.includes(path)) return false;
+      // If the path is extremely short and has no identifiers (hyphens, numbers, or 'job')
+      if (path.length < 10 && !path.includes('-') && !path.includes('job') && !path.match(/\d/)) return false;
+    } catch {
+      return false;
+    }
 
     return true;
   });
