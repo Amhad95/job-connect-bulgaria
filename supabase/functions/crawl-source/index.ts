@@ -61,12 +61,12 @@ const JOB_LISTING_SCHEMA = {
         type: "object",
         properties: {
           title: { type: "string", description: "Job title" },
-          url: { type: "string", description: "Direct URL to the individual job posting detail page" },
-          location: { type: "string", description: "Job location if visible on the listing" },
+          url: { type: "string", description: "Absolute, direct URL to the individual job posting detail page." },
+          location: { type: "string", description: "Job location (City, Country, or Remote). Must be in Bulgaria." },
         },
-        required: ["title", "url"],
+        required: ["title", "url", "location"],
       },
-      description: "List of actual job vacancy/opening listings found on this page. Only include real job postings with links to their detail pages. Do NOT include blog posts, company info pages, news articles, team member profiles, corporate content, or navigation links."
+      description: "List of job openings. ONLY include jobs located in Bulgaria or labeled as Remote. Exclude jobs in other countries."
     }
   },
   required: ["jobs"]
@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
           formats: ["extract"],
           extract: {
             schema: JOB_LISTING_SCHEMA,
-            prompt: "Extract only actual job vacancy/opening listings from this careers page. Each job should have a title and a direct link to its individual detail page. Do NOT include blog posts, company info, news articles, team member profiles, language selectors, or navigation links. Only include positions that someone can apply to.",
+            prompt: "Extract actual job vacancies located entirely or partially in Bulgaria. Ignore jobs located explicitly in other countries. The 'url' MUST be the direct link to the specific job's dedicated page. Do NOT include anchor links (e.g., #job1) or links that just point back to the main careers page. If a job only opens in a modal and has no unique URL, skip it.",
           },
           waitFor: 5000,
         }),
@@ -195,6 +195,7 @@ Deno.serve(async (req) => {
 
       // ── Process discovered jobs ─────────────────────────────────
       const crawlOrigin = new URL(crawlUrl).origin;
+      const normalizedCrawlUrl = crawlUrl.split('#')[0].replace(/\/$/, "");
       const sameDomainJobLinks: string[] = [];
       const atsLinksByBoard: Map<string, { atsType: string; links: string[] }> = new Map();
 
@@ -204,6 +205,14 @@ Deno.serve(async (req) => {
         try {
           // Resolve relative URLs against the crawl URL origin
           const resolvedUrl = job.url.startsWith("http") ? job.url : new URL(job.url, crawlOrigin).href;
+          const normalizedResolvedUrl = resolvedUrl.split('#')[0].replace(/\/$/, "");
+
+          // CRITICAL: Skip if the extracted URL is just the main page again
+          if (normalizedResolvedUrl === normalizedCrawlUrl || normalizedResolvedUrl === crawlOrigin) {
+            console.log(`Skipping invalid/general URL: ${resolvedUrl}`);
+            continue;
+          }
+
           const u = new URL(resolvedUrl);
           const host = u.hostname.replace(/^www\./, "").toLowerCase();
 
@@ -343,7 +352,7 @@ Deno.serve(async (req) => {
               formats: ["extract"],
               extract: {
                 schema: JOB_DETAIL_SCHEMA,
-                prompt: "Extract the job posting details from this page. This should be an actual job vacancy that someone can apply to. If this page is NOT a job posting (e.g. it's a blog post, company info page, error page, or corporate content), return an empty object with no title.",
+                prompt: "Extract the full details of this specific job posting. You MUST extract the actual lengthy job description, NOT just button text like 'View full details'. If this page is a general company page (e.g., 'Life at our company') and not a specific job, return an empty object. For 'posted_date': if the date is relative (e.g., '2 days ago', 'last week'), calculate and return the exact absolute date in ISO 8601 format based on today's date.",
               },
             }),
           });
