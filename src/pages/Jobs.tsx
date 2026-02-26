@@ -164,12 +164,7 @@ export default function Jobs() {
       </div>
 
       {/* Main content — fixed height, independent scrolling */}
-      <div className="container py-3">
-        <p className="mb-3 text-sm text-muted-foreground">
-          {t("jobs.showing", { count: filteredJobs.length }) || `${filteredJobs.length} jobs`}
-        </p>
-      </div>
-      <div className="container flex gap-6 pb-4" style={{ height: "calc(100vh - 13rem)" }}>
+      <div className="container flex gap-6 pb-4" style={{ height: "calc(100vh - 10rem)" }}>
         {/* Desktop Filters */}
         <aside className="hidden w-56 shrink-0 md:block overflow-y-auto">
           <div className="rounded-lg border bg-card p-4">
@@ -179,7 +174,11 @@ export default function Jobs() {
         </aside>
 
         {/* Job list — scrolls independently */}
-        <div className="flex-1 min-w-0 overflow-y-auto space-y-2 pr-1">
+        <div className="flex-1 min-w-0 overflow-y-auto pr-1">
+          <p className="mb-2 text-sm text-muted-foreground">
+            {t("jobs.showing", { count: filteredJobs.length }) || `${filteredJobs.length} jobs`}
+          </p>
+          <div className="space-y-2">
           {filteredJobs.length === 0 ? (
             <div className="rounded-lg border bg-card p-12 text-center">
               <p className="text-muted-foreground">{t("jobs.emptyState")}</p>
@@ -195,11 +194,12 @@ export default function Jobs() {
               />
             ))
           )}
+          </div>
         </div>
 
         {/* Preview panel — scrolls independently */}
         {previewJob && (
-          <aside className="hidden w-96 shrink-0 lg:flex flex-col overflow-hidden rounded-lg border bg-card">
+          <aside className="hidden w-[28rem] shrink-0 lg:flex flex-col overflow-hidden rounded-lg border bg-card">
             <div className="border-b bg-surface p-4">
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10 shrink-0 rounded-md">
