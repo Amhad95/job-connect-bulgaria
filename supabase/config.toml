@@ -1,1 +1,13 @@
 project_id = "aqspxvcgmvflbvpionnj"
+
+[functions.seed-employers]
+verify_jwt = false
+
+[functions.policy-check-source]
+verify_jwt = false
+
+[functions.crawl-source]
+verify_jwt = false
+
+[functions.process-removal]
+verify_jwt = false

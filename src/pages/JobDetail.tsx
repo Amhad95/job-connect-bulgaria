@@ -75,7 +75,7 @@ export default function JobDetail() {
           <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer">
             <Button size="lg" className="gap-2">
               <ExternalLink className="h-4 w-4" />
-              {t("jobs.applyOn", { source: job.source })}
+              {t("jobs.applyOn", { employer: job.company })}
             </Button>
           </a>
           <Button variant="outline" size="lg" className="gap-2">
@@ -132,10 +132,14 @@ export default function JobDetail() {
         </div>
 
         {/* Source attribution */}
-        <div className="mt-8 rounded-lg border bg-surface p-4 flex items-center justify-between text-sm text-muted-foreground">
+        {/* Redirect note */}
+        <p className="mt-4 text-center text-xs text-muted-foreground">{t("jobs.redirectNote")}</p>
+
+        {/* Employer attribution */}
+        <div className="mt-4 rounded-lg border bg-surface p-4 flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Building className="h-4 w-4" />
-            <span>{t("jobs.source")}: {job.source}</span>
+            <span>{t("jobs.employer")}: {job.company}</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />

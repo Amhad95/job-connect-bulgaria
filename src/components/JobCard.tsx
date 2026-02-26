@@ -77,7 +77,7 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
         <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground ml-11">
           <div className="flex items-center gap-1">
             <ExternalLink className="h-3 w-3" />
-            <span>{job.source}</span>
+            <span>{job.company}</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
