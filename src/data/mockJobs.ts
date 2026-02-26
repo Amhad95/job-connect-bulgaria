@@ -2,6 +2,7 @@ export interface Job {
   id: string;
   title: string;
   company: string;
+  companyLogo?: string;
   city: string;
   workMode: "remote" | "hybrid" | "onsite";
   employmentType: "full-time" | "part-time" | "contract" | "internship";
@@ -22,6 +23,9 @@ export interface Job {
   isNew?: boolean;
 }
 
+const getCompanyLogo = (name: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128&bold=true`;
+
 const now = new Date();
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 3600000).toISOString();
 const daysAgo = (d: number) => new Date(now.getTime() - d * 86400000).toISOString();
@@ -31,6 +35,7 @@ export const mockJobs: Job[] = [
     id: "1",
     title: "Senior Frontend Developer",
     company: "TechCorp Bulgaria",
+    companyLogo: getCompanyLogo("TechCorp Bulgaria"),
     city: "София",
     workMode: "hybrid",
     employmentType: "full-time",
@@ -54,6 +59,7 @@ export const mockJobs: Job[] = [
     id: "2",
     title: "Счетоводител",
     company: "Финанс Груп ООД",
+    companyLogo: getCompanyLogo("Финанс Груп"),
     city: "Пловдив",
     workMode: "onsite",
     employmentType: "full-time",
@@ -77,6 +83,7 @@ export const mockJobs: Job[] = [
     id: "3",
     title: "Marketing Manager",
     company: "DigiAds",
+    companyLogo: getCompanyLogo("DigiAds"),
     city: "София",
     workMode: "remote",
     employmentType: "full-time",
@@ -99,6 +106,7 @@ export const mockJobs: Job[] = [
     id: "4",
     title: "Full Stack Developer",
     company: "StartupBG",
+    companyLogo: getCompanyLogo("StartupBG"),
     city: "Варна",
     workMode: "hybrid",
     employmentType: "full-time",
@@ -120,6 +128,7 @@ export const mockJobs: Job[] = [
     id: "5",
     title: "Обслужване на клиенти",
     company: "ТелеКом Сървис",
+    companyLogo: getCompanyLogo("ТелеКом Сървис"),
     city: "Бургас",
     workMode: "onsite",
     employmentType: "full-time",
@@ -141,6 +150,7 @@ export const mockJobs: Job[] = [
     id: "6",
     title: "Data Analyst",
     company: "DataWave",
+    companyLogo: getCompanyLogo("DataWave"),
     city: "София",
     workMode: "remote",
     employmentType: "full-time",
@@ -163,6 +173,7 @@ export const mockJobs: Job[] = [
     id: "7",
     title: "UX/UI Designer",
     company: "CreativeHub",
+    companyLogo: getCompanyLogo("CreativeHub"),
     city: "София",
     workMode: "hybrid",
     employmentType: "full-time",
@@ -184,6 +195,7 @@ export const mockJobs: Job[] = [
     id: "8",
     title: "Програмист Java",
     company: "СофтУер Солюшънс",
+    companyLogo: getCompanyLogo("СофтУер Солюшънс"),
     city: "Пловдив",
     workMode: "onsite",
     employmentType: "full-time",
@@ -205,6 +217,7 @@ export const mockJobs: Job[] = [
     id: "9",
     title: "Project Manager",
     company: "BuildIt",
+    companyLogo: getCompanyLogo("BuildIt"),
     city: "София",
     workMode: "hybrid",
     employmentType: "full-time",
@@ -227,6 +240,7 @@ export const mockJobs: Job[] = [
     id: "10",
     title: "Графичен дизайнер",
     company: "Медия Про",
+    companyLogo: getCompanyLogo("Медия Про"),
     city: "Варна",
     workMode: "onsite",
     employmentType: "full-time",
@@ -248,6 +262,7 @@ export const mockJobs: Job[] = [
     id: "11",
     title: "DevOps Engineer",
     company: "CloudNative BG",
+    companyLogo: getCompanyLogo("CloudNative BG"),
     city: "София",
     workMode: "remote",
     employmentType: "full-time",
@@ -269,6 +284,7 @@ export const mockJobs: Job[] = [
     id: "12",
     title: "HR специалист",
     company: "Персонал Плюс",
+    companyLogo: getCompanyLogo("Персонал Плюс"),
     city: "София",
     workMode: "hybrid",
     employmentType: "full-time",
@@ -290,6 +306,7 @@ export const mockJobs: Job[] = [
     id: "13",
     title: "Sales Representative",
     company: "GrowthCo",
+    companyLogo: getCompanyLogo("GrowthCo"),
     city: "Пловдив",
     workMode: "onsite",
     employmentType: "full-time",
@@ -308,6 +325,7 @@ export const mockJobs: Job[] = [
     id: "14",
     title: "QA Engineer",
     company: "QualitySoft",
+    companyLogo: getCompanyLogo("QualitySoft"),
     city: "София",
     workMode: "hybrid",
     employmentType: "full-time",
@@ -330,6 +348,7 @@ export const mockJobs: Job[] = [
     id: "15",
     title: "Мениджър продажби",
     company: "Търговска Къща БГ",
+    companyLogo: getCompanyLogo("Търговска Къща БГ"),
     city: "Бургас",
     workMode: "onsite",
     employmentType: "full-time",
@@ -351,6 +370,7 @@ export const mockJobs: Job[] = [
     id: "16",
     title: "Backend Developer (Python)",
     company: "AILab Sofia",
+    companyLogo: getCompanyLogo("AILab Sofia"),
     city: "София",
     workMode: "remote",
     employmentType: "full-time",
@@ -373,6 +393,7 @@ export const mockJobs: Job[] = [
     id: "17",
     title: "Учител по математика",
     company: "Частно училище Знание",
+    companyLogo: getCompanyLogo("Частно училище Знание"),
     city: "София",
     workMode: "onsite",
     employmentType: "full-time",
@@ -394,6 +415,7 @@ export const mockJobs: Job[] = [
     id: "18",
     title: "React Native Developer",
     company: "MobileFirst",
+    companyLogo: getCompanyLogo("MobileFirst"),
     city: "София",
     workMode: "remote",
     employmentType: "contract",
@@ -415,6 +437,7 @@ export const mockJobs: Job[] = [
     id: "19",
     title: "Логистик",
     company: "Транспорт БГ",
+    companyLogo: getCompanyLogo("Транспорт БГ"),
     city: "Русе",
     workMode: "onsite",
     employmentType: "full-time",
@@ -436,6 +459,7 @@ export const mockJobs: Job[] = [
     id: "20",
     title: "Product Designer",
     company: "DesignStudio BG",
+    companyLogo: getCompanyLogo("DesignStudio BG"),
     city: "София",
     workMode: "hybrid",
     employmentType: "full-time",

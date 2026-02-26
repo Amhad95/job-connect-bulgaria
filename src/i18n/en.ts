@@ -104,6 +104,12 @@ export default {
     description: "Description",
     requirements: "Requirements",
     benefits: "Benefits",
+    aboutCompany: "About the company",
+    viewFull: "View full details",
+    backToResults: "Back to results",
+    addToTracker: "Add to tracker",
+    generateCoverLetter: "Generate cover letter",
+    tailorCV: "Tailor CV",
   },
   tracker: {
     title: "Application Tracker",

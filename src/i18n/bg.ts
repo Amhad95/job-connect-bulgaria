@@ -104,6 +104,12 @@ export default {
     description: "Описание",
     requirements: "Изисквания",
     benefits: "Придобивки",
+    aboutCompany: "За компанията",
+    viewFull: "Виж пълните детайли",
+    backToResults: "Обратно към резултатите",
+    addToTracker: "Добави в тракера",
+    generateCoverLetter: "Генерирай мотивационно писмо",
+    tailorCV: "Адаптирай CV",
   },
   tracker: {
     title: "Тракер за кандидатури",

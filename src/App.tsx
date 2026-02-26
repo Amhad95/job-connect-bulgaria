@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import Jobs from "./pages/Jobs";
+import JobDetail from "./pages/JobDetail";
 import Auth from "./pages/Auth";
 import Tracker from "./pages/Tracker";
 import ApplyKit from "./pages/ApplyKit";
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/tracker" element={<Tracker />} />
             <Route path="/apply-kit" element={<ApplyKit />} />
