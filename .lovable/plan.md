@@ -1,28 +1,16 @@
 
 
-## Plan: Split hero into headline+SVG row on top, centered search/CTA below
+## Plan: Fix hero section sizing and spacing
 
-The user wants a two-part hero layout:
+Looking at the screenshot reference and current code, three issues:
 
-1. **Top row**: Left-right split — headline text on the left, SVG illustration on the right (side by side on desktop, stacked on mobile)
-2. **Bottom area**: Search bar, Upload CV button, and popular search badges remain **fully centered** beneath the split row
+1. **SVG too small** — `max-w-[200px]` is tiny. Increase to `max-w-[320px]` to match the reference screenshot proportions.
+2. **Too much top padding** — `py-16 md:py-24` creates excessive vertical space. Reduce to `py-8 md:py-14`.
+3. **Too much gap** — `gap-8` between the grid row and search area is large. Reduce to `gap-6`.
 
-### Changes (single file: `src/pages/Index.tsx`, lines 23-71)
+### Changes (single file: `src/pages/Index.tsx`)
 
-**Structure:**
-```text
-┌─────────────────────────────────────────┐
-│  Headline + Subheadline  │  SVG (small) │  ← md:grid-cols-2, items-center
-│  (left-aligned on md+)   │              │
-├─────────────────────────────────────────┤
-│        [Search bar]  (centered)         │  ← full-width centered below
-│        [Upload CV]   (centered)         │
-│     [badge] [badge] [badge] ...         │
-└─────────────────────────────────────────┘
-```
+**Line 24:** Change `py-16 md:py-24` → `py-8 md:py-14` and `gap-8` → `gap-6`
 
-- Wrap h1 + subheadline in a `md:grid-cols-2` grid row with text left-aligned on desktop, SVG on right (~250px max, centered in its cell)
-- On mobile: stack text above SVG, both centered
-- Search bar, Upload CV button, and popular search badges sit **outside** the grid, in a centered flex column below it
-- SVG keeps `animate-fade-in` and `drop-shadow-lg`
+**Line 36:** Change `max-w-[200px]` → `max-w-[320px]`
 
