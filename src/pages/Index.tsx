@@ -1,8 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Upload, ExternalLink, Shield, Trash2, Filter, FileText, KanbanSquare } from "lucide-react";
+import { Search, Upload, ExternalLink, Shield, Trash2, Filter, FileText, KanbanSquare, ArrowRight, Briefcase, TrendingUp } from "lucide-react";
 import { Layout } from "@/components/Layout";
+import { JobCard } from "@/components/JobCard";
+import { mockJobs } from "@/data/mockJobs";
 
 const popularSearches = [
   "Software Engineer", "Marketing", "Data Analyst", "Project Manager",
@@ -11,13 +13,19 @@ const popularSearches = [
 
 export default function Index() {
   const { t } = useTranslation();
+  const trendingJobs = mockJobs.filter((j) => j.isNew).slice(0, 6);
+  const recentJobs = mockJobs.slice(0, 4);
 
   return (
     <Layout>
       {/* Hero */}
-      <section className="relative overflow-hidden border-b bg-background">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
         <div className="container flex flex-col items-center gap-8 py-20 text-center md:py-28">
-          <h1 className="max-w-3xl font-display text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
+          <div className="inline-flex items-center gap-2 rounded-pill border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground animate-fade-in">
+            <Briefcase className="h-3.5 w-3.5 text-primary" />
+            <span>{mockJobs.length}+ {t("common.searchJobs").toLowerCase()}</span>
+          </div>
+          <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
             {t("hero.headline")}
           </h1>
           <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
@@ -31,11 +39,11 @@ export default function Index() {
               <input
                 type="text"
                 placeholder={t("hero.primaryCta")}
-                className="flex h-12 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-12 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-base shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
             <Link to="/jobs">
-              <Button size="lg" className="h-12 rounded-lg px-6 font-display font-semibold">
+              <Button size="lg" className="h-12 rounded-lg px-6 font-display font-semibold shadow-sm">
                 {t("hero.primaryCta")}
               </Button>
             </Link>
@@ -54,7 +62,7 @@ export default function Index() {
               <Link
                 key={s}
                 to={`/jobs?q=${encodeURIComponent(s)}`}
-                className="rounded-pill border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="rounded-pill border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
               >
                 {s}
               </Link>
@@ -64,16 +72,45 @@ export default function Index() {
       </section>
 
       {/* Trust strip */}
-      <section className="border-b bg-muted/50">
-        <div className="container flex flex-col items-center gap-6 py-6 md:flex-row md:justify-center md:gap-12">
-          <TrustItem icon={<ExternalLink className="h-4 w-4" />} text={t("trust.directLinks")} />
-          <TrustItem icon={<Shield className="h-4 w-4" />} text={t("trust.sourceShown")} />
-          <TrustItem icon={<Trash2 className="h-4 w-4" />} text={t("trust.deleteAnytime")} />
+      <section className="border-y bg-card">
+        <div className="container flex flex-col items-center gap-6 py-5 md:flex-row md:justify-center md:gap-12">
+          <TrustItem icon={<ExternalLink className="h-4 w-4 text-primary" />} text={t("trust.directLinks")} />
+          <TrustItem icon={<Shield className="h-4 w-4 text-success" />} text={t("trust.sourceShown")} />
+          <TrustItem icon={<Trash2 className="h-4 w-4 text-destructive" />} text={t("trust.deleteAnytime")} />
+        </div>
+      </section>
+
+      {/* Trending Jobs */}
+      <section className="bg-surface">
+        <div className="container py-16 md:py-20">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-2xl font-bold md:text-3xl">{t("home.trendingJobs")}</h2>
+            </div>
+            <Link to="/jobs" className="hidden items-center gap-1 text-sm font-medium text-primary hover:underline md:flex">
+              {t("common.viewAll")} <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {trendingJobs.map((job) => (
+              <Link key={job.id} to={`/jobs?id=${job.id}`}>
+                <JobCard job={job} />
+              </Link>
+            ))}
+          </div>
+          <div className="mt-6 flex justify-center md:hidden">
+            <Link to="/jobs">
+              <Button variant="outline" className="gap-2">
+                {t("common.viewAll")} <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section className="border-b">
+      <section className="border-y bg-background">
         <div className="container py-16 md:py-20">
           <h2 className="mb-12 text-center font-display text-2xl font-bold md:text-3xl">
             {t("howItWorks.title")}
@@ -87,9 +124,9 @@ export default function Index() {
       </section>
 
       {/* Feature sections */}
-      <section className="border-b">
+      <section className="bg-gradient-to-b from-primary/5 to-background">
         <div className="container py-16 md:py-20">
-          <div className="grid gap-12 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3">
             <FeatureCard
               icon={<Filter className="h-6 w-6" />}
               title={t("features.findRoles.title")}
@@ -110,7 +147,7 @@ export default function Index() {
       </section>
 
       {/* Privacy trust section */}
-      <section>
+      <section className="border-t bg-card">
         <div className="container py-16 md:py-20">
           <h2 className="mb-8 text-center font-display text-2xl font-bold md:text-3xl">
             {t("trust.headline")}
@@ -138,7 +175,7 @@ function TrustItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 function Step({ number, title, description }: { number: string; title: string; description: string }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm">
         {number}
       </div>
       <h3 className="font-display text-lg font-semibold">{title}</h3>
@@ -149,7 +186,7 @@ function Step({ number, title, description }: { number: string; title: string; d
 
 function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-lg border bg-card p-6 transition-shadow hover:shadow-md">
+    <div className="rounded-lg border bg-card p-6 transition-all hover:shadow-md hover:border-primary/20">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
         {icon}
       </div>
@@ -161,7 +198,7 @@ function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: stri
 
 function TrustBullet({ text }: { text: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border bg-card p-4">
+    <div className="flex items-start gap-3 rounded-lg border bg-background p-4">
       <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-success" />
       <p className="text-sm text-muted-foreground">{text}</p>
     </div>
