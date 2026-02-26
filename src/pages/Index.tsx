@@ -21,7 +21,7 @@ export default function Index() {
     <Layout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
-        <div className="container flex flex-col gap-8 py-16 md:py-24">
+        <div className="container flex flex-col gap-6 py-8 md:py-14">
           {/* Top row: headline left, SVG right */}
           <div className="grid items-center gap-8 text-center md:grid-cols-2 md:text-left">
             <div className="flex flex-col gap-4">
@@ -33,7 +33,7 @@ export default function Index() {
               </p>
             </div>
             <div className="flex items-center justify-center animate-fade-in">
-              <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-[200px] drop-shadow-lg" />
+              <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-[320px] drop-shadow-lg" />
             </div>
           </div>
 
