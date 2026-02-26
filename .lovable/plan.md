@@ -1,85 +1,46 @@
 
 
-## Problem Analysis
+## The Problem
 
-The crawler has three fundamental failures visible in the data:
+All 39 active sources have `policy_mode = METADATA_ONLY` — a label we assigned ourselves. But robots.txt allows full access to these career pages. The descriptions are on **public web pages** that anyone (including Google) can read. Restricting ourselves to metadata-only makes the job detail page empty and the product worthless.
 
-1. **Indexing non-job pages as jobs** — Mondelez has 108 "active jobs" that are all corporate pages ("Awards", "5 Star", "Board of Directors", "Who We Are"). Endava has 18 "jobs" that are blog posts ("Meet Jan", "Meet Andreea"). The `looksLikeJobPath` filter accepts any URL with 2+ segments, which matches everything.
+72 jobs already have descriptions stored. The previous plan proposed deleting them. That was wrong.
 
-2. **No country filtering** — DXC has jobs from Malaysia, Australia, Tunisia — not Bulgaria. The listing page shows Bulgaria jobs, but the Scrape API returns ALL links on the page including global jobs.
+## The Fix
 
-3. **Wrong source for Kaufland** — Links go to `karieri.bg` (an aggregator) instead of Kaufland's own career portal at `kariera.kaufland.bg`.
+### 1. Update `policy-check-source/index.ts`
 
-**Root cause**: Using Firecrawl Scrape with `formats: ["links"]` returns every hyperlink on the page. The `looksLikeJobPath` filter cannot distinguish job links from navigation/corporate links. This approach is fundamentally broken.
+When robots.txt allows access, set `policy_mode` to `FULL_TEXT_ALLOWED` instead of `METADATA_ONLY`. The logic: if robots.txt permits crawling the page, we can index the publicly visible content.
 
-## Solution: LLM-Powered Discovery
+### 2. Update all active sources in the database
 
-Replace the link-scraping approach in Phase 1 with Firecrawl's **extract** feature using a schema that asks the LLM to identify actual job postings and their URLs from the listing page. The LLM understands page context and will only return real job listings.
+```sql
+UPDATE employer_sources 
+SET policy_mode = 'FULL_TEXT_ALLOWED' 
+WHERE policy_status = 'ACTIVE' AND policy_reason = 'robots.txt allows access';
+```
 
-## Implementation Steps
+### 3. Update `crawl-source/index.ts` content storage
 
-### 1. Rewrite Phase 1 in `crawl-source/index.ts`
-
-Replace the Scrape-links approach with an extract-based approach:
+Change line 417 so that `FULL_TEXT_ALLOWED` sources store content with `store_mode = 'FULL_TEXT'`:
 
 ```typescript
-// New extraction schema for listing pages
-const JOB_LISTING_SCHEMA = {
-  type: "object",
-  properties: {
-    jobs: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "Job title" },
-          url: { type: "string", description: "Direct URL to the individual job posting page" },
-          location: { type: "string", description: "Job location if visible" },
-        },
-        required: ["title", "url"],
-      },
-      description: "List of actual job postings/openings found on this page. Only include real job vacancies, NOT blog posts, company info pages, news, or corporate content."
-    }
-  },
-  required: ["jobs"]
-};
+store_mode: source.policy_mode === "FULL_TEXT_ALLOWED" ? "FULL_TEXT" : "METADATA_ONLY",
 ```
 
-Use `formats: ["extract"]` with this schema. The LLM will return only actual job postings with their detail URLs.
+This line already exists and will now work correctly once the sources are updated.
 
-For same-domain links discovered this way, resolve relative URLs against the crawl URL origin. Skip blocked aggregators. Then proceed to upsert as before.
+### 4. Update existing content records
 
-### 2. Add extraction prompt for clarity
-
-Include an `extract.prompt` to guide the LLM:
+```sql
+UPDATE job_posting_content SET store_mode = 'FULL_TEXT' 
+WHERE store_mode = 'METADATA_ONLY' AND description_text IS NOT NULL;
 ```
-"Extract only actual job vacancy/opening listings from this careers page. Each job should have a title and a direct link to its detail page. Do NOT include blog posts, company info, news articles, or navigation links."
-```
-
-### 3. Fix Kaufland source URL
-
-Update `jobs_list_url` for Kaufland to the actual Kaufland careers domain, and update `website_domain` for link matching:
-- Kaufland currently points to `kariera.kaufland.bg/svobodni-pozitsii` which is correct, but the discovered links go to `karieri.bg` (a different domain/aggregator). Need to ensure links from `karieri.bg` are blocked or the Kaufland domain includes `kariera.kaufland.bg`.
-
-### 4. Clean up garbage data (SQL)
-
-- Mark all Mondelez non-job entries as INACTIVE (108 entries that are corporate pages)
-- Mark all Endava blog posts as INACTIVE 
-- Mark all DXC non-Bulgaria jobs as INACTIVE
-- Mark Kaufland `karieri.bg` entries as INACTIVE
-
-### 5. Remove overly permissive `looksLikeJobPath`
-
-Since Phase 1 now uses LLM extraction, the `looksLikeJobPath` function is no longer needed for discovery. Keep `passesBasicFilters` for a basic sanity check on extracted URLs only.
-
-### 6. Add `karieri.bg` to BLOCKED_AGGREGATORS
-
-It's a job board/aggregator, not an employer site.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/crawl-source/index.ts` | Replace Phase 1 link-scraping with LLM extract; add `karieri.bg` to blocked aggregators; add extract prompt; remove `looksLikeJobPath` |
-| SQL migration | Clean up ~160 garbage job entries; fix Kaufland domain |
+| `supabase/functions/policy-check-source/index.ts` | Set `policy_mode = 'FULL_TEXT_ALLOWED'` when robots.txt allows access |
+| SQL (data update) | Update active sources to `FULL_TEXT_ALLOWED`; update content records to `FULL_TEXT` |
 
