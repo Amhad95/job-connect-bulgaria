@@ -21,10 +21,6 @@ export default function Index() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
         <div className="container flex flex-col items-center gap-8 py-20 text-center md:py-28">
-          <div className="inline-flex items-center gap-2 rounded-pill border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground animate-fade-in">
-            <Briefcase className="h-3.5 w-3.5 text-primary" />
-            <span>{mockJobs.length}+ {t("common.searchJobs").toLowerCase()}</span>
-          </div>
           <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
             {t("hero.headline")}
           </h1>

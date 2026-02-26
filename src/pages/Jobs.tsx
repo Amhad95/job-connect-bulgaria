@@ -1,16 +1,16 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
-import { JobCardSkeleton } from "@/components/JobCardSkeleton";
 import { mockJobs, Job } from "@/data/mockJobs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, SlidersHorizontal, X, ExternalLink, Bookmark, Clock, MapPin, Building, ArrowRight, ChevronDown } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Search, SlidersHorizontal, X, ExternalLink, Bookmark, Clock, MapPin, ArrowRight, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -20,7 +20,7 @@ const categories = ["IT", "Marketing", "Design", "Sales", "HR", "Финанси"
 
 export default function Jobs() {
   const { t } = useTranslation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [selectedCity, setSelectedCity] = useState<string[]>([]);
   const [selectedWorkMode, setSelectedWorkMode] = useState<string[]>([]);
@@ -30,7 +30,6 @@ export default function Jobs() {
 
   const filteredJobs = useMemo(() => {
     let jobs = [...mockJobs];
-
     if (query) {
       const q = query.toLowerCase();
       jobs = jobs.filter(
@@ -43,10 +42,8 @@ export default function Jobs() {
     if (selectedCity.length) jobs = jobs.filter((j) => selectedCity.includes(j.city));
     if (selectedWorkMode.length) jobs = jobs.filter((j) => selectedWorkMode.includes(j.workMode));
     if (selectedCategory.length) jobs = jobs.filter((j) => selectedCategory.includes(j.category));
-
     if (sortBy === "newest") jobs.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
     else if (sortBy === "salary") jobs.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
-
     return jobs;
   }, [query, selectedCity, selectedWorkMode, selectedCategory, sortBy]);
 
@@ -64,10 +61,10 @@ export default function Jobs() {
   };
 
   const previewJob = selectedJob || filteredJobs[0] || null;
+  const initials = previewJob ? previewJob.company.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "";
 
   const FiltersContent = () => (
     <div className="space-y-6">
-      {/* City */}
       <div>
         <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.city")}</h4>
         <div className="space-y-1.5">
@@ -79,7 +76,6 @@ export default function Jobs() {
           ))}
         </div>
       </div>
-      {/* Work mode */}
       <div>
         <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.workMode")}</h4>
         <div className="space-y-1.5">
@@ -91,7 +87,6 @@ export default function Jobs() {
           ))}
         </div>
       </div>
-      {/* Category */}
       <div>
         <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.category")}</h4>
         <div className="space-y-1.5">
@@ -130,7 +125,6 @@ export default function Jobs() {
               <SelectItem value="salary">{t("jobs.salaryHighToLow")}</SelectItem>
             </SelectContent>
           </Select>
-          {/* Mobile filter button */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">
@@ -150,7 +144,6 @@ export default function Jobs() {
             </SheetContent>
           </Sheet>
         </div>
-        {/* Active filter chips */}
         {activeFilters.length > 0 && (
           <div className="container flex items-center gap-2 pb-3 overflow-x-auto">
             {activeFilters.map((f) => (
@@ -170,97 +163,109 @@ export default function Jobs() {
         )}
       </div>
 
-      <div className="container py-4">
+      {/* Main content — fixed height, independent scrolling */}
+      <div className="container py-3">
         <p className="mb-3 text-sm text-muted-foreground">
           {t("jobs.showing", { count: filteredJobs.length }) || `${filteredJobs.length} jobs`}
         </p>
-
-        <div className="flex gap-6">
-          {/* Desktop Filters */}
-          <aside className="hidden w-56 shrink-0 md:block">
-            <div className="sticky top-36 rounded-lg border bg-card p-4">
-              <h3 className="mb-4 font-display text-sm font-semibold">{t("jobs.filters")}</h3>
-              <FiltersContent />
-            </div>
-          </aside>
-
-          {/* Job list */}
-          <div className="flex-1 space-y-2 min-w-0">
-            {filteredJobs.length === 0 ? (
-              <div className="rounded-lg border bg-card p-12 text-center">
-                <p className="text-muted-foreground">{t("jobs.emptyState")}</p>
-                <Button variant="outline" className="mt-4" onClick={clearFilters}>{t("common.clearAll")}</Button>
-              </div>
-            ) : (
-              filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  selected={previewJob?.id === job.id}
-                  onClick={() => setSelectedJob(job)}
-                />
-              ))
-            )}
+      </div>
+      <div className="container flex gap-6 pb-4" style={{ height: "calc(100vh - 13rem)" }}>
+        {/* Desktop Filters */}
+        <aside className="hidden w-56 shrink-0 md:block overflow-y-auto">
+          <div className="rounded-lg border bg-card p-4">
+            <h3 className="mb-4 font-display text-sm font-semibold">{t("jobs.filters")}</h3>
+            <FiltersContent />
           </div>
+        </aside>
 
-          {/* Preview panel (desktop) */}
-          {previewJob && (
-            <aside className="hidden w-96 shrink-0 lg:block">
-              <div className="sticky top-36 rounded-lg border bg-card overflow-hidden">
-                <div className="border-b bg-surface p-4">
-                  <h2 className="font-display text-lg font-bold">{previewJob.title}</h2>
-                  <p className="text-sm text-muted-foreground">{previewJob.company}</p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{previewJob.city}</Badge>
-                    <Badge variant="secondary">{t(`jobs.${previewJob.workMode}`)}</Badge>
-                    <Badge variant="secondary">{t(`jobs.${previewJob.employmentType}`)}</Badge>
-                  </div>
-                  {previewJob.salaryMin && previewJob.salaryMax && (
-                    <p className="mt-2 text-sm font-semibold text-success">
-                      {previewJob.salaryMin.toLocaleString()}–{previewJob.salaryMax.toLocaleString()} {previewJob.currency}
-                    </p>
-                  )}
-                </div>
-                <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t("jobDetail.description") || "Description"}</h4>
-                    <p className="text-sm text-foreground leading-relaxed">{previewJob.description}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t("jobDetail.requirements") || "Requirements"}</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {previewJob.requirements.map((r, i) => (
-                        <li key={i} className="text-sm text-foreground">{r}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  {previewJob.benefits.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t("jobDetail.benefits") || "Benefits"}</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {previewJob.benefits.map((b, i) => (
-                          <li key={i} className="text-sm text-foreground">{b}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                <div className="border-t p-4 space-y-2">
-                  <a href={previewJob.sourceUrl} target="_blank" rel="noopener noreferrer">
-                    <Button className="w-full gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      {t("jobs.applyOn", { source: previewJob.source })}
-                    </Button>
-                  </a>
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{t("jobs.lastChecked")}: {formatDistanceToNow(new Date(previewJob.lastChecked), { addSuffix: true })}</span>
-                  </div>
-                </div>
-              </div>
-            </aside>
+        {/* Job list — scrolls independently */}
+        <div className="flex-1 min-w-0 overflow-y-auto space-y-2 pr-1">
+          {filteredJobs.length === 0 ? (
+            <div className="rounded-lg border bg-card p-12 text-center">
+              <p className="text-muted-foreground">{t("jobs.emptyState")}</p>
+              <Button variant="outline" className="mt-4" onClick={clearFilters}>{t("common.clearAll")}</Button>
+            </div>
+          ) : (
+            filteredJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                selected={previewJob?.id === job.id}
+                onClick={() => setSelectedJob(job)}
+              />
+            ))
           )}
         </div>
+
+        {/* Preview panel — scrolls independently */}
+        {previewJob && (
+          <aside className="hidden w-96 shrink-0 lg:flex flex-col overflow-hidden rounded-lg border bg-card">
+            <div className="border-b bg-surface p-4">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-10 w-10 shrink-0 rounded-md">
+                  <AvatarImage src={previewJob.companyLogo} alt={previewJob.company} />
+                  <AvatarFallback className="rounded-md text-xs font-semibold">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h2 className="font-display text-lg font-bold">{previewJob.title}</h2>
+                  <p className="text-sm text-muted-foreground">{previewJob.company}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{previewJob.city}</Badge>
+                <Badge variant="secondary">{t(`jobs.${previewJob.workMode}`)}</Badge>
+                <Badge variant="secondary">{t(`jobs.${previewJob.employmentType}`)}</Badge>
+              </div>
+              {previewJob.salaryMin && previewJob.salaryMax && (
+                <p className="mt-2 text-sm font-semibold text-success">
+                  {previewJob.salaryMin.toLocaleString()}–{previewJob.salaryMax.toLocaleString()} {previewJob.currency}
+                </p>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div>
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t("jobDetail.description")}</h4>
+                <p className="text-sm text-foreground leading-relaxed">{previewJob.description}</p>
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t("jobDetail.requirements")}</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {previewJob.requirements.map((r, i) => (
+                    <li key={i} className="text-sm text-foreground">{r}</li>
+                  ))}
+                </ul>
+              </div>
+              {previewJob.benefits.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t("jobDetail.benefits")}</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {previewJob.benefits.map((b, i) => (
+                      <li key={i} className="text-sm text-foreground">{b}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="border-t p-4 space-y-2">
+              <a href={previewJob.sourceUrl} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  {t("jobs.applyOn", { source: previewJob.source })}
+                </Button>
+              </a>
+              <Link to={`/jobs/${previewJob.id}`}>
+                <Button variant="outline" className="w-full gap-2 mt-1">
+                  <ArrowRight className="h-4 w-4" />
+                  {t("jobDetail.viewFull")}
+                </Button>
+              </Link>
+              <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{t("jobs.lastChecked")}: {formatDistanceToNow(new Date(previewJob.lastChecked), { addSuffix: true })}</span>
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
     </Layout>
   );

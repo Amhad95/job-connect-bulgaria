@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Bookmark, ExternalLink, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 
 interface JobCardProps {
@@ -25,6 +26,8 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
     t(`jobs.${job.employmentType}`),
   ].filter(Boolean).slice(0, 3);
 
+  const initials = job.company.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
   return (
     <div
       onClick={onClick}
@@ -34,7 +37,11 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
           : "border-border bg-card hover:border-primary/30 hover:shadow-sm"
       } ${compact ? "p-3" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3">
+        <Avatar className="h-8 w-8 shrink-0 rounded-md">
+          <AvatarImage src={job.companyLogo} alt={job.company} />
+          <AvatarFallback className="rounded-md text-[10px] font-semibold">{initials}</AvatarFallback>
+        </Avatar>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate font-display text-sm font-semibold text-foreground">
@@ -53,7 +60,7 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
         </Button>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5 ml-11">
         {badges.map((b) => (
           <Badge key={b} variant="secondary" className="text-[11px] font-medium">
             {b}
@@ -67,7 +74,7 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
       </div>
 
       {!compact && (
-        <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground ml-11">
           <div className="flex items-center gap-1">
             <ExternalLink className="h-3 w-3" />
             <span>{job.source}</span>
