@@ -21,9 +21,9 @@ export default function Index() {
     <Layout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
-        <div className="container grid items-center gap-8 py-16 md:grid-cols-2 md:py-24">
+        <div className="container grid items-center gap-8 py-10 md:grid-cols-2 md:py-16">
           <div className="flex flex-col gap-6 text-center md:text-left">
-            <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
+            <h1 className="max-w-3xl font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-4xl lg:text-5xl animate-fade-in">
               {t("hero.headline")}
             </h1>
             <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
