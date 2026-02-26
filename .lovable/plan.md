@@ -1,19 +1,28 @@
 
 
-## Plan: Revert hero to centered text with smaller SVG accent
+## Plan: Split hero into headline+SVG row on top, centered search/CTA below
 
-The current layout splits the hero into a 2-column grid (text left, large SVG right). The user wants:
-1. Text content back in the center (single column, centered)
-2. SVG still visible but smaller — used as a decorative accent rather than a full-width illustration
+The user wants a two-part hero layout:
 
-### Changes (single file: `src/pages/Index.tsx`)
+1. **Top row**: Left-right split — headline text on the left, SVG illustration on the right (side by side on desktop, stacked on mobile)
+2. **Bottom area**: Search bar, Upload CV button, and popular search badges remain **fully centered** beneath the split row
 
-**Hero section (lines 23-75):**
-- Remove the `md:grid-cols-2` grid layout, go back to single centered column
-- Keep all text content centered (`text-center`)
-- Place the SVG as a small decorative element above or below the headline — roughly `max-w-[200px]` or similar, centered, with reduced opacity or as a subtle accent
-- Remove the `hidden md:flex` wrapper so the SVG is visible on all screen sizes but stays small and decorative
-- Keep `animate-fade-in` and `drop-shadow-lg` on the image
+### Changes (single file: `src/pages/Index.tsx`, lines 23-71)
 
-Result: centered hero text with the SVG as a small illustration accent (around 180–220px wide), not dominating the section.
+**Structure:**
+```text
+┌─────────────────────────────────────────┐
+│  Headline + Subheadline  │  SVG (small) │  ← md:grid-cols-2, items-center
+│  (left-aligned on md+)   │              │
+├─────────────────────────────────────────┤
+│        [Search bar]  (centered)         │  ← full-width centered below
+│        [Upload CV]   (centered)         │
+│     [badge] [badge] [badge] ...         │
+└─────────────────────────────────────────┘
+```
+
+- Wrap h1 + subheadline in a `md:grid-cols-2` grid row with text left-aligned on desktop, SVG on right (~250px max, centered in its cell)
+- On mobile: stack text above SVG, both centered
+- Search bar, Upload CV button, and popular search badges sit **outside** the grid, in a centered flex column below it
+- SVG keeps `animate-fade-in` and `drop-shadow-lg`
 
