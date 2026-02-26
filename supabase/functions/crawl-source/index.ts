@@ -30,6 +30,7 @@ const SUFFIX_ATS: [string, string][] = [
 const BLOCKED_AGGREGATORS = [
   "indeed.com", "linkedin.com", "glassdoor.com",
   "zaplata.bg", "jobs.bg", "jobtiger.bg",
+  "karieri.bg",
   "facebook.com", "twitter.com", "instagram.com",
 ];
 
@@ -47,38 +48,32 @@ function isBlockedAggregator(hostname: string): boolean {
   return BLOCKED_AGGREGATORS.some(d => h === d || h.endsWith(`.${d}`));
 }
 
-// ── Shared link filters ─────────────────────────────────────────────
-const STATIC_EXTS = /\.(jpg|jpeg|png|gif|svg|webp|ico|pdf|css|js|woff|woff2|ttf|eot|mp4|mp3|zip|xml)$/i;
-const BLOCKED_PATH_SEGMENTS = [
-  "/wp-content/", "/wp-includes/", "/assets/", "/static/",
-  "/images/", "/img/", "/media/", "/uploads/", "/fonts/",
-];
-
-function passesBasicFilters(pathname: string): boolean {
-  const p = pathname.toLowerCase();
-  if (STATIC_EXTS.test(p)) return false;
-  if (BLOCKED_PATH_SEGMENTS.some(seg => p.includes(seg))) return false;
-  return true;
-}
-
-function looksLikeJobPath(pathname: string): boolean {
-  const p = pathname.toLowerCase();
-  const segments = p.split("/").filter(Boolean);
-  // Accept any path with 2+ segments that isn't obviously a static/nav page
-  if (segments.length < 2) return false;
-  const SKIP_PAGES = [
-    "about", "contact", "privacy", "terms", "imprint", "impressum",
-    "blog", "news", "press", "faq", "help", "login", "register", "signup",
-  ];
-  if (segments.length === 1 && SKIP_PAGES.includes(segments[0])) return false;
-  return true;
-}
-
 // ── Rate-limit helper ───────────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-// ── Job extraction schema for Firecrawl JSON extraction ─────────────
-const JOB_EXTRACTION_SCHEMA = {
+// ── Schema for LLM-powered job listing discovery ────────────────────
+const JOB_LISTING_SCHEMA = {
+  type: "object",
+  properties: {
+    jobs: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Job title" },
+          url: { type: "string", description: "Direct URL to the individual job posting detail page" },
+          location: { type: "string", description: "Job location if visible on the listing" },
+        },
+        required: ["title", "url"],
+      },
+      description: "List of actual job vacancy/opening listings found on this page. Only include real job postings with links to their detail pages. Do NOT include blog posts, company info pages, news articles, team member profiles, corporate content, or navigation links."
+    }
+  },
+  required: ["jobs"]
+};
+
+// ── Schema for individual job detail extraction ─────────────────────
+const JOB_DETAIL_SCHEMA = {
   type: "object",
   properties: {
     title: { type: "string", description: "Job title" },
@@ -167,11 +162,11 @@ Deno.serve(async (req) => {
 
     try {
       // ══════════════════════════════════════════════════════════════
-      // PHASE 1: DISCOVER — Scrape the listing page to get rendered links
+      // PHASE 1: DISCOVER — Use LLM extraction to identify job listings
       // ══════════════════════════════════════════════════════════════
-      console.log(`Phase 1: Scraping links from ${crawlUrl}`);
+      console.log(`Phase 1: LLM-extracting job listings from ${crawlUrl}`);
 
-      const scrapeLinksResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      const extractResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${firecrawlKey}`,
@@ -179,49 +174,62 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           url: crawlUrl,
-          formats: ["links"],
-          waitFor: 3000,
+          formats: ["extract"],
+          extract: {
+            schema: JOB_LISTING_SCHEMA,
+            prompt: "Extract only actual job vacancy/opening listings from this careers page. Each job should have a title and a direct link to its individual detail page. Do NOT include blog posts, company info, news articles, team member profiles, language selectors, or navigation links. Only include positions that someone can apply to.",
+          },
+          waitFor: 5000,
         }),
       });
 
-      const scrapeLinksData = await scrapeLinksResp.json();
-      if (!scrapeLinksResp.ok) {
-        throw new Error(`Firecrawl Scrape error: ${JSON.stringify(scrapeLinksData)}`);
+      const extractData = await extractResp.json();
+      if (!extractResp.ok) {
+        throw new Error(`Firecrawl Extract error: ${JSON.stringify(extractData)}`);
       }
 
       await delay(1000);
 
-      const rawLinks: string[] = scrapeLinksData.data?.links || scrapeLinksData.links || [];
-      const links: string[] = [...new Set(rawLinks)];
-      console.log(`Scrape discovered ${links.length} URLs from ${crawlUrl}`);
+      const extractedJobs = extractData.data?.extract?.jobs || extractData.extract?.jobs || [];
+      console.log(`LLM discovered ${extractedJobs.length} job listings from ${crawlUrl}`);
 
-      // ── Partition links ─────────────────────────────────────────
+      // ── Process discovered jobs ─────────────────────────────────
+      const crawlOrigin = new URL(crawlUrl).origin;
       const sameDomainJobLinks: string[] = [];
       const atsLinksByBoard: Map<string, { atsType: string; links: string[] }> = new Map();
 
-      for (const link of links) {
+      for (const job of extractedJobs) {
+        if (!job.url) continue;
+
         try {
-          const u = new URL(link);
+          // Resolve relative URLs against the crawl URL origin
+          const resolvedUrl = job.url.startsWith("http") ? job.url : new URL(job.url, crawlOrigin).href;
+          const u = new URL(resolvedUrl);
           const host = u.hostname.replace(/^www\./, "").toLowerCase();
 
-          if (isBlockedAggregator(host)) continue;
-          if (!passesBasicFilters(u.pathname)) continue;
+          if (isBlockedAggregator(host)) {
+            console.log(`Skipping blocked aggregator link: ${resolvedUrl}`);
+            continue;
+          }
 
           const isSameDomain = host === domain || host.endsWith(`.${domain}`);
 
           if (isSameDomain) {
-            if (looksLikeJobPath(u.pathname)) {
-              sameDomainJobLinks.push(link);
-            }
+            sameDomainJobLinks.push(resolvedUrl);
           } else {
             const atsType = recognizeAts(host);
-            if (!atsType) continue;
+            if (!atsType) {
+              // Allow non-ATS cross-domain links if they were identified by the LLM as jobs
+              // (e.g. kariera.kaufland.bg for a kaufland.bg employer)
+              sameDomainJobLinks.push(resolvedUrl);
+              continue;
+            }
 
             const boardKey = u.origin;
             if (!atsLinksByBoard.has(boardKey)) {
               atsLinksByBoard.set(boardKey, { atsType, links: [] });
             }
-            atsLinksByBoard.get(boardKey)!.links.push(link);
+            atsLinksByBoard.get(boardKey)!.links.push(resolvedUrl);
           }
         } catch {
           // invalid URL, skip
@@ -232,11 +240,9 @@ Deno.serve(async (req) => {
       const cappedSameDomain = sameDomainJobLinks.slice(0, 50);
       jobsFound += cappedSameDomain.length;
 
-      const newJobIds: string[] = [];
-
       for (const jobUrl of cappedSameDomain) {
         const result = await upsertJobPosting(supabase, jobUrl, employerId, employer_source_id, errors);
-        if (result === "added") { jobsAdded++; newJobIds.push(jobUrl); }
+        if (result === "added") jobsAdded++;
         else if (result === "updated") jobsUpdated++;
       }
 
@@ -299,7 +305,7 @@ Deno.serve(async (req) => {
 
         for (const jobUrl of cappedAtsLinks) {
           const result = await upsertJobPosting(supabase, jobUrl, employerId, atsSource.id, errors);
-          if (result === "added") { jobsAdded++; newJobIds.push(jobUrl); }
+          if (result === "added") jobsAdded++;
           else if (result === "updated") jobsUpdated++;
           await delay(100);
         }
@@ -310,7 +316,6 @@ Deno.serve(async (req) => {
       // ══════════════════════════════════════════════════════════════
       console.log(`Phase 2: Extracting details for jobs without metadata`);
 
-      // Get jobs that need extraction (no last_scraped_at, or newly added)
       const { data: jobsNeedingExtraction } = await supabase
         .from("job_postings")
         .select("id, canonical_url")
@@ -324,7 +329,7 @@ Deno.serve(async (req) => {
 
       for (const job of toExtract) {
         try {
-          await delay(1000); // rate limit: 1s between scrape calls
+          await delay(1000);
 
           console.log(`Extracting: ${job.canonical_url}`);
           const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -337,7 +342,8 @@ Deno.serve(async (req) => {
               url: job.canonical_url,
               formats: ["extract"],
               extract: {
-                schema: JOB_EXTRACTION_SCHEMA,
+                schema: JOB_DETAIL_SCHEMA,
+                prompt: "Extract the job posting details from this page. This should be an actual job vacancy that someone can apply to. If this page is NOT a job posting (e.g. it's a blog post, company info page, error page, or corporate content), return an empty object with no title.",
               },
             }),
           });
@@ -351,11 +357,11 @@ Deno.serve(async (req) => {
           const extracted = scrapeData.data?.extract || scrapeData.extract || {};
 
           if (!extracted.title) {
-            console.log(`No data extracted from ${job.canonical_url}`);
-            // Still mark as scraped to avoid retrying
+            console.log(`No job data extracted from ${job.canonical_url}, marking INACTIVE`);
             await supabase.from("job_postings").update({
+              status: "INACTIVE",
               last_scraped_at: new Date().toISOString(),
-              extraction_method: "firecrawl_extract_empty",
+              extraction_method: "firecrawl_extract_not_a_job",
             }).eq("id", job.id);
             continue;
           }
@@ -517,7 +523,7 @@ async function upsertJobPosting(
       title: titleGuess,
       location_country: "Bulgaria",
       status: "ACTIVE",
-      extraction_method: "map_discovery",
+      extraction_method: "llm_discovery",
     });
 
     if (insertErr) {
