@@ -1,14 +1,169 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Search, Upload, ExternalLink, Shield, Trash2, Filter, FileText, KanbanSquare } from "lucide-react";
+import { Layout } from "@/components/Layout";
 
-const Index = () => {
+const popularSearches = [
+  "Software Engineer", "Marketing", "Data Analyst", "Project Manager",
+  "Designer", "Sales", "Счетоводител", "Програмист", "Remote",
+];
+
+export default function Index() {
+  const { t } = useTranslation();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <Layout>
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b bg-background">
+        <div className="container flex flex-col items-center gap-8 py-20 text-center md:py-28">
+          <h1 className="max-w-3xl font-display text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
+            {t("hero.headline")}
+          </h1>
+          <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
+            {t("hero.subheadline")}
+          </p>
+
+          {/* Search bar */}
+          <div className="flex w-full max-w-xl items-center gap-2 animate-fade-in">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={t("hero.primaryCta")}
+                className="flex h-12 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            <Link to="/jobs">
+              <Button size="lg" className="h-12 rounded-lg px-6 font-display font-semibold">
+                {t("hero.primaryCta")}
+              </Button>
+            </Link>
+          </div>
+
+          <Link to="/apply-kit">
+            <Button variant="outline" className="gap-2">
+              <Upload className="h-4 w-4" />
+              {t("hero.secondaryCta")}
+            </Button>
+          </Link>
+
+          {/* Popular searches */}
+          <div className="flex flex-wrap justify-center gap-2">
+            {popularSearches.map((s) => (
+              <Link
+                key={s}
+                to={`/jobs?q=${encodeURIComponent(s)}`}
+                className="rounded-pill border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                {s}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust strip */}
+      <section className="border-b bg-muted/50">
+        <div className="container flex flex-col items-center gap-6 py-6 md:flex-row md:justify-center md:gap-12">
+          <TrustItem icon={<ExternalLink className="h-4 w-4" />} text={t("trust.directLinks")} />
+          <TrustItem icon={<Shield className="h-4 w-4" />} text={t("trust.sourceShown")} />
+          <TrustItem icon={<Trash2 className="h-4 w-4" />} text={t("trust.deleteAnytime")} />
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-b">
+        <div className="container py-16 md:py-20">
+          <h2 className="mb-12 text-center font-display text-2xl font-bold md:text-3xl">
+            {t("howItWorks.title")}
+          </h2>
+          <div className="grid gap-8 md:grid-cols-3">
+            <Step number="1" title={t("howItWorks.step1.title")} description={t("howItWorks.step1.description")} />
+            <Step number="2" title={t("howItWorks.step2.title")} description={t("howItWorks.step2.description")} />
+            <Step number="3" title={t("howItWorks.step3.title")} description={t("howItWorks.step3.description")} />
+          </div>
+        </div>
+      </section>
+
+      {/* Feature sections */}
+      <section className="border-b">
+        <div className="container py-16 md:py-20">
+          <div className="grid gap-12 md:grid-cols-3">
+            <FeatureCard
+              icon={<Filter className="h-6 w-6" />}
+              title={t("features.findRoles.title")}
+              body={t("features.findRoles.body")}
+            />
+            <FeatureCard
+              icon={<FileText className="h-6 w-6" />}
+              title={t("features.applyKit.title")}
+              body={t("features.applyKit.body")}
+            />
+            <FeatureCard
+              icon={<KanbanSquare className="h-6 w-6" />}
+              title={t("features.trackEverything.title")}
+              body={t("features.trackEverything.body")}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy trust section */}
+      <section>
+        <div className="container py-16 md:py-20">
+          <h2 className="mb-8 text-center font-display text-2xl font-bold md:text-3xl">
+            {t("trust.headline")}
+          </h2>
+          <div className="mx-auto max-w-xl space-y-4">
+            <TrustBullet text={t("trust.bullet1")} />
+            <TrustBullet text={t("trust.bullet2")} />
+            <TrustBullet text={t("trust.bullet3")} />
+          </div>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function TrustItem({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+      {icon}
+      <span>{text}</span>
     </div>
   );
-};
+}
 
-export default Index;
+function Step({ number, title, description }: { number: string; title: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+        {number}
+      </div>
+      <h3 className="font-display text-lg font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <div className="rounded-lg border bg-card p-6 transition-shadow hover:shadow-md">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <h3 className="mb-2 font-display text-lg font-semibold">{title}</h3>
+      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+function TrustBullet({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border bg-card p-4">
+      <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-success" />
+      <p className="text-sm text-muted-foreground">{text}</p>
+    </div>
+  );
+}
