@@ -1,88 +1,48 @@
 
 
-# Bachkam.com — Implementation Plan
+## Issues to Fix
 
-## Phase 1: Foundation & Design System
-- Set up i18n system (EN/BG) with language toggle and consistent key structure
-- Define design tokens: colors (neutral, modern palette), typography (H1 32px, H2 24px, H3 18px, Body 16px), spacing (4px base), radii (12px cards, 10px inputs, 999px pills)
-- Implement dark/light mode theming
-- Build core UI components: global header (logo, search, language/theme toggle, auth menu), footer, badge system (neutral/success/warning/info), job card component, skeleton loaders
+### 1. Remove the "20+ Search Jobs" badge from the home hero
+- Delete lines 24-27 in `Index.tsx` (the `<div>` with `mockJobs.length+ searchJobs` badge)
 
-## Phase 2: Enable Lovable Cloud & Database
-- Enable Lovable Cloud for auth, database, and edge functions
-- Create database schema: `jobs` table (matching the strict JSON schema), `sources` table (with policy mode), `profiles` table, `saved_jobs`, `saved_searches`, `alerts`, `tracker_items`, `cover_letters`, `cv_versions`, `removal_requests`
-- Set up RLS policies for user data (profiles, saved items, tracker, documents)
-- Set up Supabase Auth (email + password)
+### 2. Job detail page + scroll fix
 
-## Phase 3: Home Page
-- Hero block with search bar, tagline "Faster job search. Cleaner listings. One place." (EN/BG)
-- Primary CTA "Search jobs" / Secondary CTA "Upload CV for matches"
-- Trust strip: "Direct links to originals" | "Source shown on every listing" | "Delete your data anytime"
-- How it works (3 steps)
-- Popular searches chips
-- Feature sections (Find roles faster, Apply Kit, Track everything)
+**Problem A: No full job detail page.** Clicking a job only shows a sidebar preview with no path to further actions (tailor CV, generate cover letter, add to tracker).
 
-## Phase 4: Jobs Search & Browse
-- 3-column desktop layout: sticky filters (left), infinite scroll job cards (center), sticky preview panel (right)
-- Mobile: 1-column with pinned search bar, bottom sheet filters, full-page job detail
-- Search bar with keyword, location typeahead, work mode quick toggles
-- All filter groups: city, work mode, employment type, seniority, category, salary range, language, date posted, source
-- Active filter chips with clear all
-- Job cards: title, company, badges row, salary badge, source + last checked, save/share actions
-- Card states: default, hover, selected, new (24h), inactive
-- Sorting: newest, best match, salary high→low, recently checked
-- Empty states with recovery actions
-- Skeleton loading states
-
-## Phase 5: Job Detail Page
-- Full job detail with sections: overview, requirements, benefits, company info, source info
-- Sticky "Apply on {source}" CTA (opens new tab)
-- Secondary actions: save, add to tracker, generate cover letter, copy link
+**Solution:** Create a dedicated `/jobs/:id` route (`JobDetail.tsx`) with:
+- Full job description, requirements, benefits, company info
+- Company logo (see point 3)
+- Primary "Apply on {source}" CTA
+- Secondary action buttons: Save, Add to Tracker, Generate Cover Letter, Tailor CV
 - Source attribution + last checked
-- Similar jobs carousel
-- Report/Removal request link
-- Mobile: sticky bottom bar with Apply CTA
+- "Back to results" link
+- Add a "View full details" link/button in the sidebar preview panel and on the job card (on mobile) that navigates to `/jobs/:id`
 
-## Phase 6: Auth & User Profiles
-- Login/signup pages with email/password
-- Profile page with settings
-- Account deletion flow (deletes all user data)
-- Data export (JSON/CSV)
-- "Disable AI processing" toggle
+**Problem B: Scroll behavior is broken.** The job list and preview panel scroll together as one page, instead of each scrolling independently.
 
-## Phase 7: Saved Jobs & Alerts
-- Saved jobs list page
-- Saved searches with alert frequency (daily/weekly)
-- Alerts settings with unsubscribe option
-- Sign-in prompts for anonymous users trying to save
+**Solution:** Make the jobs page use a fixed-height layout where:
+- The main content area below the search bar fills the remaining viewport height (`calc(100vh - header - searchbar)`)
+- The filter sidebar, job list, and preview panel each scroll independently with `overflow-y-auto`
+- Remove the outer page scroll entirely for the jobs page
 
-## Phase 8: Application Tracker
-- Kanban board with columns: Saved, Applying, Applied, Interview, Offer, Rejected
-- Drag-and-drop on desktop, tap-to-move on mobile
-- Card fields: job title, company, date added, next reminder, status badge
-- Quick actions: open job, add notes, set reminder, move stage
-- Empty state with "Browse jobs" CTA
+### 3. Company logos on job cards
 
-## Phase 9: Apply Kit
-- CV upload with consent gating (PDF/DOCX)
-- CV versions management
-- Cover letter generator with tone presets (Direct, Warm-professional, Minimal) and language choice (EN/BG)
-- Fact-check checklist before download
-- CV tailoring suggestions (non-destructive, approve each change)
-- Download as PDF pack
-- "Do not store my documents" ephemeral processing option
+**Problem:** No company logo/image is shown on job cards.
 
-## Phase 10: Sources & Legal Pages
-- Sources page: table with source name, policy mode, last checked, what we store, removal link
-- Removal request form (URL, reason, email, company name)
-- Privacy Policy (EN + BG)
-- Terms of Service (EN + BG)
+**Solution:**
+- Add a `companyLogo` field to the `Job` interface in `mockJobs.ts`
+- For mock data, use placeholder logos (e.g., `https://logo.clearbit.com/{domain}` or `https://ui-avatars.com/api/?name={company}&background=random` as fallback)
+- Show the logo as a small avatar (32x32) on each `JobCard` next to the company name
+- Show a larger logo on `JobDetail.tsx` and in the sidebar preview
+- Note: Real crawling of logos from source sites will be implemented in the backend ingestion phase; for now, use generated avatars from the company name
 
-## Phase 11: Mock Data & Polish
-- Seed realistic Bulgarian job data (50+ listings across multiple sources and cities)
-- Wire all pages together with proper routing and navigation
-- Responsive testing across all breakpoints (360px–1440+)
-- WCAG 2.1 AA: keyboard nav, focus rings, ARIA labels, reduced motion
+### Implementation Steps
 
-**Note:** The Firecrawl ingestion pipeline, AI features (cover letter generation, job fit scoring), and email alerts will use edge functions connected to Lovable Cloud. Initially all pages will use mock data, with real data sources connected incrementally after the UI is complete.
+1. **Remove hero badge** — delete the badge `<div>` from `Index.tsx`
+2. **Add `companyLogo` to Job interface** — update `mockJobs.ts` with `companyLogo?: string` and populate with `ui-avatars.com` URLs using each company name
+3. **Update `JobCard`** — add a small company avatar/logo on the left side of the card
+4. **Fix scroll behavior in `Jobs.tsx`** — restructure the 3-column layout to use independent scrolling columns with a fixed viewport height
+5. **Add "Open full details" link** in the sidebar preview panel
+6. **Create `JobDetail.tsx`** — full page for `/jobs/:id` with all job info, company logo, and action buttons (Apply, Save, Tracker, Cover Letter, Tailor CV)
+7. **Register `/jobs/:id` route** in `App.tsx`
 
