@@ -21,6 +21,10 @@ export interface DbJob {
 }
 
 async function fetchJobs(): Promise<DbJob[]> {
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const cutoff = oneMonthAgo.toISOString();
+
   const { data, error } = await supabase
     .from("job_postings")
     .select(`
@@ -31,6 +35,7 @@ async function fetchJobs(): Promise<DbJob[]> {
       employers!inner ( name, logo_url )
     `)
     .eq("status", "ACTIVE")
+    .or(`posted_at.gte.${cutoff},and(posted_at.is.null,first_seen_at.gte.${cutoff})`)
     .order("posted_at", { ascending: false, nullsFirst: false });
 
   if (error) throw error;
