@@ -1,94 +1,56 @@
 
 
-## Cross-Domain ATS Crawling with Per-Employer Allowlisting
+## Three Issues and Fixes
 
-### Problem
-Most employers host jobs on external ATS platforms (Greenhouse, Lever, Workday, etc.). The current `crawl-source` function drops these links because of the same-domain filter. We need to follow them, but only through a controlled, per-employer policy gate.
+### Issue 1: Crawling from careers homepage, not job listings page
+Currently `crawl-source` scrapes the careers landing page and extracts links from HTML. Most careers homepages have generic navigation links, not individual job URLs. Even with the right page, JS-rendered listings are missed.
 
-### Architecture
+**Fix**: Replace `scrape` + link extraction with **Firecrawl Map API** (`/v1/map`). Map discovers all URLs on a site efficiently (including JS-rendered ones) and supports a `search` parameter to filter for job-related paths. No need to manually find the exact listings page — Map crawls from any entry point.
 
-```text
-employer_sources table (one row per crawlable origin):
-┌─────────────────────────────────────────────────────────┐
-│ Chaos (V-Ray) — chaos.com careers page                  │
-│   policy_status: ACTIVE, ats_type: NULL                 │
-│   id: aaa-...                                           │
-├─────────────────────────────────────────────────────────┤
-│ Chaos (V-Ray) — boards.greenhouse.io/chaosgroup         │
-│   policy_status: PENDING → needs own robots check       │
-│   ats_type: greenhouse, parent_source_id: aaa-...       │
-└─────────────────────────────────────────────────────────┘
+### Issue 2: No job detail extraction
+Currently jobs are inserted with `extraction_method: "link_discovery"` — title is guessed from URL path slug, all metadata fields (description, requirements, posted_at, city, work_mode) are null.
 
-crawl-source flow:
-1. Scrape employer career page (same-domain source, must be ACTIVE)
-2. Partition discovered links into same-domain vs cross-domain
-3. Cross-domain links checked against RECOGNIZED_ATS_DOMAINS
-4. For each matching ATS domain: look up employer_source for this employer+domain
-   - If none exists → auto-create with status PENDING (won't crawl yet)
-   - If exists and ACTIVE → include its links in results
-   - If exists and BLOCKED/PENDING → skip
-5. Non-ATS cross-domain links are always dropped (no aggregators)
-```
+**Fix**: After discovering job URLs via Map, scrape each job detail page using Firecrawl Scrape with **JSON extraction** (`formats: [{ type: 'json', schema }]`). Define a schema that extracts: title, description, requirements, benefits, location_city, work_mode, employment_type, posted_at, salary info. Store extracted content in `job_posting_content` and update `job_postings` metadata columns.
 
-### Recognized ATS Domains (hardcoded allowlist)
+### Issue 3: Sorting by crawl date, not posting date
+`posted_at` is always null. UI sorts by `first_seen_at`.
 
-```text
-boards.greenhouse.io, jobs.lever.co, jobs.smartrecruiters.com,
-*.myworkdayjobs.com, apply.workable.com, jobs.ashbyhq.com,
-*.recruitee.com, *.breezy.hr, *.icims.com, *.taleo.net,
-*.jobvite.com, *.bamboohr.com, *.personio.de
-```
+**Fix**: Once Issue 2 is resolved, `posted_at` will be populated from scraping. Update `useJobs` to sort by `posted_at` (falling back to `first_seen_at`), and update the UI sort option to use this.
+
+---
 
 ### Implementation Steps
 
-**1. Database migration**
-- Add `parent_source_id uuid REFERENCES employer_sources(id)` to `employer_sources` (nullable, links ATS child to parent career-page source)
-- No other schema changes needed (`ats_type` column already exists)
+**1. Rewrite `crawl-source/index.ts`** — two-phase crawl:
+- **Phase 1 (Discover)**: Call Firecrawl Map API with the employer's `careers_home_url`, using `search: "job position career opening vacancy"` and `limit: 200`. Filter returned URLs through existing `passesBasicFilters` + `looksLikeJobPath` + ATS recognition. Upsert discovered URLs as job postings.
+- **Phase 2 (Extract)**: For each newly added job (or jobs missing metadata), call Firecrawl Scrape with JSON extraction schema to pull structured data. Cap at 20 detail scrapes per crawl run to stay within rate limits. Update `job_postings` fields and insert/update `job_posting_content`.
+- Rate limit: 1 second delay between each Firecrawl API call (Map counts as 1 call, each Scrape counts as 1).
 
-**2. Rewrite `crawl-source/index.ts` link filtering**
-- Define `RECOGNIZED_ATS_DOMAINS` map (domain pattern → ats_type string)
-- After scraping, split links into two buckets:
-  - Same-domain links: filter with existing job-path patterns (unchanged)
-  - Cross-domain links: match against ATS domain patterns only
-- For each matched ATS domain, query `employer_sources` for a row matching this `employer_id` + ATS domain
-  - If found and ACTIVE: accept the links, attribute to that `employer_source_id`
-  - If found but not ACTIVE: skip, log as "ATS source pending/blocked"
-  - If not found: auto-insert a new `employer_source` with `policy_status: PENDING`, `ats_type`, `parent_source_id`, `careers_home_url` set to the ATS board URL, `robots_url` derived from ATS domain
-- Insert job postings from accepted ATS links with `employer_source_id` pointing to the ATS source row
-- Return summary including `ats_sources_discovered` count in the response
-
-**3. Rate limiting**
-- Add 500ms delay between Firecrawl scrape calls within a single crawl run
-- Keep the 50-link cap per source per crawl
-
-**4. No changes to `policy-check-source`**
-- It already works generically on any `employer_source` row, so newly created ATS sources just need `policy-check-source` called on them before they become crawlable
-
-### Technical Details
-
-The ATS domain matching function:
-
+**2. Define extraction schema** (used in Firecrawl JSON format):
 ```text
-isRecognizedAts(hostname):
-  exact match: "boards.greenhouse.io" → "greenhouse"
-  exact match: "jobs.lever.co" → "lever"
-  suffix match: ".myworkdayjobs.com" → "workday"
-  suffix match: ".recruitee.com" → "recruitee"
-  ... etc
-  no match → null (link dropped)
+{
+  title, description, requirements, benefits,
+  location_city, work_mode (remote/hybrid/onsite),
+  employment_type (full-time/part-time/contract),
+  posted_date, deadline_date,
+  salary_min, salary_max, currency
+}
 ```
 
-Cross-domain link filtering adds these guards:
-- Link must come from a page on an ACTIVE employer source (origin validation)
-- Link hostname must match a recognized ATS pattern (no arbitrary domains)
-- Link path must still pass static-asset and blocked-segment filters
-- ATS source for this employer must exist and be ACTIVE to accept links
-- Job boards (indeed.com, linkedin.com, glassdoor.com, zaplata.bg, jobs.bg) are explicitly blocked
+**3. Update `useJobs` hook** (`src/hooks/useJobs.ts`):
+- Change `.order("first_seen_at", { ascending: false })` to `.order("posted_at", { ascending: false, nullsFirst: false })`
+- Map `postedAt` from `row.posted_at` (no longer falling back to `first_seen_at`)
+
+**4. Update Jobs UI sorting** (`src/pages/Jobs.tsx`):
+- "Newest" sort uses `postedAt` (with `firstSeenAt` as fallback for nulls)
+- Show "Posted X ago" instead of crawl timestamp
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/migrations/...` | Add `parent_source_id` column |
-| `supabase/functions/crawl-source/index.ts` | ATS domain detection, split filtering, auto-create pending ATS sources, rate limiting |
+| `supabase/functions/crawl-source/index.ts` | Replace scrape+links with Map API for discovery; add Phase 2 detail extraction with JSON schema; rate limiting |
+| `src/hooks/useJobs.ts` | Sort by `posted_at` descending, nulls last |
+| `src/pages/Jobs.tsx` | Sort by `postedAt` with fallback; show posting date |
+| `src/components/JobCard.tsx` | Display "Posted X ago" using `postedAt` |
 
