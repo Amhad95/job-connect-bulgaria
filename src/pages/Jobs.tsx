@@ -4,13 +4,13 @@ import { useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
 import { JobCardSkeleton } from "@/components/JobCardSkeleton";
-import { useJobs, DbJob } from "@/hooks/useJobs";
+import { useJobs, useJob, DbJob } from "@/hooks/useJobs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, SlidersHorizontal, X, ExternalLink, Bookmark, Clock, MapPin, ArrowRight } from "lucide-react";
+import { Search, SlidersHorizontal, X, ExternalLink, Clock, MapPin, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,13 +21,30 @@ export default function Jobs() {
   const { data: jobs = [], isLoading } = useJobs();
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
-  const [selectedCompany, setSelectedCompany] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([]);
+  const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
+  const [showWithSalary, setShowWithSalary] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
   const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
 
-  // Derive available companies from data
-  const companies = useMemo(() => {
-    const set = new Set(jobs.map(j => j.company));
+  // Fetch full details for preview
+  const previewId = selectedJob?.id || (jobs.length > 0 ? jobs[0].id : undefined);
+  const { data: jobDetail } = useJob(previewId);
+
+  // Derive filter options from data
+  const cities = useMemo(() => {
+    const set = new Set(jobs.map(j => j.city).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [jobs]);
+
+  const workModes = useMemo(() => {
+    const set = new Set(jobs.map(j => j.workMode).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [jobs]);
+
+  const employmentTypes = useMemo(() => {
+    const set = new Set(jobs.map(j => j.employmentType).filter(Boolean) as string[]);
     return Array.from(set).sort();
   }, [jobs]);
 
@@ -36,29 +53,44 @@ export default function Jobs() {
     if (query) {
       const q = query.toLowerCase();
       result = result.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.company.toLowerCase().includes(q)
+        (j) => j.title.toLowerCase().includes(q) || j.company.toLowerCase().includes(q)
       );
     }
-    if (selectedCompany.length) result = result.filter((j) => selectedCompany.includes(j.company));
-    if (sortBy === "newest") result.sort((a, b) => {
-      const dateA = a.postedAt || a.firstSeenAt;
-      const dateB = b.postedAt || b.firstSeenAt;
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-    else if (sortBy === "salary") result.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
-    return result;
-  }, [query, selectedCompany, sortBy, jobs]);
+    if (selectedCities.length) result = result.filter((j) => j.city && selectedCities.includes(j.city));
+    if (selectedWorkModes.length) result = result.filter((j) => j.workMode && selectedWorkModes.includes(j.workMode));
+    if (selectedEmploymentTypes.length) result = result.filter((j) => j.employmentType && selectedEmploymentTypes.includes(j.employmentType));
+    if (showWithSalary) result = result.filter((j) => j.salaryMin || j.salaryMax);
 
-  const activeFilters = [...selectedCompany];
+    if (sortBy === "newest") {
+      result.sort((a, b) => {
+        const dateA = new Date(a.postedAt || a.firstSeenAt).getTime();
+        const dateB = new Date(b.postedAt || b.firstSeenAt).getTime();
+        return dateB - dateA;
+      });
+    } else if (sortBy === "salary") {
+      result.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
+    }
+    return result;
+  }, [query, selectedCities, selectedWorkModes, selectedEmploymentTypes, showWithSalary, sortBy, jobs]);
+
+  const activeFilters = [...selectedCities, ...selectedWorkModes, ...selectedEmploymentTypes, ...(showWithSalary ? ["Has salary"] : [])];
 
   const clearFilters = () => {
-    setSelectedCompany([]);
+    setSelectedCities([]);
+    setSelectedWorkModes([]);
+    setSelectedEmploymentTypes([]);
+    setShowWithSalary(false);
     setQuery("");
   };
 
-  const toggleFilter = (arr: string[], val: string, setter: (v: string[]) => void) => {
+  const removeFilter = (f: string) => {
+    if (f === "Has salary") { setShowWithSalary(false); return; }
+    setSelectedCities(c => c.filter(x => x !== f));
+    setSelectedWorkModes(c => c.filter(x => x !== f));
+    setSelectedEmploymentTypes(c => c.filter(x => x !== f));
+  };
+
+  const toggle = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
   };
 
@@ -70,16 +102,55 @@ export default function Jobs() {
 
   const FiltersContent = () => (
     <div className="space-y-6">
-      <div>
-        <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.employer") || "Employer"}</h4>
-        <div className="space-y-1.5 max-h-64 overflow-y-auto">
-          {companies.map((c) => (
-            <label key={c} className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox checked={selectedCompany.includes(c)} onCheckedChange={() => toggleFilter(selectedCompany, c, setSelectedCompany)} />
-              <span className="text-muted-foreground truncate">{c}</span>
-            </label>
-          ))}
+      {/* Location */}
+      {cities.length > 0 && (
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.city")}</h4>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {cities.map((c) => (
+              <label key={c} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={selectedCities.includes(c)} onCheckedChange={() => toggle(selectedCities, c, setSelectedCities)} />
+                <span className="text-muted-foreground truncate">{c}</span>
+              </label>
+            ))}
+          </div>
         </div>
+      )}
+      {/* Work Mode */}
+      {workModes.length > 0 && (
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.workMode")}</h4>
+          <div className="space-y-1.5">
+            {workModes.map((w) => (
+              <label key={w} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={selectedWorkModes.includes(w)} onCheckedChange={() => toggle(selectedWorkModes, w, setSelectedWorkModes)} />
+                <span className="text-muted-foreground">{t(`jobs.${w}`)}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Employment Type */}
+      {employmentTypes.length > 0 && (
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.employmentType")}</h4>
+          <div className="space-y-1.5">
+            {employmentTypes.map((e) => (
+              <label key={e} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={selectedEmploymentTypes.includes(e)} onCheckedChange={() => toggle(selectedEmploymentTypes, e, setSelectedEmploymentTypes)} />
+                <span className="text-muted-foreground">{t(`jobs.${e}`)}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Salary */}
+      <div>
+        <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.salaryRange")}</h4>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox checked={showWithSalary} onCheckedChange={() => setShowWithSalary(!showWithSalary)} />
+          <span className="text-muted-foreground">Has salary info</span>
+        </label>
       </div>
     </div>
   );
@@ -91,17 +162,10 @@ export default function Jobs() {
         <div className="container flex items-center gap-3 py-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("jobs.searchPlaceholder") || "Search jobs..."}
-              className="pl-10"
-            />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("jobs.searchPlaceholder")} className="pl-10" />
           </div>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px] hidden md:flex">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px] hidden md:flex"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">{t("jobs.newest")}</SelectItem>
               <SelectItem value="bestMatch">{t("jobs.bestMatch")}</SelectItem>
@@ -110,17 +174,11 @@ export default function Jobs() {
           </Select>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden">
-                <SlidersHorizontal className="h-4 w-4" />
-              </Button>
+              <Button variant="outline" size="icon" className="md:hidden"><SlidersHorizontal className="h-4 w-4" /></Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>{t("jobs.filters")}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4">
-                <FiltersContent />
-              </div>
+              <SheetHeader><SheetTitle>{t("jobs.filters")}</SheetTitle></SheetHeader>
+              <div className="mt-4"><FiltersContent /></div>
               <div className="mt-4 flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={clearFilters}>{t("common.clearAll")}</Button>
               </div>
@@ -132,9 +190,7 @@ export default function Jobs() {
             {activeFilters.map((f) => (
               <Badge key={f} variant="secondary" className="shrink-0 gap-1 pr-1">
                 {f}
-                <button onClick={() => setSelectedCompany((c) => c.filter((x) => x !== f))}>
-                  <X className="h-3 w-3" />
-                </button>
+                <button onClick={() => removeFilter(f)}><X className="h-3 w-3" /></button>
               </Badge>
             ))}
             <button onClick={clearFilters} className="text-xs text-primary hover:underline shrink-0">{t("common.clearAll")}</button>
@@ -155,7 +211,7 @@ export default function Jobs() {
         {/* Job list */}
         <div className="flex-1 min-w-0 overflow-y-auto pr-1">
           <p className="mb-2 text-sm text-muted-foreground">
-            {t("jobs.showing", { count: filteredJobs.length }) || `${filteredJobs.length} jobs`}
+            {t("jobs.showing", { count: filteredJobs.length })}
           </p>
           <div className="space-y-2">
             {isLoading ? (
@@ -167,12 +223,7 @@ export default function Jobs() {
               </div>
             ) : (
               filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  selected={previewJob?.id === job.id}
-                  onClick={() => setSelectedJob(job)}
-                />
+                <JobCard key={job.id} job={job} selected={previewJob?.id === job.id} onClick={() => setSelectedJob(job)} />
               ))
             )}
           </div>
@@ -204,20 +255,35 @@ export default function Jobs() {
               )}
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <p className="text-sm text-muted-foreground">{t("jobDetail.viewFull")}</p>
+              {jobDetail?.description ? (
+                <>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.description")}</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.description}</p>
+                  </div>
+                  {jobDetail.requirements && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.requirements")}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.requirements}</p>
+                    </div>
+                  )}
+                  {jobDetail.benefits && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.benefits")}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.benefits}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("jobDetail.viewFull")}</p>
+              )}
             </div>
             <div className="border-t p-4 space-y-2">
               <a href={previewJob.applyUrl} target="_blank" rel="noopener noreferrer">
-                <Button className="w-full gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  {t("jobs.applyOn", { employer: previewJob.company })}
-                </Button>
+                <Button className="w-full gap-2"><ExternalLink className="h-4 w-4" />{t("jobs.applyOn", { employer: previewJob.company })}</Button>
               </a>
               <Link to={`/jobs/${previewJob.id}`}>
-                <Button variant="outline" className="w-full gap-2 mt-1">
-                  <ArrowRight className="h-4 w-4" />
-                  {t("jobDetail.viewFull")}
-                </Button>
+                <Button variant="outline" className="w-full gap-2 mt-1"><ArrowRight className="h-4 w-4" />{t("jobDetail.viewFull")}</Button>
               </Link>
               <p className="text-center text-[11px] text-muted-foreground">{t("jobs.redirectNote")}</p>
               <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
