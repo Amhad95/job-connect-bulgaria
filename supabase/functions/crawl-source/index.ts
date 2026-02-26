@@ -96,26 +96,39 @@ Deno.serve(async (req) => {
       const links: string[] = scrapeData.data?.links || scrapeData.links || [];
       const domain = source.employers?.website_domain || "";
       
-      // Filter links that look like job postings (same domain, path patterns)
+      // Filter links that look like job postings (same domain, exclude static assets)
+      const STATIC_EXTS = /\.(jpg|jpeg|png|gif|svg|webp|ico|pdf|css|js|woff|woff2|ttf|eot|mp4|mp3|zip|xml)$/i;
+      const BLOCKED_PATH_SEGMENTS = ["/wp-content/", "/wp-includes/", "/assets/", "/static/", "/images/", "/img/", "/media/", "/uploads/", "/fonts/"];
+
       const jobLinks = links.filter((link: string) => {
         try {
           const u = new URL(link);
           const host = u.hostname.replace(/^www\./, "");
+          // Must be same domain or subdomain
           if (host !== domain && !host.endsWith(`.${domain}`)) return false;
           const path = u.pathname.toLowerCase();
+          // Exclude static files
+          if (STATIC_EXTS.test(path)) return false;
+          // Exclude known non-job paths
+          if (BLOCKED_PATH_SEGMENTS.some(seg => path.includes(seg))) return false;
+          // Exclude very short paths (homepage, section roots)
+          if (path.split("/").filter(Boolean).length < 2) return false;
+          // Must look like a job posting path
           return (
             path.includes("/job") ||
-            path.includes("/career") ||
             path.includes("/position") ||
             path.includes("/vacancy") ||
             path.includes("/opening") ||
             path.includes("/karieri") ||
-            /\/\d+/.test(path) // numeric IDs often indicate job detail pages
+            path.includes("/rolle") ||
+            path.includes("/apply") ||
+            // Allow career subpages with an ID-like segment
+            (path.includes("/career") && /\/[a-z0-9-]{4,}/.test(path))
           );
         } catch {
           return false;
         }
-      }).slice(0, 50); // Limit to 50 per crawl
+      }).slice(0, 50);
 
       jobsFound = jobLinks.length;
 
