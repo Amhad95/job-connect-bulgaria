@@ -177,11 +177,6 @@ Deno.serve(async (req) => {
       const employerId = source.employers?.id;
 
       console.log(`Scraped ${links.length} links from ${crawlUrl}`);
-      // Log cross-domain links for debugging
-      const crossDomainSample = links.filter(l => {
-        try { const h = new URL(l).hostname.replace(/^www\./, ""); return h !== domain && !h.endsWith(`.${domain}`); } catch { return false; }
-      }).slice(0, 20);
-      if (crossDomainSample.length > 0) console.log("Cross-domain links:", JSON.stringify(crossDomainSample));
 
       // ── Partition links ─────────────────────────────────────────
       const sameDomainJobLinks: string[] = [];
