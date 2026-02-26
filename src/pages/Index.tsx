@@ -5,6 +5,7 @@ import { Search, Upload, ExternalLink, Shield, Trash2, Filter, FileText, KanbanS
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
 import { mockJobs } from "@/data/mockJobs";
+import heroIllustration from "@/assets/hero-illustration.svg";
 
 const popularSearches = [
   "Software Engineer", "Marketing", "Data Analyst", "Project Manager",
@@ -20,49 +21,55 @@ export default function Index() {
     <Layout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
-        <div className="container flex flex-col items-center gap-8 py-20 text-center md:py-28">
-          <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
-            {t("hero.headline")}
-          </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
-            {t("hero.subheadline")}
-          </p>
+        <div className="container grid items-center gap-8 py-16 md:grid-cols-2 md:py-24">
+          <div className="flex flex-col gap-6 text-center md:text-left">
+            <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in">
+              {t("hero.headline")}
+            </h1>
+            <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
+              {t("hero.subheadline")}
+            </p>
 
-          {/* Search bar */}
-          <div className="flex w-full max-w-xl items-center gap-2 animate-fade-in">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={t("hero.primaryCta")}
-                className="flex h-12 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-base shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+            {/* Search bar */}
+            <div className="flex w-full max-w-xl items-center gap-2 animate-fade-in">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder={t("hero.primaryCta")}
+                  className="flex h-12 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-base shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+              <Link to="/jobs">
+                <Button size="lg" className="h-12 rounded-lg px-6 font-display font-semibold shadow-sm">
+                  {t("hero.primaryCta")}
+                </Button>
+              </Link>
             </div>
-            <Link to="/jobs">
-              <Button size="lg" className="h-12 rounded-lg px-6 font-display font-semibold shadow-sm">
-                {t("hero.primaryCta")}
+
+            <Link to="/apply-kit" className="self-center md:self-start">
+              <Button variant="outline" className="gap-2">
+                <Upload className="h-4 w-4" />
+                {t("hero.secondaryCta")}
               </Button>
             </Link>
+
+            {/* Popular searches */}
+            <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+              {popularSearches.map((s) => (
+                <Link
+                  key={s}
+                  to={`/jobs?q=${encodeURIComponent(s)}`}
+                  className="rounded-pill border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                >
+                  {s}
+                </Link>
+              ))}
+            </div>
           </div>
 
-          <Link to="/apply-kit">
-            <Button variant="outline" className="gap-2">
-              <Upload className="h-4 w-4" />
-              {t("hero.secondaryCta")}
-            </Button>
-          </Link>
-
-          {/* Popular searches */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {popularSearches.map((s) => (
-              <Link
-                key={s}
-                to={`/jobs?q=${encodeURIComponent(s)}`}
-                className="rounded-pill border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
-              >
-                {s}
-              </Link>
-            ))}
+          <div className="hidden md:flex items-center justify-center animate-fade-in">
+            <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-md drop-shadow-lg" />
           </div>
         </div>
       </section>
