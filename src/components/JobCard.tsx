@@ -31,7 +31,8 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
   if (job.workMode) badges.push(t(`jobs.${job.workMode}`));
   if (job.employmentType) badges.push(t(`jobs.${job.employmentType}`));
 
-  const isNew = new Date(job.firstSeenAt).getTime() > Date.now() - 48 * 3600 * 1000;
+  const dateToCheck = job.postedAt || job.firstSeenAt;
+  const isNew = new Date(dateToCheck).getTime() > Date.now() - 48 * 3600 * 1000;
 
   return (
     <div
@@ -88,7 +89,11 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span>{formatDistanceToNow(new Date(job.lastSeenAt), { addSuffix: true })}</span>
+            <span>
+              {job.postedAt
+                ? `${t("jobs.posted") || "Posted"} ${formatDistanceToNow(new Date(job.postedAt), { addSuffix: true })}`
+                : formatDistanceToNow(new Date(job.firstSeenAt), { addSuffix: true })}
+            </span>
           </div>
         </div>
       )}
