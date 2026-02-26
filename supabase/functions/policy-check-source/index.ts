@@ -119,12 +119,14 @@ Deno.serve(async (req) => {
       notes,
     });
 
-    // Update employer source status
+    // Update employer source status and policy mode
+    const policyMode = robotsAllowed ? "FULL_TEXT_ALLOWED" : "METADATA_ONLY";
     await supabase
       .from("employer_sources")
       .update({
         policy_status: newStatus,
         policy_reason: policyReason,
+        policy_mode: policyMode,
         robots_last_checked_at: new Date().toISOString(),
       })
       .eq("id", employer_source_id);
