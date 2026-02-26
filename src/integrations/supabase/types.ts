@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_urls: {
+        Row: {
+          created_at: string
+          domain: string | null
+          id: string
+          reason: string | null
+          url_pattern: string
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          reason?: string | null
+          url_pattern: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          reason?: string | null
+          url_pattern?: string
+        }
+        Relationships: []
+      }
       cover_letters: {
         Row: {
           company: string
@@ -55,6 +79,53 @@ export type Database = {
           },
         ]
       }
+      crawl_runs: {
+        Row: {
+          employer_source_id: string
+          errors_json: Json | null
+          finished_at: string | null
+          id: string
+          jobs_added: number | null
+          jobs_found: number | null
+          jobs_removed: number | null
+          jobs_updated: number | null
+          started_at: string
+          status: Database["public"]["Enums"]["crawl_run_status_enum"]
+        }
+        Insert: {
+          employer_source_id: string
+          errors_json?: Json | null
+          finished_at?: string | null
+          id?: string
+          jobs_added?: number | null
+          jobs_found?: number | null
+          jobs_removed?: number | null
+          jobs_updated?: number | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["crawl_run_status_enum"]
+        }
+        Update: {
+          employer_source_id?: string
+          errors_json?: Json | null
+          finished_at?: string | null
+          id?: string
+          jobs_added?: number | null
+          jobs_found?: number | null
+          jobs_removed?: number | null
+          jobs_updated?: number | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["crawl_run_status_enum"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crawl_runs_employer_source_id_fkey"
+            columns: ["employer_source_id"]
+            isOneToOne: false
+            referencedRelation: "employer_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cv_files: {
         Row: {
           file_name: string
@@ -81,6 +152,282 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      employer_sources: {
+        Row: {
+          ats_type: string | null
+          careers_home_url: string | null
+          created_at: string
+          employer_id: string
+          id: string
+          jobs_list_url: string | null
+          last_crawl_at: string | null
+          policy_mode: Database["public"]["Enums"]["policy_mode_enum"]
+          policy_reason: string | null
+          policy_status: Database["public"]["Enums"]["policy_status_enum"]
+          robots_last_checked_at: string | null
+          robots_url: string | null
+          terms_last_checked_at: string | null
+          terms_url: string | null
+        }
+        Insert: {
+          ats_type?: string | null
+          careers_home_url?: string | null
+          created_at?: string
+          employer_id: string
+          id?: string
+          jobs_list_url?: string | null
+          last_crawl_at?: string | null
+          policy_mode?: Database["public"]["Enums"]["policy_mode_enum"]
+          policy_reason?: string | null
+          policy_status?: Database["public"]["Enums"]["policy_status_enum"]
+          robots_last_checked_at?: string | null
+          robots_url?: string | null
+          terms_last_checked_at?: string | null
+          terms_url?: string | null
+        }
+        Update: {
+          ats_type?: string | null
+          careers_home_url?: string | null
+          created_at?: string
+          employer_id?: string
+          id?: string
+          jobs_list_url?: string | null
+          last_crawl_at?: string | null
+          policy_mode?: Database["public"]["Enums"]["policy_mode_enum"]
+          policy_reason?: string | null
+          policy_status?: Database["public"]["Enums"]["policy_status_enum"]
+          robots_last_checked_at?: string | null
+          robots_url?: string | null
+          terms_last_checked_at?: string | null
+          terms_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_sources_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: true
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employers: {
+        Row: {
+          created_at: string
+          hq_city: string | null
+          id: string
+          industry_tags: string[] | null
+          is_featured: boolean
+          logo_url: string | null
+          name: string
+          slug: string
+          website_domain: string | null
+        }
+        Insert: {
+          created_at?: string
+          hq_city?: string | null
+          id?: string
+          industry_tags?: string[] | null
+          is_featured?: boolean
+          logo_url?: string | null
+          name: string
+          slug: string
+          website_domain?: string | null
+        }
+        Update: {
+          created_at?: string
+          hq_city?: string | null
+          id?: string
+          industry_tags?: string[] | null
+          is_featured?: boolean
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          website_domain?: string | null
+        }
+        Relationships: []
+      }
+      job_posting_content: {
+        Row: {
+          benefits_text: string | null
+          description_text: string | null
+          id: string
+          job_id: string
+          requirements_text: string | null
+          store_mode: Database["public"]["Enums"]["store_mode_enum"]
+        }
+        Insert: {
+          benefits_text?: string | null
+          description_text?: string | null
+          id?: string
+          job_id: string
+          requirements_text?: string | null
+          store_mode?: Database["public"]["Enums"]["store_mode_enum"]
+        }
+        Update: {
+          benefits_text?: string | null
+          description_text?: string | null
+          id?: string
+          job_id?: string
+          requirements_text?: string | null
+          store_mode?: Database["public"]["Enums"]["store_mode_enum"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_posting_content_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_postings: {
+        Row: {
+          apply_url: string | null
+          canonical_url: string
+          category: string | null
+          content_hash: string | null
+          currency: string | null
+          department: string | null
+          employer_id: string
+          employer_source_id: string | null
+          employment_type: string | null
+          extraction_method: string | null
+          first_seen_at: string
+          id: string
+          language: string | null
+          last_scraped_at: string | null
+          last_seen_at: string
+          location_city: string | null
+          location_country: string | null
+          location_region: string | null
+          posted_at: string | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_period: string | null
+          seniority: string | null
+          status: Database["public"]["Enums"]["job_status_enum"]
+          title: string
+          work_mode: string | null
+        }
+        Insert: {
+          apply_url?: string | null
+          canonical_url: string
+          category?: string | null
+          content_hash?: string | null
+          currency?: string | null
+          department?: string | null
+          employer_id: string
+          employer_source_id?: string | null
+          employment_type?: string | null
+          extraction_method?: string | null
+          first_seen_at?: string
+          id?: string
+          language?: string | null
+          last_scraped_at?: string | null
+          last_seen_at?: string
+          location_city?: string | null
+          location_country?: string | null
+          location_region?: string | null
+          posted_at?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_period?: string | null
+          seniority?: string | null
+          status?: Database["public"]["Enums"]["job_status_enum"]
+          title: string
+          work_mode?: string | null
+        }
+        Update: {
+          apply_url?: string | null
+          canonical_url?: string
+          category?: string | null
+          content_hash?: string | null
+          currency?: string | null
+          department?: string | null
+          employer_id?: string
+          employer_source_id?: string | null
+          employment_type?: string | null
+          extraction_method?: string | null
+          first_seen_at?: string
+          id?: string
+          language?: string | null
+          last_scraped_at?: string | null
+          last_seen_at?: string
+          location_city?: string | null
+          location_country?: string | null
+          location_region?: string | null
+          posted_at?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_period?: string | null
+          seniority?: string | null
+          status?: Database["public"]["Enums"]["job_status_enum"]
+          title?: string
+          work_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_postings_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_employer_source_id_fkey"
+            columns: ["employer_source_id"]
+            isOneToOne: false
+            referencedRelation: "employer_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_checks: {
+        Row: {
+          allowed_paths_json: Json | null
+          blocked_paths_json: Json | null
+          checked_at: string
+          employer_source_id: string
+          id: string
+          notes: string | null
+          result: Database["public"]["Enums"]["policy_check_result_enum"]
+          robots_snapshot_hash: string | null
+          terms_snapshot_hash: string | null
+        }
+        Insert: {
+          allowed_paths_json?: Json | null
+          blocked_paths_json?: Json | null
+          checked_at?: string
+          employer_source_id: string
+          id?: string
+          notes?: string | null
+          result: Database["public"]["Enums"]["policy_check_result_enum"]
+          robots_snapshot_hash?: string | null
+          terms_snapshot_hash?: string | null
+        }
+        Update: {
+          allowed_paths_json?: Json | null
+          blocked_paths_json?: Json | null
+          checked_at?: string
+          employer_source_id?: string
+          id?: string
+          notes?: string | null
+          result?: Database["public"]["Enums"]["policy_check_result_enum"]
+          robots_snapshot_hash?: string | null
+          terms_snapshot_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_checks_employer_source_id_fkey"
+            columns: ["employer_source_id"]
+            isOneToOne: false
+            referencedRelation: "employer_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -109,12 +456,77 @@ export type Database = {
         }
         Relationships: []
       }
+      removal_requests: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          id: string
+          processed_at: string | null
+          reason: string | null
+          requester_email: string | null
+          status: Database["public"]["Enums"]["removal_status_enum"]
+          url: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason?: string | null
+          requester_email?: string | null
+          status?: Database["public"]["Enums"]["removal_status_enum"]
+          url: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason?: string | null
+          requester_email?: string | null
+          status?: Database["public"]["Enums"]["removal_status_enum"]
+          url?: string
+        }
+        Relationships: []
+      }
+      saved_jobs: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tracker_items: {
         Row: {
           added_at: string
+          apply_url: string | null
+          canonical_url: string | null
           company: string
           company_logo: string | null
           id: string
+          job_id: string | null
           job_title: string
           position: number
           source_url: string | null
@@ -124,9 +536,12 @@ export type Database = {
         }
         Insert: {
           added_at?: string
+          apply_url?: string | null
+          canonical_url?: string | null
           company: string
           company_logo?: string | null
           id?: string
+          job_id?: string | null
           job_title: string
           position?: number
           source_url?: string | null
@@ -136,9 +551,12 @@ export type Database = {
         }
         Update: {
           added_at?: string
+          apply_url?: string | null
+          canonical_url?: string | null
           company?: string
           company_logo?: string | null
           id?: string
+          job_id?: string | null
           job_title?: string
           position?: number
           source_url?: string | null
@@ -191,7 +609,18 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      crawl_run_status_enum: "RUNNING" | "COMPLETED" | "FAILED"
+      job_status_enum: "ACTIVE" | "INACTIVE"
       note_type: "note" | "interview_date" | "contact" | "status_change"
+      policy_check_result_enum: "PASS" | "FAIL"
+      policy_mode_enum:
+        | "OFF"
+        | "METADATA_ONLY"
+        | "FULL_TEXT_ALLOWED"
+        | "FEED_ONLY"
+      policy_status_enum: "PENDING" | "ACTIVE" | "BLOCKED"
+      removal_status_enum: "PENDING" | "REVIEWED" | "ACTIONED" | "REJECTED"
+      store_mode_enum: "METADATA_ONLY" | "FULL_TEXT"
       tracker_stage:
         | "saved"
         | "applying"
@@ -326,7 +755,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      crawl_run_status_enum: ["RUNNING", "COMPLETED", "FAILED"],
+      job_status_enum: ["ACTIVE", "INACTIVE"],
       note_type: ["note", "interview_date", "contact", "status_change"],
+      policy_check_result_enum: ["PASS", "FAIL"],
+      policy_mode_enum: [
+        "OFF",
+        "METADATA_ONLY",
+        "FULL_TEXT_ALLOWED",
+        "FEED_ONLY",
+      ],
+      policy_status_enum: ["PENDING", "ACTIVE", "BLOCKED"],
+      removal_status_enum: ["PENDING", "REVIEWED", "ACTIONED", "REJECTED"],
+      store_mode_enum: ["METADATA_ONLY", "FULL_TEXT"],
       tracker_stage: [
         "saved",
         "applying",

@@ -250,7 +250,7 @@ export default function Jobs() {
               <a href={previewJob.sourceUrl} target="_blank" rel="noopener noreferrer">
                 <Button className="w-full gap-2">
                   <ExternalLink className="h-4 w-4" />
-                  {t("jobs.applyOn", { source: previewJob.source })}
+                  {t("jobs.applyOn", { employer: previewJob.company })}
                 </Button>
               </a>
               <Link to={`/jobs/${previewJob.id}`}>
@@ -259,6 +259,7 @@ export default function Jobs() {
                   {t("jobDetail.viewFull")}
                 </Button>
               </Link>
+              <p className="text-center text-[11px] text-muted-foreground">{t("jobs.redirectNote")}</p>
               <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>{t("jobs.lastChecked")}: {formatDistanceToNow(new Date(previewJob.lastChecked), { addSuffix: true })}</span>
