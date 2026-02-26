@@ -1,15 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
-import { mockJobs } from "@/data/mockJobs";
+import { useJobs } from "@/hooks/useJobs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Bookmark } from "lucide-react";
 
 export default function SavedJobs() {
   const { t } = useTranslation();
-  // Mock: show first 3 jobs as "saved"
-  const savedJobs = mockJobs.slice(0, 3);
+  // TODO: replace with actual saved jobs from DB
+  const { data: jobs = [] } = useJobs();
+  const savedJobs = jobs.slice(0, 3);
 
   return (
     <Layout>
