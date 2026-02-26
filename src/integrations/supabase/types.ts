@@ -14,7 +14,175 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cover_letters: {
+        Row: {
+          company: string
+          content: string
+          created_at: string
+          id: string
+          job_title: string
+          tone: string
+          tracker_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          company: string
+          content: string
+          created_at?: string
+          id?: string
+          job_title: string
+          tone?: string
+          tracker_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string
+          content?: string
+          created_at?: string
+          id?: string
+          job_title?: string
+          tone?: string
+          tracker_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cover_letters_tracker_item_id_fkey"
+            columns: ["tracker_item_id"]
+            isOneToOne: false
+            referencedRelation: "tracker_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_files: {
+        Row: {
+          file_name: string
+          id: string
+          is_primary: boolean
+          storage_path: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          file_name: string
+          id?: string
+          is_primary?: boolean
+          storage_path: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          file_name?: string
+          id?: string
+          is_primary?: boolean
+          storage_path?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tracker_items: {
+        Row: {
+          added_at: string
+          company: string
+          company_logo: string | null
+          id: string
+          job_title: string
+          position: number
+          source_url: string | null
+          stage: Database["public"]["Enums"]["tracker_stage"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          company: string
+          company_logo?: string | null
+          id?: string
+          job_title: string
+          position?: number
+          source_url?: string | null
+          stage?: Database["public"]["Enums"]["tracker_stage"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          company?: string
+          company_logo?: string | null
+          id?: string
+          job_title?: string
+          position?: number
+          source_url?: string | null
+          stage?: Database["public"]["Enums"]["tracker_stage"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tracker_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          note_type: Database["public"]["Enums"]["note_type"]
+          tracker_item_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          note_type?: Database["public"]["Enums"]["note_type"]
+          tracker_item_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          note_type?: Database["public"]["Enums"]["note_type"]
+          tracker_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracker_notes_tracker_item_id_fkey"
+            columns: ["tracker_item_id"]
+            isOneToOne: false
+            referencedRelation: "tracker_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +191,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      note_type: "note" | "interview_date" | "contact" | "status_change"
+      tracker_stage:
+        | "saved"
+        | "applying"
+        | "applied"
+        | "interview"
+        | "offer"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +325,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      note_type: ["note", "interview_date", "contact", "status_change"],
+      tracker_stage: [
+        "saved",
+        "applying",
+        "applied",
+        "interview",
+        "offer",
+        "rejected",
+      ],
+    },
   },
 } as const
