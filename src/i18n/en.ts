@@ -34,6 +34,9 @@ export default {
     primaryCta: "Search jobs",
     secondaryCta: "Upload CV for matches",
   },
+  home: {
+    trendingJobs: "Trending jobs",
+  },
   trust: {
     headline: "Privacy-first by design",
     directLinks: "Direct links to originals",
@@ -59,9 +62,9 @@ export default {
   },
   howItWorks: {
     title: "How it works",
-    step1: { title: "Search", description: "Browse jobs from all major Bulgarian sources in one place." },
-    step2: { title: "Prepare", description: "Use the Apply Kit to craft the perfect application." },
-    step3: { title: "Apply", description: "Click through to the original posting and apply directly." },
+    step1: { title: "Search and filter", description: "Keywords, city, remote or hybrid, seniority, salary when available." },
+    step2: { title: "Open the original posting", description: "Apply always goes to the source or the employer's system." },
+    step3: { title: "Apply Kit and tracking", description: "Create a cover letter and track applications after sign-in." },
   },
   jobs: {
     filters: "Filters",
@@ -82,8 +85,8 @@ export default {
     remote: "Remote",
     hybrid: "Hybrid",
     onsite: "On-site",
-    fullTime: "Full-time",
-    partTime: "Part-time",
+    "full-time": "Full-time",
+    "part-time": "Part-time",
     contract: "Contract",
     internship: "Internship",
     lastChecked: "Last checked",
@@ -94,6 +97,13 @@ export default {
     savedJobs: "Saved jobs",
     noSavedJobs: "You haven't saved any jobs yet.",
     emptyState: "No jobs match your filters. Try adjusting your search.",
+    showing: "Showing {{count}} jobs",
+    searchPlaceholder: "Role, skill, or company",
+  },
+  jobDetail: {
+    description: "Description",
+    requirements: "Requirements",
+    benefits: "Benefits",
   },
   tracker: {
     title: "Application Tracker",
@@ -110,6 +120,7 @@ export default {
   },
   applyKit: {
     title: "Apply Kit",
+    subtitle: "Keep your CV versions, cover letters, and role notes in one place.",
     uploadCV: "Upload CV",
     cvVersions: "CV versions",
     coverLetter: "Cover letter",
@@ -139,6 +150,20 @@ export default {
     deleteAccount: "Delete account",
     exportData: "Export data",
     disableAI: "Disable AI processing",
+  },
+  sources: {
+    intro: "Bachkam.com lists jobs from multiple sources. Each job shows its source and links to the original posting.",
+    name: "Source",
+    policy: "Policy",
+    stored: "What we store",
+    removal: "Removal",
+    requestRemoval: "Request removal",
+    removalBody: "If you own the posting or represent the employer, send us the URL and we will review and process the request.",
+    postingUrl: "Posting URL",
+    reason: "Reason",
+    email: "Your email",
+    companyName: "Company name (optional)",
+    submit: "Submit request",
   },
   footer: {
     privacy: "Privacy Policy",
