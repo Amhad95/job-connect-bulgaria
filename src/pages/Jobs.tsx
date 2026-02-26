@@ -42,7 +42,11 @@ export default function Jobs() {
       );
     }
     if (selectedCompany.length) result = result.filter((j) => selectedCompany.includes(j.company));
-    if (sortBy === "newest") result.sort((a, b) => new Date(b.firstSeenAt).getTime() - new Date(a.firstSeenAt).getTime());
+    if (sortBy === "newest") result.sort((a, b) => {
+      const dateA = a.postedAt || a.firstSeenAt;
+      const dateB = b.postedAt || b.firstSeenAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
     else if (sortBy === "salary") result.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
     return result;
   }, [query, selectedCompany, sortBy, jobs]);
@@ -218,7 +222,11 @@ export default function Jobs() {
               <p className="text-center text-[11px] text-muted-foreground">{t("jobs.redirectNote")}</p>
               <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span>{t("jobs.lastChecked")}: {formatDistanceToNow(new Date(previewJob.lastSeenAt), { addSuffix: true })}</span>
+                <span>
+                  {previewJob.postedAt
+                    ? `${t("jobs.posted") || "Posted"} ${formatDistanceToNow(new Date(previewJob.postedAt), { addSuffix: true })}`
+                    : `${t("jobs.lastChecked")}: ${formatDistanceToNow(new Date(previewJob.lastSeenAt), { addSuffix: true })}`}
+                </span>
               </div>
             </div>
           </aside>

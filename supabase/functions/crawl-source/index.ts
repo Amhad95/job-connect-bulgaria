@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 // ── Recognized ATS domains ──────────────────────────────────────────
-// Exact matches and suffix matches. Returns ats_type string or null.
 const EXACT_ATS: Record<string, string> = {
   "boards.greenhouse.io": "greenhouse",
   "jobs.lever.co": "lever",
@@ -28,7 +27,6 @@ const SUFFIX_ATS: [string, string][] = [
   [".lever.co", "lever"],
 ];
 
-// Explicitly blocked job aggregators — never follow these
 const BLOCKED_AGGREGATORS = [
   "indeed.com", "linkedin.com", "glassdoor.com",
   "zaplata.bg", "jobs.bg", "jobtiger.bg",
@@ -81,6 +79,28 @@ function looksLikeJobPath(pathname: string): boolean {
 // ── Rate-limit helper ───────────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+// ── Job extraction schema for Firecrawl JSON extraction ─────────────
+const JOB_EXTRACTION_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "Job title" },
+    description: { type: "string", description: "Full job description text" },
+    requirements: { type: "string", description: "Job requirements, qualifications, skills needed" },
+    benefits: { type: "string", description: "Benefits, perks offered" },
+    location_city: { type: "string", description: "City where the job is located" },
+    work_mode: { type: "string", enum: ["remote", "hybrid", "onsite"], description: "Work arrangement" },
+    employment_type: { type: "string", enum: ["full-time", "part-time", "contract", "internship"], description: "Type of employment" },
+    posted_date: { type: "string", description: "Date the job was posted, in ISO 8601 or any parseable date format" },
+    deadline_date: { type: "string", description: "Application deadline date" },
+    salary_min: { type: "number", description: "Minimum salary" },
+    salary_max: { type: "number", description: "Maximum salary" },
+    currency: { type: "string", description: "Salary currency code (e.g. BGN, EUR, USD)" },
+    department: { type: "string", description: "Department or team" },
+    seniority: { type: "string", description: "Seniority level (junior, mid, senior, lead)" },
+  },
+  required: ["title"],
+};
+
 // ── Main handler ────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -101,7 +121,6 @@ Deno.serve(async (req) => {
     const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Fetch source with employer
     const { data: source, error: srcErr } = await supabase
       .from("employer_sources")
       .select("*, employers(id, name, website_domain)")
@@ -110,8 +129,7 @@ Deno.serve(async (req) => {
 
     if (srcErr || !source) {
       return new Response(JSON.stringify({ error: "Source not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -124,16 +142,14 @@ Deno.serve(async (req) => {
 
     if (!firecrawlKey) {
       return new Response(JSON.stringify({ error: "FIRECRAWL_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const crawlUrl = source.jobs_list_url || source.careers_home_url;
     if (!crawlUrl) {
       return new Response(JSON.stringify({ error: "No URL configured for this source" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -145,13 +161,19 @@ Deno.serve(async (req) => {
       .single();
 
     const crawlRunId = crawlRun?.id;
-    let jobsFound = 0, jobsAdded = 0, jobsUpdated = 0;
+    let jobsFound = 0, jobsAdded = 0, jobsUpdated = 0, jobsExtracted = 0;
     let atsSourcesDiscovered = 0;
     const errors: string[] = [];
+    const domain = source.employers?.website_domain || "";
+    const employerId = source.employers?.id;
 
     try {
-      // Scrape the page
-      const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      // ══════════════════════════════════════════════════════════════
+      // PHASE 1: DISCOVER — Use Firecrawl Map API
+      // ══════════════════════════════════════════════════════════════
+      console.log(`Phase 1: Mapping ${crawlUrl}`);
+
+      const mapResp = await fetch("https://api.firecrawl.dev/v1/map", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${firecrawlKey}`,
@@ -159,28 +181,24 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           url: crawlUrl,
-          formats: ["markdown", "html", "links"],
-          onlyMainContent: true,
+          search: "job position career opening vacancy apply",
+          limit: 200,
+          includeSubdomains: true,
         }),
       });
 
-      const scrapeData = await scrapeResp.json();
-      if (!scrapeResp.ok) {
-        throw new Error(`Firecrawl error: ${JSON.stringify(scrapeData)}`);
+      const mapData = await mapResp.json();
+      if (!mapResp.ok) {
+        throw new Error(`Firecrawl Map error: ${JSON.stringify(mapData)}`);
       }
 
-      // Rate limit: wait after Firecrawl call
-      await delay(500);
+      await delay(1000); // rate limit after Map call
 
-      const links: string[] = scrapeData.data?.links || scrapeData.links || [];
-      const domain = source.employers?.website_domain || "";
-      const employerId = source.employers?.id;
-
-      console.log(`Scraped ${links.length} links from ${crawlUrl}`);
+      const links: string[] = mapData.links || [];
+      console.log(`Map discovered ${links.length} URLs from ${crawlUrl}`);
 
       // ── Partition links ─────────────────────────────────────────
       const sameDomainJobLinks: string[] = [];
-      // Group cross-domain ATS links by their ATS board base URL
       const atsLinksByBoard: Map<string, { atsType: string; links: string[] }> = new Map();
 
       for (const link of links) {
@@ -188,25 +206,19 @@ Deno.serve(async (req) => {
           const u = new URL(link);
           const host = u.hostname.replace(/^www\./, "").toLowerCase();
 
-          // Skip aggregators always
           if (isBlockedAggregator(host)) continue;
-
-          // Basic filters (static assets, blocked path segments)
           if (!passesBasicFilters(u.pathname)) continue;
 
           const isSameDomain = host === domain || host.endsWith(`.${domain}`);
 
           if (isSameDomain) {
-            // Same-domain: apply existing job-path heuristics
             if (looksLikeJobPath(u.pathname)) {
               sameDomainJobLinks.push(link);
             }
           } else {
-            // Cross-domain: only accept recognized ATS
             const atsType = recognizeAts(host);
             if (!atsType) continue;
 
-            // Build a board key from origin (e.g. "https://boards.greenhouse.io")
             const boardKey = u.origin;
             if (!atsLinksByBoard.has(boardKey)) {
               atsLinksByBoard.set(boardKey, { atsType, links: [] });
@@ -222,15 +234,17 @@ Deno.serve(async (req) => {
       const cappedSameDomain = sameDomainJobLinks.slice(0, 50);
       jobsFound += cappedSameDomain.length;
 
+      const newJobIds: string[] = [];
+
       for (const jobUrl of cappedSameDomain) {
-        await upsertJobPosting(supabase, jobUrl, employerId, employer_source_id, errors);
+        const result = await upsertJobPosting(supabase, jobUrl, employerId, employer_source_id, errors);
+        if (result === "added") { jobsAdded++; newJobIds.push(jobUrl); }
+        else if (result === "updated") jobsUpdated++;
       }
 
       // ── Process cross-domain ATS links ──────────────────────────
       for (const [boardOrigin, { atsType, links: atsLinks }] of atsLinksByBoard) {
-        // Derive a careers_home_url for the ATS board
         const boardUrl = new URL(boardOrigin);
-        // For greenhouse: boards.greenhouse.io/companyslug → use first link's path root
         let atsCareersUrl = boardOrigin;
         if (atsLinks.length > 0) {
           try {
@@ -242,7 +256,6 @@ Deno.serve(async (req) => {
           } catch {}
         }
 
-        // Look up existing employer_source for this employer + ATS board
         const { data: existingAtsSources } = await supabase
           .from("employer_sources")
           .select("id, policy_status, ats_type")
@@ -253,7 +266,6 @@ Deno.serve(async (req) => {
         let atsSource = existingAtsSources?.[0];
 
         if (!atsSource) {
-          // Auto-create with PENDING status
           const robotsUrl = `${boardUrl.origin}/robots.txt`;
           const { data: newSource, error: insertErr } = await supabase
             .from("employer_sources")
@@ -279,26 +291,131 @@ Deno.serve(async (req) => {
           console.log(`Discovered ATS source: ${atsType} at ${atsCareersUrl} (PENDING)`);
         }
 
-        // Only process links if the ATS source is ACTIVE
         if (atsSource.policy_status !== "ACTIVE") {
           console.log(`ATS source ${atsType} is ${atsSource.policy_status}, skipping ${atsLinks.length} links`);
           continue;
         }
 
-        // Process ATS links (cap at 50 per board)
         const cappedAtsLinks = atsLinks.slice(0, 50);
         jobsFound += cappedAtsLinks.length;
 
         for (const jobUrl of cappedAtsLinks) {
-          await upsertJobPosting(supabase, jobUrl, employerId, atsSource.id, errors);
-          await delay(100); // gentle rate limit between DB ops
+          const result = await upsertJobPosting(supabase, jobUrl, employerId, atsSource.id, errors);
+          if (result === "added") { jobsAdded++; newJobIds.push(jobUrl); }
+          else if (result === "updated") jobsUpdated++;
+          await delay(100);
         }
       }
 
-      // Count results
-      const allResults = await countResults(errors);
-      jobsAdded = allResults.added;
-      jobsUpdated = allResults.updated;
+      // ══════════════════════════════════════════════════════════════
+      // PHASE 2: EXTRACT — Scrape job details with JSON extraction
+      // ══════════════════════════════════════════════════════════════
+      console.log(`Phase 2: Extracting details for jobs without metadata`);
+
+      // Get jobs that need extraction (no last_scraped_at, or newly added)
+      const { data: jobsNeedingExtraction } = await supabase
+        .from("job_postings")
+        .select("id, canonical_url")
+        .eq("employer_id", employerId)
+        .eq("status", "ACTIVE")
+        .is("last_scraped_at", null)
+        .limit(20);
+
+      const toExtract = jobsNeedingExtraction || [];
+      console.log(`Found ${toExtract.length} jobs needing extraction`);
+
+      for (const job of toExtract) {
+        try {
+          await delay(1000); // rate limit: 1s between scrape calls
+
+          console.log(`Extracting: ${job.canonical_url}`);
+          const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${firecrawlKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: job.canonical_url,
+              formats: ["extract"],
+              extract: {
+                schema: JOB_EXTRACTION_SCHEMA,
+              },
+            }),
+          });
+
+          const scrapeData = await scrapeResp.json();
+          if (!scrapeResp.ok) {
+            errors.push(`Scrape ${job.canonical_url}: ${scrapeData.error || scrapeResp.status}`);
+            continue;
+          }
+
+          const extracted = scrapeData.data?.extract || scrapeData.extract || {};
+
+          if (!extracted.title) {
+            console.log(`No data extracted from ${job.canonical_url}`);
+            // Still mark as scraped to avoid retrying
+            await supabase.from("job_postings").update({
+              last_scraped_at: new Date().toISOString(),
+              extraction_method: "firecrawl_extract_empty",
+            }).eq("id", job.id);
+            continue;
+          }
+
+          // Parse posted_date
+          let postedAt: string | null = null;
+          if (extracted.posted_date) {
+            try {
+              const d = new Date(extracted.posted_date);
+              if (!isNaN(d.getTime())) postedAt = d.toISOString();
+            } catch {}
+          }
+
+          // Update job_postings metadata
+          await supabase.from("job_postings").update({
+            title: extracted.title,
+            location_city: extracted.location_city || null,
+            work_mode: extracted.work_mode || null,
+            employment_type: extracted.employment_type || null,
+            salary_min: extracted.salary_min || null,
+            salary_max: extracted.salary_max || null,
+            currency: extracted.currency || null,
+            department: extracted.department || null,
+            seniority: extracted.seniority || null,
+            posted_at: postedAt,
+            last_scraped_at: new Date().toISOString(),
+            extraction_method: "firecrawl_extract",
+          }).eq("id", job.id);
+
+          // Upsert job_posting_content
+          const contentData = {
+            job_id: job.id,
+            description_text: extracted.description || null,
+            requirements_text: extracted.requirements || null,
+            benefits_text: extracted.benefits || null,
+            store_mode: (source.policy_mode === "FULL_TEXT_ALLOWED" ? "FULL_TEXT" : "METADATA_ONLY") as "FULL_TEXT" | "METADATA_ONLY",
+          };
+
+          const { data: existingContent } = await supabase
+            .from("job_posting_content")
+            .select("id")
+            .eq("job_id", job.id)
+            .maybeSingle();
+
+          if (existingContent) {
+            await supabase.from("job_posting_content").update(contentData).eq("id", existingContent.id);
+          } else {
+            await supabase.from("job_posting_content").insert(contentData);
+          }
+
+          jobsExtracted++;
+          console.log(`Extracted: ${extracted.title} (${extracted.location_city || "no city"}, ${extracted.work_mode || "no mode"})`);
+
+        } catch (extractErr) {
+          const msg = extractErr instanceof Error ? extractErr.message : "Extract error";
+          errors.push(`Extract ${job.canonical_url}: ${msg}`);
+        }
+      }
 
       // Update crawl run
       if (crawlRunId) {
@@ -336,6 +453,7 @@ Deno.serve(async (req) => {
         jobs_found: jobsFound,
         jobs_added: jobsAdded,
         jobs_updated: jobsUpdated,
+        jobs_extracted: jobsExtracted,
         ats_sources_discovered: atsSourcesDiscovered,
         errors,
       }),
@@ -351,16 +469,13 @@ Deno.serve(async (req) => {
 });
 
 // ── Helper: upsert a job posting ────────────────────────────────────
-// Tracks added/updated via closure-free approach using errors array for error reporting
-let _added = 0, _updated = 0;
-
 async function upsertJobPosting(
   supabase: ReturnType<typeof createClient>,
   jobUrl: string,
   employerId: string,
   employerSourceId: string,
   errors: string[],
-) {
+): Promise<"added" | "updated" | "error"> {
   const { data: existing } = await supabase
     .from("job_postings")
     .select("id")
@@ -372,7 +487,7 @@ async function upsertJobPosting(
       .from("job_postings")
       .update({ last_seen_at: new Date().toISOString(), status: "ACTIVE" })
       .eq("id", existing.id);
-    _updated++;
+    return "updated";
   } else {
     const pathParts = new URL(jobUrl).pathname.split("/").filter(Boolean);
     const titleGuess = pathParts[pathParts.length - 1]
@@ -387,21 +502,13 @@ async function upsertJobPosting(
       title: titleGuess,
       location_country: "Bulgaria",
       status: "ACTIVE",
-      extraction_method: "link_discovery",
+      extraction_method: "map_discovery",
     });
 
     if (insertErr) {
       errors.push(`Insert ${jobUrl}: ${insertErr.message}`);
-    } else {
-      _added++;
+      return "error";
     }
+    return "added";
   }
-}
-
-function countResults(_errors: string[]) {
-  const result = { added: _added, updated: _updated };
-  // Reset for next invocation (edge functions are long-lived)
-  _added = 0;
-  _updated = 0;
-  return Promise.resolve(result);
 }

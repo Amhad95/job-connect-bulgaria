@@ -31,7 +31,7 @@ async function fetchJobs(): Promise<DbJob[]> {
       employers!inner ( name, logo_url )
     `)
     .eq("status", "ACTIVE")
-    .order("first_seen_at", { ascending: false });
+    .order("posted_at", { ascending: false, nullsFirst: false });
 
   if (error) throw error;
 
