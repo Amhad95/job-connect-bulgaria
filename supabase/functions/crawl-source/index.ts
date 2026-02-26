@@ -63,17 +63,15 @@ function passesBasicFilters(pathname: string): boolean {
 
 function looksLikeJobPath(pathname: string): boolean {
   const p = pathname.toLowerCase();
-  if (p.split("/").filter(Boolean).length < 2) return false;
-  return (
-    p.includes("/job") ||
-    p.includes("/position") ||
-    p.includes("/vacancy") ||
-    p.includes("/opening") ||
-    p.includes("/karieri") ||
-    p.includes("/rolle") ||
-    p.includes("/apply") ||
-    (p.includes("/career") && /\/[a-z0-9-]{4,}/.test(p))
-  );
+  const segments = p.split("/").filter(Boolean);
+  // Accept any path with 2+ segments that isn't obviously a static/nav page
+  if (segments.length < 2) return false;
+  const SKIP_PAGES = [
+    "about", "contact", "privacy", "terms", "imprint", "impressum",
+    "blog", "news", "press", "faq", "help", "login", "register", "signup",
+  ];
+  if (segments.length === 1 && SKIP_PAGES.includes(segments[0])) return false;
+  return true;
 }
 
 // ── Rate-limit helper ───────────────────────────────────────────────
@@ -169,11 +167,11 @@ Deno.serve(async (req) => {
 
     try {
       // ══════════════════════════════════════════════════════════════
-      // PHASE 1: DISCOVER — Use Firecrawl Map API
+      // PHASE 1: DISCOVER — Scrape the listing page to get rendered links
       // ══════════════════════════════════════════════════════════════
-      console.log(`Phase 1: Mapping ${crawlUrl}`);
+      console.log(`Phase 1: Scraping links from ${crawlUrl}`);
 
-      const mapResp = await fetch("https://api.firecrawl.dev/v1/map", {
+      const scrapeLinksResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${firecrawlKey}`,
@@ -181,21 +179,21 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           url: crawlUrl,
-          search: "job position career opening vacancy apply",
-          limit: 200,
-          includeSubdomains: true,
+          formats: ["links"],
+          waitFor: 3000,
         }),
       });
 
-      const mapData = await mapResp.json();
-      if (!mapResp.ok) {
-        throw new Error(`Firecrawl Map error: ${JSON.stringify(mapData)}`);
+      const scrapeLinksData = await scrapeLinksResp.json();
+      if (!scrapeLinksResp.ok) {
+        throw new Error(`Firecrawl Scrape error: ${JSON.stringify(scrapeLinksData)}`);
       }
 
-      await delay(1000); // rate limit after Map call
+      await delay(1000);
 
-      const links: string[] = mapData.links || [];
-      console.log(`Map discovered ${links.length} URLs from ${crawlUrl}`);
+      const rawLinks: string[] = scrapeLinksData.data?.links || scrapeLinksData.links || [];
+      const links: string[] = [...new Set(rawLinks)];
+      console.log(`Scrape discovered ${links.length} URLs from ${crawlUrl}`);
 
       // ── Partition links ─────────────────────────────────────────
       const sameDomainJobLinks: string[] = [];
@@ -319,7 +317,7 @@ Deno.serve(async (req) => {
         .eq("employer_id", employerId)
         .eq("status", "ACTIVE")
         .is("last_scraped_at", null)
-        .limit(20);
+        .limit(30);
 
       const toExtract = jobsNeedingExtraction || [];
       console.log(`Found ${toExtract.length} jobs needing extraction`);
@@ -369,6 +367,23 @@ Deno.serve(async (req) => {
               const d = new Date(extracted.posted_date);
               if (!isNaN(d.getTime())) postedAt = d.toISOString();
             } catch {}
+          }
+
+          // Skip jobs older than 1 month
+          if (postedAt) {
+            const postedDate = new Date(postedAt);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            if (postedDate < oneMonthAgo) {
+              console.log(`Marking stale job: ${extracted.title} (posted ${postedAt})`);
+              await supabase.from("job_postings").update({
+                status: "INACTIVE",
+                posted_at: postedAt,
+                last_scraped_at: new Date().toISOString(),
+                extraction_method: "firecrawl_extract_stale",
+              }).eq("id", job.id);
+              continue;
+            }
           }
 
           // Update job_postings metadata
