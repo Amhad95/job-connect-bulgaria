@@ -31,16 +31,32 @@ async function fetchJobs(): Promise<DbJob[]> {
       id, title, canonical_url, apply_url,
       location_city, work_mode, employment_type, category,
       salary_min, salary_max, currency,
-      first_seen_at, last_seen_at, posted_at,
-      employers!inner ( name, logo_url )
+      first_seen_at, last_seen_at, posted_at, last_scraped_at,
+      employers!inner ( name, logo_url ),
+      job_posting_content ( description_text )
     `)
     .eq("status", "ACTIVE")
+    .not("last_scraped_at", "is", null)
     .or(`posted_at.gte.${cutoff},and(posted_at.is.null,first_seen_at.gte.${cutoff})`)
     .order("posted_at", { ascending: false, nullsFirst: false });
 
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => ({
+  const validJobs = (data ?? []).filter((row: any) => {
+    // 1. Must have a real title
+    if (!row.title || row.title.includes("Untitled Position") || row.title.length < 3) return false;
+
+    // 2. Must have some location context or be remote
+    if (!row.location_city && row.work_mode !== "remote") return false;
+
+    // 3. Must have an extracted description text to meet threshold of crawled info
+    const content = Array.isArray(row.job_posting_content) ? row.job_posting_content[0] : row.job_posting_content;
+    if (!content?.description_text || content.description_text.length < 50) return false;
+
+    return true;
+  });
+
+  return validJobs.map((row: any) => ({
     id: row.id,
     title: row.title,
     company: row.employers.name,
