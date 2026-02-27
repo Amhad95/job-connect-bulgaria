@@ -10,6 +10,7 @@ import {
 export default function Employers() {
     const { t, i18n } = useTranslation();
     const isBg = i18n.language === "bg";
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annually'>('monthly');
 
     return (
         <Layout>
@@ -366,76 +367,226 @@ export default function Employers() {
                     <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm mb-3 block text-center">
                         {isBg ? "Ценообразуване" : "Pricing"}
                     </span>
-                    <h2 id="pricing-heading" className="text-3xl font-bold text-center mb-12 text-gray-900">
+                    <h2 id="pricing-heading" className="text-3xl font-bold text-center mb-4 text-gray-900">
                         {isBg ? "Ясни планове за реални екипи по подбор" : "Clear plans for real hiring teams"}
                     </h2>
+                    <p className="text-center text-gray-500 mb-10 text-sm">
+                        {isBg ? "Без скрити такси. Започнете безплатно, надградете когато сте готови." : "No hidden fees. Start free, upgrade when you're ready."}
+                    </p>
 
+                    {/* Billing cycle toggle */}
+                    <div className="flex justify-center mb-14">
+                        <div className="inline-flex items-center rounded-full bg-white border border-gray-200 shadow-sm p-1 gap-1">
+                            {([
+                                { value: 'monthly' as const, labelEn: 'Monthly', labelBg: 'Месечно' },
+                                { value: 'quarterly' as const, labelEn: 'Quarterly', labelBg: 'Тримесечно', savingsEn: 'Save 32%', savingsBg: '−32%' },
+                                { value: 'annually' as const, labelEn: 'Annually', labelBg: 'Годишно', savingsEn: 'Save 49%', savingsBg: '−49%' },
+                            ]).map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setBillingCycle(opt.value)}
+                                    className={`relative px-4 py-2 rounded-full text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${billingCycle === opt.value ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900'
+                                        }`}
+                                >
+                                    {isBg ? opt.labelBg : opt.labelEn}
+                                    {'savingsEn' in opt && billingCycle !== opt.value && (
+                                        <span className="ml-1.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5">
+                                            {isBg ? opt.savingsBg : opt.savingsEn}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-                        {/* Starter */}
-                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 hover:shadow-md transition-shadow">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{isBg ? "Базов" : "Starter"}</h3>
-                            <p className="text-gray-500 text-sm mb-4">{isBg ? "Идеален за начало." : "Perfect for getting started."}</p>
-                            <div className="text-4xl font-extrabold text-gray-900 mb-6">$0<span className="text-lg font-normal text-gray-400">/mo</span></div>
-                            <ul className="space-y-3 mb-8">
-                                {(isBg
-                                    ? ["1 активна позиция", "Базов процес (pipeline)", "Ограничен преглед на AI класирането", "Email поддръжка"]
-                                    : ["1 active role", "Basic pipeline", "Limited match scoring preview", "Email support"]
-                                ).map((f) => (
-                                    <li key={f} className="flex items-start gap-2 text-gray-700 text-sm">
+
+                        {/* ── Tier 1: Early Adopter / Starter ── */}
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 hover:shadow-md transition-shadow flex flex-col h-full">
+                            <div className="mb-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                    {isBg ? 'Базов — Early Adopter' : 'Early Adopter'}
+                                </h3>
+                                <p className="text-blue-600 text-sm font-semibold mb-5">
+                                    {isBg ? 'Заявете профила си и го поемете безплатно завинаги.' : 'Claim your scraped profile and take control for free.'}
+                                </p>
+                                <div className="flex items-end gap-1.5">
+                                    <span className="text-4xl font-extrabold text-gray-900">0 €</span>
+                                    <span className="text-gray-400 text-base mb-1">/ {isBg ? 'месец' : 'month'}</span>
+                                </div>
+                                <p className="text-sm font-bold text-gray-700 mt-2">{isBg ? 'Безплатен завинаги' : 'Free Forever'}</p>
+                            </div>
+                            <ul className="space-y-3 mb-8 flex-1">
+                                {(isBg ? [
+                                    'До 2 активни публикации едновременно',
+                                    'Стандартна видимост в търсенето',
+                                    '"Верифициран работодател" значка',
+                                    'Получавайте кандидатури директно в платформата',
+                                    'Стандартна двуезична публикация',
+                                ] : [
+                                    'Up to 2 Active Job Postings at a time',
+                                    'Standard visibility in search',
+                                    '"Verified Employer" Badge',
+                                    'Receive applications directly in the platform',
+                                    'Standard bilingual job posting',
+                                ]).map(f => (
+                                    <li key={f} className="flex items-start gap-2.5 text-sm text-gray-700">
                                         <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                                        <span>{f}</span>
+                                        {f}
                                     </li>
                                 ))}
                             </ul>
-                            <Link to="/pricing" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
-                                {isBg ? "Започнете" : "Get started"}
-                            </Link>
+                            <a href="/auth" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                                {isBg ? 'Започнете безплатно' : 'Start for Free'}
+                            </a>
                         </div>
 
-                        {/* Growth – highlighted */}
-                        <div className="bg-blue-600 rounded-2xl shadow-xl p-8 text-white relative md:-translate-y-3">
-                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white text-blue-600 text-xs font-bold uppercase px-3 py-1 shadow">
-                                {isBg ? "Най-популярен" : "Most popular"}
+                        {/* ── Tier 2: Growth (highlighted) ── */}
+                        <div className="bg-blue-600 rounded-2xl shadow-2xl p-8 text-white relative md:-translate-y-4 flex flex-col h-full ring-4 ring-blue-400/30">
+                            <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-white text-blue-600 text-xs font-bold uppercase tracking-wide px-4 py-1.5 shadow-md whitespace-nowrap">
+                                {isBg ? '⭐ Най-популярен' : '⭐ Most Popular'}
                             </span>
-                            <h3 className="text-lg font-semibold mb-1">{isBg ? "Растеж" : "Growth"}</h3>
-                            <p className="text-blue-200 text-sm mb-4">{isBg ? "За мащабиращи екипи." : "For scaling teams."}</p>
-                            <div className="text-4xl font-extrabold mb-6">$99<span className="text-lg font-normal text-blue-300">/mo</span></div>
-                            <ul className="space-y-3 mb-8">
-                                {(isBg
-                                    ? ["До 10 активни позиции", "Пълно AI класиране и оценка за съвпадение", "Филтри и кратки списъци", "Бележки за сътрудничество в екип"]
-                                    : ["Up to 10 active roles", "Full AI ranking and match score", "Filters + shortlists", "Team collaboration notes"]
-                                ).map((f) => (
-                                    <li key={f} className="flex items-start gap-2 text-blue-100 text-sm">
+                            <div className="mb-6 mt-2">
+                                <h3 className="text-lg font-bold mb-1">{isBg ? 'Растеж' : 'Growth'}</h3>
+                                <p className="text-blue-200 text-sm font-semibold mb-5">
+                                    {isBg ? '30-дневен безплатен пробен период (без кредитна карта).' : '30-Day Free Trial (No credit card required).'}
+                                </p>
+
+                                {billingCycle === 'monthly' && (
+                                    <div className="flex items-end gap-1.5">
+                                        <span className="text-4xl font-extrabold">49 €</span>
+                                        <span className="text-blue-300 text-base mb-1">/ {isBg ? 'месец' : 'month'}</span>
+                                    </div>
+                                )}
+                                {billingCycle === 'quarterly' && (
+                                    <div>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-4xl font-extrabold">99 €</span>
+                                            <span className="text-blue-300 text-base mb-1">/ {isBg ? 'тримесечие' : 'quarter'}</span>
+                                        </div>
+                                        <p className="text-blue-200 text-sm mt-1">
+                                            <s className="text-blue-300/60">147 €</s>
+                                            {' '}&middot;{' '}
+                                            {isBg ? 'Фактурирано тримесечно' : 'Billed Quarterly'}
+                                        </p>
+                                    </div>
+                                )}
+                                {billingCycle === 'annually' && (
+                                    <div>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-4xl font-extrabold">299 €</span>
+                                            <span className="text-blue-300 text-base mb-1">/ {isBg ? 'година' : 'year'}</span>
+                                        </div>
+                                        <p className="text-blue-200 text-sm mt-1">
+                                            <s className="text-blue-300/60">588 €</s>
+                                            {' '}&middot;{' '}
+                                            {isBg ? 'Фактурирано годишно' : 'Billed Annually'}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <ul className="space-y-3 mb-8 flex-1">
+                                {(isBg ? [
+                                    'Всичко от Базовия план, плюс:',
+                                    '10 активни публикации едновременно',
+                                    'AI класиране на кандидати: автоматично оценяване',
+                                    'Интерактивен Kanban Pipeline с персонализирани етапи',
+                                    'Приоритетно позициониране над Външни обяви',
+                                    'Експорт на данни и автобиографии',
+                                    'До 3 места за рекрутер',
+                                ] : [
+                                    'Everything in Starter, plus:',
+                                    '10 Active Job Postings at a time',
+                                    'AI Candidate Ranking: Automatically scores applicants',
+                                    'Interactive Kanban Pipeline: Drag-and-drop custom stages',
+                                    'Priority placement above External Listings',
+                                    'Export applicant data & CVs',
+                                    'Up to 3 Recruiter Seats',
+                                ]).map((f, i) => (
+                                    <li key={f} className={`flex items-start gap-2.5 text-sm ${i === 0 ? 'text-blue-200 font-semibold' : 'text-blue-100'}`}>
                                         <CheckCircle className="w-4 h-4 text-white flex-shrink-0 mt-0.5" aria-hidden="true" />
-                                        <span>{f}</span>
+                                        {f}
                                     </li>
                                 ))}
                             </ul>
-                            <Link to="/pricing" className="inline-flex w-full justify-center rounded-full bg-white text-blue-600 px-6 py-3 text-sm font-bold hover:bg-gray-50 transition-colors shadow">
-                                {isBg ? "Започнете" : "Get started"}
-                            </Link>
+                            <a href="/auth" className="inline-flex w-full justify-center rounded-full bg-white text-blue-600 px-6 py-3 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">
+                                {isBg ? 'Започнете 30-дневен пробен период' : 'Start 30-Day Free Trial'}
+                            </a>
                         </div>
 
-                        {/* Enterprise */}
-                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 hover:shadow-md transition-shadow">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{isBg ? "Enterprise" : "Enterprise"}</h3>
-                            <p className="text-gray-500 text-sm mb-4">{isBg ? "За неограничени екипи." : "For large hiring operations."}</p>
-                            <div className="text-4xl font-extrabold text-gray-900 mb-6">{isBg ? "По заявка" : "Custom"}</div>
-                            <ul className="space-y-3 mb-8">
-                                {(isBg
-                                    ? ["Неограничени позиции", "Разширен работен поток и права", "Интеграции с вашите системи", "Дедикирана поддръжка"]
-                                    : ["Unlimited roles", "Advanced workflow and permissions", "Integrations", "Dedicated support"]
-                                ).map((f) => (
-                                    <li key={f} className="flex items-start gap-2 text-gray-700 text-sm">
+                        {/* ── Tier 3: Enterprise / Agency ── */}
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 hover:shadow-md transition-shadow flex flex-col h-full">
+                            <div className="mb-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                    {isBg ? 'Enterprise / Агенция' : 'Enterprise / Agency'}
+                                </h3>
+                                <p className="text-gray-500 text-sm font-semibold mb-5">
+                                    {isBg ? 'За мащабни операции по наемане.' : 'For large hiring operations.'}
+                                </p>
+
+                                {billingCycle === 'monthly' && (
+                                    <div className="flex items-end gap-1.5">
+                                        <span className="text-4xl font-extrabold text-gray-900">129 €</span>
+                                        <span className="text-gray-400 text-base mb-1">/ {isBg ? 'месец' : 'month'}</span>
+                                    </div>
+                                )}
+                                {billingCycle === 'quarterly' && (
+                                    <div>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-4xl font-extrabold text-gray-900">249 €</span>
+                                            <span className="text-gray-400 text-base mb-1">/ {isBg ? 'тримесечие' : 'quarter'}</span>
+                                        </div>
+                                        <p className="text-gray-400 text-sm mt-1">
+                                            <s className="text-gray-300">387 €</s>
+                                            {' '}&middot;{' '}
+                                            {isBg ? 'Фактурирано тримесечно' : 'Billed Quarterly'}
+                                        </p>
+                                    </div>
+                                )}
+                                {billingCycle === 'annually' && (
+                                    <div>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-4xl font-extrabold text-gray-900">799 €</span>
+                                            <span className="text-gray-400 text-base mb-1">/ {isBg ? 'година' : 'year'}</span>
+                                        </div>
+                                        <p className="text-gray-400 text-sm mt-1">
+                                            <s className="text-gray-300">1 548 €</s>
+                                            {' '}&middot;{' '}
+                                            {isBg ? 'Фактурирано годишно' : 'Billed Annually'}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <ul className="space-y-3 mb-8 flex-1">
+                                {(isBg ? [
+                                    'Всичко от Растеж, плюс:',
+                                    'Неограничени активни публикации',
+                                    'Неограничени места за рекрутер',
+                                    'Премиум брандиране (банер, видео, раздел за култура)',
+                                    'Топ позициониране в всички търсения',
+                                    'API достъп (Интеграция с Workday/SAP)',
+                                ] : [
+                                    'Everything in Growth, plus:',
+                                    'Unlimited Active Job Postings',
+                                    'Unlimited Recruiter Seats',
+                                    'Premium Employer Branding (Banner, video, culture section)',
+                                    'Top-tier placement in all searches',
+                                    'API Access (Integrate with Workday/SAP)',
+                                ]).map((f, i) => (
+                                    <li key={f} className={`flex items-start gap-2.5 text-sm ${i === 0 ? 'text-gray-500 font-semibold' : 'text-gray-700'}`}>
                                         <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                                        <span>{f}</span>
+                                        {f}
                                     </li>
                                 ))}
                             </ul>
-                            <Link to="/contact" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
-                                {isBg ? "Свържете се с нас" : "Contact sales"}
-                            </Link>
+                            <a href="/auth" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                                {isBg ? 'Регистрирайте се' : 'Sign Up'}
+                            </a>
                         </div>
+
                     </div>
                 </div>
             </section>
