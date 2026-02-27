@@ -225,8 +225,10 @@ export type Database = {
       employers: {
         Row: {
           ats_direct_access: boolean
+          billing_email: string | null
           company_type: string
           created_at: string
+          features_json: Json | null
           hq_city: string | null
           id: string
           industry_tags: string[] | null
@@ -236,12 +238,15 @@ export type Database = {
           name: string
           plan_tier: string
           slug: string
+          stripe_customer_id: string | null
           website_domain: string | null
         }
         Insert: {
           ats_direct_access?: boolean
+          billing_email?: string | null
           company_type?: string
           created_at?: string
+          features_json?: Json | null
           hq_city?: string | null
           id?: string
           industry_tags?: string[] | null
@@ -251,12 +256,15 @@ export type Database = {
           name: string
           plan_tier?: string
           slug: string
+          stripe_customer_id?: string | null
           website_domain?: string | null
         }
         Update: {
           ats_direct_access?: boolean
+          billing_email?: string | null
           company_type?: string
           created_at?: string
+          features_json?: Json | null
           hq_city?: string | null
           id?: string
           industry_tags?: string[] | null
@@ -266,6 +274,7 @@ export type Database = {
           name?: string
           plan_tier?: string
           slug?: string
+          stripe_customer_id?: string | null
           website_domain?: string | null
         }
         Relationships: []
@@ -416,6 +425,70 @@ export type Database = {
           },
         ]
       }
+      partner_events: {
+        Row: {
+          created_at: string
+          employer_id: string
+          event_type: string
+          id: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          employer_id: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          employer_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_events_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_memberships: {
+        Row: {
+          employer_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          employer_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          employer_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_memberships_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_checks: {
         Row: {
           allowed_paths_json: Json | null
@@ -548,6 +621,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      signup_requests: {
+        Row: {
+          company_name: string
+          contact_email: string
+          contact_name: string
+          created_at: string
+          id: string
+          message: string | null
+          phone: string | null
+          reviewed_at: string | null
+          status: string
+        }
+        Insert: {
+          company_name: string
+          contact_email: string
+          contact_name: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          reviewed_at?: string | null
+          status?: string
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string
+          contact_name?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          reviewed_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       system_settings: {
         Row: {

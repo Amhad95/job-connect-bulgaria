@@ -532,6 +532,7 @@ async function upsertJobPosting(
       title: titleGuess,
       location_country: "Bulgaria",
       status: "ACTIVE",
+      approval_status: "PENDING",
       extraction_method: "llm_discovery",
     });
 

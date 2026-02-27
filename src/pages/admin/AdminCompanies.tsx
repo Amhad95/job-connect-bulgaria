@@ -73,7 +73,7 @@ export default function AdminCompanies() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [scrapeProgress, setScrapeProgress] = useState<Record<string, "idle" | "running" | "done" | "error">>({});
+    const [scrapeProgress] = useState<Record<string, "idle" | "running" | "done" | "error">>({});
     const [scrapeWorking, setScrapeWorking] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -107,34 +107,30 @@ export default function AdminCompanies() {
     const toggleAll = () =>
         setSelected(prev => prev.size === visible.length ? new Set() : new Set(visible.map(c => c.id)));
 
-    const scrapeCompany = async (company: Company) => {
-        const sources = company.employer_sources?.filter(s => s.policy_status === "ACTIVE");
-        if (!sources?.length) { toast.error("No active sources for " + company.name); return; }
-        setScrapeProgress(p => ({ ...p, [company.id]: "running" }));
-        let ok = 0;
-        for (const src of sources) {
-            const { error } = await supabase.functions.invoke("crawl-source", { body: { employer_source_id: src.id } });
-            if (error) toast.error(`${company.name}: ${error.message}`);
-            else ok++;
-        }
-        setScrapeProgress(p => ({ ...p, [company.id]: ok > 0 ? "done" : "error" }));
-        if (ok > 0) toast.success(`${company.name}: ${ok} source(s) scraped → jobs queued as PENDING`);
-        setTimeout(() => setScrapeProgress(p => { const n = { ...p }; delete n[company.id]; return n; }), 4000);
-    };
-
-    const scrapeSelected = async () => {
+    const fireBatchScrape = async (companyIds: string[]) => {
+        if (!companyIds.length) return;
         setScrapeWorking(true);
-        for (const company of companies.filter(c => selected.has(c.id))) await scrapeCompany(company);
+        try {
+            const { data, error } = await supabase.functions.invoke("batch-scrape", {
+                body: { company_ids: companyIds },
+            });
+            if (error) {
+                toast.error("Scrape trigger failed: " + error.message);
+            } else {
+                toast.success(`Scraping started in background for ${data?.sources_triggered || 0} source(s). You can close this page safely.`);
+            }
+        } catch (e: any) {
+            toast.error("Scrape trigger failed: " + e.message);
+        }
         setScrapeWorking(false);
         setSelected(new Set());
     };
 
-    const scrapeAllAllowed = async () => {
-        setScrapeWorking(true);
+    const scrapeSelected = () => fireBatchScrape(Array.from(selected));
+
+    const scrapeAllAllowed = () => {
         const allowed = companies.filter(c => (c.employer_sources || []).some(s => s.policy_status === "ACTIVE"));
-        for (const company of allowed) await scrapeCompany(company);
-        setScrapeWorking(false);
-        toast.success(`Scrape completed for ${allowed.length} allowed sources.`);
+        fireBatchScrape(allowed.map(c => c.id));
     };
 
     const recheckPolicy = async (company: Company) => {
@@ -285,7 +281,7 @@ export default function AdminCompanies() {
                                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-700"><MoreHorizontal className="w-4 h-4" /></Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" className="w-40">
-                                                            <DropdownMenuItem onClick={() => scrapeCompany(company)} className="gap-2 cursor-pointer"><Play className="w-4 h-4" />Scrape now</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => fireBatchScrape([company.id])} className="gap-2 cursor-pointer"><Play className="w-4 h-4" />Scrape now</DropdownMenuItem>
                                                             <DropdownMenuItem onClick={() => openEdit(company)} className="gap-2 cursor-pointer"><Edit className="w-4 h-4" />Edit</DropdownMenuItem>
                                                             <DropdownMenuItem onClick={() => recheckPolicy(company)} className="gap-2 cursor-pointer"><Shield className="w-4 h-4" />Re-check policy</DropdownMenuItem>
                                                             <DropdownMenuSeparator />
