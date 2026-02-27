@@ -35,15 +35,6 @@ export default function DashboardSavedJobs() {
                             <Link to={`/jobs?id=${job.id}`} className="block">
                                 <JobCard job={job} />
                             </Link>
-                            {/* Overlay Source Type Subtle Badge */}
-                            <div className="absolute top-4 right-4 z-10 pointer-events-none">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${job.source_type === 'DIRECT'
-                                        ? 'bg-green-100 text-green-700 border border-green-200'
-                                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                                    }`}>
-                                    {job.source_type === 'DIRECT' ? 'Verified Employer' : 'External Listing'}
-                                </span>
-                            </div>
                         </div>
                     ))}
                 </div>
