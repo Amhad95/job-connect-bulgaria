@@ -27,6 +27,7 @@ export default {
     sources: "Employers",
     profile: "Profile",
     savedJobs: "Saved Jobs",
+    dashboard: "Dashboard",
   },
   hero: {
     headline: "Faster job search. Cleaner listings. One place.",
@@ -43,7 +44,7 @@ export default {
     sourceShown: "Employer shown on every listing",
     deleteAnytime: "Delete your data anytime",
     bullet1: "Your documents stay private, and you can delete them anytime.",
-    bullet2: "We respect robots.txt and honor removal requests.",
+    bullet2: "We partner directly with top brands and rigorously verify external listings.",
     bullet3: "No auto-apply. You always apply on the employer's own site.",
   },
   features: {

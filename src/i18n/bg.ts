@@ -27,6 +27,7 @@ export default {
     sources: "Работодатели",
     profile: "Профил",
     savedJobs: "Запазени обяви",
+    dashboard: "Табло",
   },
   hero: {
     headline: "По-бързо търсене. По-чисти обяви. На едно място.",
