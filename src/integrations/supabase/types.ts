@@ -224,55 +224,91 @@ export type Database = {
       }
       employers: {
         Row: {
+          about_text: string | null
+          admin_notes: string | null
           ats_direct_access: boolean
           billing_email: string | null
+          billing_status: string | null
           company_type: string
           created_at: string
+          feature_ai_cover: boolean
+          feature_ai_cv: boolean
+          feature_ai_ranking: boolean
+          feature_ai_suggestions: boolean
+          feature_direct_apply: boolean
           features_json: Json | null
           hq_city: string | null
           id: string
           industry_tags: string[] | null
           is_featured: boolean
           is_signed_up_active: boolean
+          is_verified: boolean
           logo_url: string | null
+          max_active_roles: number
+          max_seats: number
           name: string
           plan_tier: string
+          renewal_date: string | null
           slug: string
           stripe_customer_id: string | null
           website_domain: string | null
         }
         Insert: {
+          about_text?: string | null
+          admin_notes?: string | null
           ats_direct_access?: boolean
           billing_email?: string | null
+          billing_status?: string | null
           company_type?: string
           created_at?: string
+          feature_ai_cover?: boolean
+          feature_ai_cv?: boolean
+          feature_ai_ranking?: boolean
+          feature_ai_suggestions?: boolean
+          feature_direct_apply?: boolean
           features_json?: Json | null
           hq_city?: string | null
           id?: string
           industry_tags?: string[] | null
           is_featured?: boolean
           is_signed_up_active?: boolean
+          is_verified?: boolean
           logo_url?: string | null
+          max_active_roles?: number
+          max_seats?: number
           name: string
           plan_tier?: string
+          renewal_date?: string | null
           slug: string
           stripe_customer_id?: string | null
           website_domain?: string | null
         }
         Update: {
+          about_text?: string | null
+          admin_notes?: string | null
           ats_direct_access?: boolean
           billing_email?: string | null
+          billing_status?: string | null
           company_type?: string
           created_at?: string
+          feature_ai_cover?: boolean
+          feature_ai_cv?: boolean
+          feature_ai_ranking?: boolean
+          feature_ai_suggestions?: boolean
+          feature_direct_apply?: boolean
           features_json?: Json | null
           hq_city?: string | null
           id?: string
           industry_tags?: string[] | null
           is_featured?: boolean
           is_signed_up_active?: boolean
+          is_verified?: boolean
           logo_url?: string | null
+          max_active_roles?: number
+          max_seats?: number
           name?: string
           plan_tier?: string
+          renewal_date?: string | null
           slug?: string
           stripe_customer_id?: string | null
           website_domain?: string | null
