@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Upload, ExternalLink, Shield, Trash2, Filter, FileText, KanbanSquare, ArrowRight, Briefcase, TrendingUp } from "lucide-react";
+import { Search, Upload, ExternalLink, ArrowRight, TrendingUp, Globe, CheckCircle, Shield, Trash2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
 import { useJobs } from "@/hooks/useJobs";
@@ -13,7 +13,8 @@ const popularSearches = [
 ];
 
 export default function Index() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBg = i18n.language === "bg";
   const { data: jobs = [] } = useJobs();
   const trendingJobs = jobs.slice(0, 6);
   const recentJobs = jobs.slice(0, 4);
@@ -24,11 +25,13 @@ export default function Index() {
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
         <div className="container grid items-center gap-8 py-10 md:grid-cols-2 md:py-16">
           <div className="flex flex-col gap-6 text-center md:text-left">
-            <h1 className="max-w-3xl font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-4xl lg:text-5xl animate-fade-in">
-              {t("hero.headline")}
+            <h1 className="max-w-3xl font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in drop-shadow-sm">
+              {isBg ? "Спрете да прескачате между кариерните страници." : "Stop jumping between career pages."}
             </h1>
-            <p className="max-w-2xl text-lg text-muted-foreground animate-fade-in">
-              {t("hero.subheadline")}
+            <p className="max-w-2xl text-lg md:text-xl text-muted-foreground animate-fade-in leading-relaxed font-medium">
+              {isBg
+                ? "Ние следим пазара вместо вас. Открийте хиляди обяви, събрани от целия уеб, и кандидатствайте мигновено при нашите Потвърдени работодатели – всичко от един централизиран хъб."
+                : "We track the market so you don't have to. Discover thousands of roles curated from across the web, and apply instantly to our Verified Employers—all from one centralized hub."}
             </p>
 
             {/* Search bar */}
@@ -113,54 +116,77 @@ export default function Index() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="border-y bg-background">
-        <div className="container py-16 md:py-20">
-          <h2 className="mb-12 text-center font-display text-2xl font-bold md:text-3xl">
-            {t("howItWorks.title")}
-          </h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            <Step number="1" title={t("howItWorks.step1.title")} description={t("howItWorks.step1.description")} />
-            <Step number="2" title={t("howItWorks.step2.title")} description={t("howItWorks.step2.description")} />
-            <Step number="3" title={t("howItWorks.step3.title")} description={t("howItWorks.step3.description")} />
+      {/* Distinction Grid */}
+      <section className="border-y bg-background py-20 px-6">
+        <div className="container max-w-6xl mx-auto">
+          <div className="grid gap-8 md:grid-cols-2">
+            {/* Column 1 */}
+            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-card border border-border shadow-sm hover:shadow-xl transition-all duration-300">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500">
+                <Globe className="h-8 w-8" />
+              </div>
+              <h3 className="mb-4 font-display text-2xl md:text-3xl font-bold text-foreground">
+                {isBg ? "Покритие на целия пазар" : "Market-Wide Discovery"}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed text-lg max-w-md">
+                {isBg
+                  ? "Ние подбираме най-добрите външни обяви от сайтовете на компаниите. Когато видите бадж 'Външна обява', ще ви насочим директно към източника за кандидатстване."
+                  : "We curate the best external listings from top company websites. When you see an 'External Listing' badge, we'll direct you straight to the source to apply."}
+              </p>
+            </div>
+
+            {/* Column 2 */}
+            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-card border border-border shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-blue-600/5 rounded-bl-[100px] pointer-events-none" />
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600 relative z-10">
+                <CheckCircle className="h-8 w-8" />
+              </div>
+              <h3 className="mb-4 font-display text-2xl md:text-3xl font-bold text-foreground relative z-10">
+                {isBg ? "Директно кандидатстване с 1 клик" : "1-Click Direct Apply"}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed text-lg max-w-md relative z-10">
+                {isBg
+                  ? "Търсете баджа 'Потвърден работодател'. Тези компании използват нашата платформа директно, което ви позволява да кандидатствате мигновено с вашия запазен профил и AI-оптимизирано CV."
+                  : "Look for the 'Verified Employer' badge. These companies use our platform directly, allowing you to apply instantly using your saved profile and AI-optimized CV."}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Feature sections */}
-      <section className="bg-gradient-to-b from-primary/5 to-background">
-        <div className="container py-16 md:py-20">
-          <div className="grid gap-8 md:grid-cols-3">
-            <FeatureCard
-              icon={<Filter className="h-6 w-6" />}
-              title={t("features.findRoles.title")}
-              body={t("features.findRoles.body")}
-            />
-            <FeatureCard
-              icon={<FileText className="h-6 w-6" />}
-              title={t("features.applyKit.title")}
-              body={t("features.applyKit.body")}
-            />
-            <FeatureCard
-              icon={<KanbanSquare className="h-6 w-6" />}
-              title={t("features.trackEverything.title")}
-              body={t("features.trackEverything.body")}
-            />
-          </div>
+      {/* Applicant Tools Banner */}
+      <section className="bg-muted/40 py-20 px-6">
+        <div className="container text-center max-w-3xl mx-auto flex flex-col items-center justify-center">
+          <h2 className="mb-6 font-display text-3xl md:text-5xl font-extrabold text-foreground tracking-tight">
+            {isBg ? "Цялото ви търсене на работа, най-накрая организирано." : "Your entire job search, finally organized."}
+          </h2>
+          <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-2xl font-medium">
+            {isBg
+              ? "Създайте своя интерактивен профил веднъж. Проследявайте външни линкове и директни кандидатури на едно място във вашия личен Канбан борд."
+              : "Build your interactive profile once. Track external links and direct applications side-by-side in your personal Kanban board."}
+          </p>
         </div>
       </section>
 
-      {/* Privacy trust section */}
-      <section className="border-t bg-card">
-        <div className="container py-16 md:py-20">
-          <h2 className="mb-8 text-center font-display text-2xl font-bold md:text-3xl">
-            {t("trust.headline")}
+      {/* B2B Employer Banner */}
+      <section className="bg-blue-600 py-24 px-6 text-center text-white relative overflow-hidden">
+        <div className="absolute left-0 top-0 w-64 h-64 bg-white/5 rounded-br-full blur-3xl pointer-events-none" />
+        <div className="absolute right-0 bottom-0 w-64 h-64 bg-blue-400/20 rounded-tl-full blur-3xl pointer-events-none" />
+
+        <div className="container max-w-4xl mx-auto flex flex-col items-center relative z-10">
+          <h2 className="mb-8 font-display text-4xl font-extrabold md:text-6xl leading-[1.1] tracking-tight">
+            {isBg ? "Уморени сте от неподходящи CV-та? Поемете контрол над подбора си." : "Tired of unqualified CVs? Take control of your hiring."}
           </h2>
-          <div className="mx-auto max-w-xl space-y-4">
-            <TrustBullet text={t("trust.bullet1")} />
-            <TrustBullet text={t("trust.bullet2")} />
-            <TrustBullet text={t("trust.bullet3")} />
-          </div>
+          <p className="mb-12 text-xl md:text-2xl text-blue-100/90 max-w-3xl leading-relaxed font-medium">
+            {isBg
+              ? "Заявете профила на вашата компания, за да станете Потвърден работодател. Публикувайте обяви директно, отключете нашето AI класиране на кандидати и управлявайте процеса в модерна ATS, създадена за българския пазар."
+              : "Claim your company profile to become a Verified Employer. Post roles directly, unlock our AI candidate ranking, and manage your pipeline in a modern ATS built for the Bulgarian market."}
+          </p>
+          <Link to="/employers">
+            <Button size="lg" className="h-16 px-10 rounded-2xl bg-white text-blue-600 hover:bg-gray-50 text-xl font-bold shadow-2xl shadow-blue-900/30 transition-all hover:-translate-y-1">
+              {isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
+            </Button>
+          </Link>
         </div>
       </section>
     </Layout>
@@ -176,35 +202,3 @@ function TrustItem({ icon, text }: { icon: React.ReactNode; text: string }) {
   );
 }
 
-function Step({ number, title, description }: { number: string; title: string; description: string }) {
-  return (
-    <div className="flex flex-col items-center gap-3 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm">
-        {number}
-      </div>
-      <h3 className="font-display text-lg font-semibold">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
-  return (
-    <div className="rounded-lg border bg-card p-6 transition-all hover:shadow-md hover:border-primary/20">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        {icon}
-      </div>
-      <h3 className="mb-2 font-display text-lg font-semibold">{title}</h3>
-      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-    </div>
-  );
-}
-
-function TrustBullet({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-lg border bg-background p-4">
-      <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-success" />
-      <p className="text-sm text-muted-foreground">{text}</p>
-    </div>
-  );
-}
