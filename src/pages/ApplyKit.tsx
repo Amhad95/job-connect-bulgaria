@@ -1,32 +1,61 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, PenLine, Download, CheckCircle2, Shield } from "lucide-react";
+import { Upload, FileText, PenLine, Download, CheckCircle2, Shield, ArrowLeft, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useJob } from "@/hooks/useJobs";
 
 export default function ApplyKit() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") || "cv";
+  const jobId = searchParams.get("jobId") || undefined;
+  const { data: job } = useJob(jobId);
   const [consent, setConsent] = useState(false);
 
   return (
     <Layout>
       <div className="container py-8 md:py-12">
         <h1 className="mb-2 font-display text-2xl font-bold md:text-3xl">{t("applyKit.title")}</h1>
-        <p className="mb-8 text-muted-foreground">
+        <p className="mb-4 text-muted-foreground">
           {t("applyKit.subtitle") || "Keep your CV versions, cover letters, and role notes in one place."}
         </p>
 
-        <Tabs defaultValue="cv">
+        {job && (
+          <div className="mb-6 rounded-lg border bg-card p-4 flex items-center gap-3">
+            <Briefcase className="h-5 w-5 text-primary shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate">{job.title}</p>
+              <p className="text-xs text-muted-foreground">{job.company}</p>
+            </div>
+            <Link to={`/jobs/${job.id}`}>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                {t("jobDetail.backToResults")}
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        <Tabs defaultValue={tabParam}>
           <TabsList>
             <TabsTrigger value="cv">{t("applyKit.cvVersions")}</TabsTrigger>
             <TabsTrigger value="cover">{t("applyKit.coverLetter")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="cv" className="mt-6">
+            {job?.requirements && (
+              <div className="mb-6 rounded-lg border bg-surface p-4">
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">{t("applyKit.keywordsFromJob")}</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-6">{job.requirements}</p>
+              </div>
+            )}
+
             {/* Upload area */}
             <div className="rounded-lg border-2 border-dashed border-border bg-surface p-12 text-center">
               <Upload className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
@@ -73,11 +102,23 @@ export default function ApplyKit() {
           </TabsContent>
 
           <TabsContent value="cover" className="mt-6">
+            {job && (
+              <div className="mb-6 rounded-lg border bg-surface p-4">
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">{t("applyKit.jobContext")}</h4>
+                <p className="text-sm font-medium">{job.title} — {job.company}</p>
+                {job.description && (
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line line-clamp-4">{job.description}</p>
+                )}
+              </div>
+            )}
+
             <div className="rounded-lg border bg-card p-8 text-center">
               <PenLine className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
               <h3 className="font-display text-lg font-semibold">{t("applyKit.coverLetter")}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Open a job and click "Generate cover letter" to create a tailored draft.
+                {job
+                  ? t("applyKit.generateForJob") || `Generate a cover letter for ${job.title} at ${job.company}.`
+                  : "Open a job and click \"Generate cover letter\" to create a tailored draft."}
               </p>
 
               <div className="mt-6 flex justify-center gap-2">

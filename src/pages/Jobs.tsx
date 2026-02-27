@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, SlidersHorizontal, X, ExternalLink, Clock, MapPin, ArrowRight } from "lucide-react";
+import { Search, SlidersHorizontal, X, ExternalLink, Clock, MapPin, ArrowRight, PenLine, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -285,6 +285,14 @@ export default function Jobs() {
               <Link to={`/jobs/${previewJob.id}`}>
                 <Button variant="outline" className="w-full gap-2 mt-1"><ArrowRight className="h-4 w-4" />{t("jobDetail.viewFull")}</Button>
               </Link>
+              <div className="flex gap-2 mt-1">
+                <Link to={`/apply-kit?tab=cover&jobId=${previewJob.id}`} className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><PenLine className="h-3.5 w-3.5" />{t("jobDetail.generateCoverLetter")}</Button>
+                </Link>
+                <Link to={`/apply-kit?tab=cv&jobId=${previewJob.id}`} className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><FileText className="h-3.5 w-3.5" />{t("jobDetail.tailorCV")}</Button>
+                </Link>
+              </div>
               <p className="text-center text-[11px] text-muted-foreground">{t("jobs.redirectNote")}</p>
               <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                 <Clock className="h-3 w-3" />

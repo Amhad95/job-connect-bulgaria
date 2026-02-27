@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, ExternalLink, Bookmark, KanbanSquare, FileText,
+  ArrowLeft, ExternalLink, Bookmark, KanbanSquare, FileText, PenLine,
   Clock, MapPin, Building, Briefcase,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -105,6 +105,18 @@ export default function JobDetail() {
             <KanbanSquare className="h-4 w-4" />
             {t("jobDetail.addToTracker")}
           </Button>
+          <Link to={`/apply-kit?tab=cover&jobId=${id}`}>
+            <Button variant="outline" size="lg" className="gap-2">
+              <PenLine className="h-4 w-4" />
+              {t("jobDetail.generateCoverLetter")}
+            </Button>
+          </Link>
+          <Link to={`/apply-kit?tab=cv&jobId=${id}`}>
+            <Button variant="outline" size="lg" className="gap-2">
+              <FileText className="h-4 w-4" />
+              {t("jobDetail.tailorCV")}
+            </Button>
+          </Link>
         </div>
 
         {/* Content */}

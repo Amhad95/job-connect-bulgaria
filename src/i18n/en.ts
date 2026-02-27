@@ -141,6 +141,9 @@ export default {
     download: "Download PDF pack",
     doNotStore: "Do not store my documents",
     consent: "I agree to upload my CV for processing",
+    keywordsFromJob: "Keywords from this job",
+    jobContext: "Job context",
+    generateForJob: "Generate a tailored cover letter for this role.",
   },
   auth: {
     loginTitle: "Welcome back",
