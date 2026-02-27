@@ -1,46 +1,53 @@
 
 
-## Sync Database Schema to Match Frontend Code
+## Fire-and-Forget Scraping Architecture
 
-The other AI wrote frontend code referencing columns and tables that don't exist. We need to create them and fix the edge function type errors.
+### Problem
+The scraping loop runs client-side in `AdminCompanies.tsx` (lines 120-150). Navigating away kills the process. Each company's sources are invoked sequentially via `await`, and nothing saves until all finish.
 
-### Step 1: Database Migration — Add Missing Columns and Table
+### Plan
 
-**`employers` table** — add 4 columns:
-- `company_type` varchar default `'CRAWLED'`
-- `is_signed_up_active` boolean default `false`
-- `ats_direct_access` boolean default `false`
-- `plan_tier` varchar default `'starter'`
+#### 1. Create new edge function: `batch-scrape`
+**File:** `supabase/functions/batch-scrape/index.ts`
 
-**`job_postings` table** — add 3 columns:
-- `title_en` text nullable
-- `title_bg` text nullable
-- `approval_status` varchar default `'ACTIVE'` (existing jobs should be ACTIVE, not PENDING)
+Accepts `{ company_ids: string[] }`. For each company:
+- Looks up active `employer_sources`
+- Calls the existing `crawl-source` logic inline (or invokes it via fetch) for each source
+- Commits jobs incrementally (already happens — `upsertJobPosting` inserts per-job)
+- Returns immediately with `{ started: true, sources_count: N }`
 
-**Create `system_settings` table**:
-- `id` uuid primary key
-- `max_job_age_days` integer default 30
-- `auto_crawl_schedule` text default `'0 0 * * *'`
-- `scrape_unknown_policy` text default `'skip'`
-- `user_agent` text default `'Bachkam/1.0'`
-- `max_concurrent_scrapes` integer default 3
-- `rate_limit_ms` integer default 1000
-- `default_job_status` text default `'PENDING'`
-- Seed one row so AdminSettings can load it
-- RLS: public read, service-role write
+The key: the edge function responds to the client quickly but continues processing via `waitUntil`-style pattern (Deno edge functions run until completion even after responding, so we respond first then continue the loop).
 
-### Step 2: Fix `crawl-source/index.ts` TypeScript Errors
+**Actually**, Deno.serve doesn't support background work after response. So the function must do all work before responding — but since it runs server-side, the browser can close. The function has a ~400s timeout on Supabase. This is acceptable for most batch sizes.
 
-Change the `upsertJobPosting` function signature to use `any` for the Supabase client type instead of `ReturnType<typeof createClient>`. This resolves all 9 type errors (the generic mismatch between the edge function's `createClient` and the helper's parameter type).
+Alternative: have `batch-scrape` fire individual `crawl-source` invocations via `fetch()` without awaiting them (true fire-and-forget per source). This parallelizes and ensures each source completes independently.
 
-### Step 3: Regenerate Types
+**Chosen approach:** `batch-scrape` fires non-blocking `fetch()` calls to `crawl-source` for each active source, then returns immediately. Each `crawl-source` invocation runs independently server-side.
 
-After migration, the Supabase types file auto-updates so `system_settings`, the new columns on `employers` and `job_postings` are recognized by the TypeScript client — removing the `as any` casts from AdminSettings, AdminCompanies, and AdminDashboard.
+#### 2. Fix `crawl-source` to set `approval_status = 'PENDING'` on new jobs
+**File:** `supabase/functions/crawl-source/index.ts` line 527-536
+
+Currently inserts with `status: "ACTIVE"` and no `approval_status` (defaults to `'ACTIVE'`). Change to set `approval_status: "PENDING"` so new jobs appear in the moderation queue.
+
+#### 3. Simplify `AdminCompanies.tsx` frontend
+Replace `scrapeCompany`, `scrapeSelected`, `scrapeAllAllowed` (lines 120-150) with a single call to `batch-scrape` that sends company IDs and shows a toast. No progress tracking, no awaiting per-company.
+
+#### 4. Verify Moderation Queue
+`AdminDashboard.tsx` line 69 already queries `.eq("approval_status", "PENDING")` — this is correct. No changes needed.
+
+#### 5. Add `batch-scrape` to `config.toml`
+Set `verify_jwt = false` to match other functions.
+
+#### 6. Migrations
+The user mentions two additive migrations. These columns (`company_type`, `plan_tier`, etc.) already exist from the previous migration. The partners module tables (`signup_requests`, `partner_memberships`, `partner_events`) and billing columns need to be created via a new migration.
 
 ### Files Changed
 
-| Target | Change |
-|--------|--------|
-| Database migration | Add columns to `employers`, `job_postings`; create `system_settings` |
-| `supabase/functions/crawl-source/index.ts` | Fix client type in `upsertJobPosting` signature |
+| File | Change |
+|------|--------|
+| `supabase/functions/batch-scrape/index.ts` | New — accepts `company_ids[]`, fires `crawl-source` per active source |
+| `supabase/functions/crawl-source/index.ts` | Set `approval_status: "PENDING"` on new job inserts |
+| `src/pages/admin/AdminCompanies.tsx` | Replace client-side loop with single `batch-scrape` call |
+| `supabase/config.toml` | Add `[functions.batch-scrape]` |
+| Database migration | Add partner tables if needed |
 
