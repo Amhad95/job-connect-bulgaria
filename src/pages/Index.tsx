@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Search, Upload, ExternalLink, ArrowRight, TrendingUp,
   Globe, CheckCircle, Shield, Trash2, Zap,
-  User, LayoutGrid, Bell, Building2, BadgeCheck, LinkIcon,
+  User, LayoutGrid, BadgeCheck, FileText, Sparkles, PenLine, Target,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { JobCard } from "@/components/JobCard";
@@ -28,6 +28,7 @@ export default function Index() {
     <Layout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-l from-sky-100/80 via-sky-50/40 to-transparent" />
         <div className="container grid items-center gap-8 py-10 md:grid-cols-2 md:py-16">
           <div className="flex flex-col gap-6 text-center md:text-left">
             <h1 className="max-w-3xl font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in drop-shadow-sm">
@@ -122,7 +123,7 @@ export default function Index() {
       </section>
 
       {/* ── SECTION 1: How It Works ── */}
-      <section className="bg-slate-50 py-20" aria-labelledby="how-it-works-heading">
+      <section className="bg-sky-50 border-y border-sky-100 py-20" aria-labelledby="how-it-works-heading">
         <div className="max-w-6xl mx-auto px-4">
           <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm mb-3 block text-center">
             {isBg ? "Как работи" : "How it works"}
@@ -200,59 +201,59 @@ export default function Index() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Card 1 — Saved Profile */}
+            {/* Card 1 — Direct Apply + Saved Profile */}
             <FeatureTile
               icon={<User className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-              title={isBg ? "Запазен профил" : "Saved Profile"}
-              desc={isBg ? "Попълнете информацията си веднъж и я използвайте навсякъде." : "Fill in your details once and reuse them across every application."}
+              title={isBg ? "Кандидатсвайте със запазения си профил" : "Apply with your saved profile"}
+              desc={isBg ? "За позиции от Verified Employer кандидатсвайте за секунди с профила, който създавате веднъж." : "For Verified Employer roles, apply in seconds using the profile you build once."}
               bullets={isBg
-                ? ["Качете CV и мотивационно писмо", "Добавете умения и езици", "Редактирайте по всяко време"]
-                : ["Upload CV and cover letter", "Add skills and languages", "Edit anytime"]}
+                ? ["Един профил за много позиции", "По-бързо кандидатстване при verified обяви"]
+                : ["Reuse one profile across roles", "Faster applications for verified postings"]}
             />
             {/* Card 2 — Application Tracking */}
             <FeatureTile
               icon={<LayoutGrid className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-              title={isBg ? "Проследяване на кандидатури" : "Application Tracking"}
-              desc={isBg ? "Канбан борд за всички ваши кандидатури – вътрешни и външни." : "Kanban board for all your applications — internal and external."}
+              title={isBg ? "Следете всички кандидатури на едно място" : "Track every application in one place"}
+              desc={isBg ? "Държете външни кандидатури и директни кандидатствания едно до друго, с ясен статус и линкове." : "Keep external applications and direct applies side-by-side, with clear status and links."}
               bullets={isBg
-                ? ["Колони: Запазено, В процес, Финален етап", "Маркирайте отговори и откази", "Проследявайте история на всяка обява"]
-                : ["Columns: Saved, Applied, Final stage", "Mark responses and rejections", "Track history of each role"]}
+                ? ["Външни + verified в една дъска", "Никога не губите линка към източника"]
+                : ["External + verified in one board", "Never lose the source link"]}
             />
-            {/* Card 3 — Alerts */}
+            {/* Card 3 — AI CV Tailoring */}
             <FeatureTile
-              icon={<Bell className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-              title={isBg ? "Сигнали и списъци" : "Alerts and Shortlists"}
-              desc={isBg ? "Уведомления при нови обяви по ваши критерии." : "Get notified when new roles match your saved filters."}
+              icon={<FileText className="w-5 h-5 text-blue-600" aria-hidden="true" />}
+              title={isBg ? "AI адаптиране на CV за всяка позиция" : "AI CV tailoring for any role"}
+              desc={isBg ? "Поставете описанието на позицията и генерирайте версия на CV, съобразена с изискванията." : "Paste a job description and generate a tailored CV version aligned to the requirements."}
               bullets={isBg
-                ? ["Задайте ключови думи и локация", "Получавайте имейл или push сигнали", "Запазете филтрирани търсения"]
-                : ["Set keywords and location", "Receive email or push alerts", "Save filtered searches"]}
+                ? ["Подходящи формулировки и ключови думи", "Подобрява сигналите за процент на съвпадение"]
+                : ["Role-specific phrasing and keywords", "Improves match percentage signals"]}
             />
-            {/* Card 4 — Company Pages */}
+            {/* Card 4 — AI Cover Letter */}
             <FeatureTile
-              icon={<Building2 className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-              title={isBg ? "Профили на компании" : "Company Pages"}
-              desc={isBg ? "Разгледайте официалните профили на Verified Employers." : "Browse official profiles of Verified Employers on the platform."}
+              icon={<PenLine className="w-5 h-5 text-blue-600" aria-hidden="true" />}
+              title={isBg ? "AI мотивационни писма според позицията" : "AI cover letters that fit the job"}
+              desc={isBg ? "Генерирайте фокусирано писмо от профила си и описанието на позицията, после го редактирайте преди изпращане." : "Generate a focused cover letter from your profile and the job description, then edit before sending."}
               bullets={isBg
-                ? ["Всички отворени позиции на едно място", "Информация за компанията и кандидатстването", "Следете компании за нови обяви"]
-                : ["All open roles in one place", "Company info and apply flow", "Follow companies for new posts"]}
+                ? ["Контрол на тон и дължина", "Остава релевантно към позицията"]
+                : ["Tone and length controls", "Keeps it relevant to the role"]}
             />
-            {/* Card 5 — Role Signals */}
+            {/* Card 5 — AI Job Suggestions */}
             <FeatureTile
-              icon={<BadgeCheck className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-              title={isBg ? "Сигнали за обявите" : "Role Signals"}
-              desc={isBg ? "Всяка обява е ясно маркирана: Verified Employer или External Listing." : "Every listing is clearly marked: Verified Employer or External Listing."}
+              icon={<Sparkles className="w-5 h-5 text-blue-600" aria-hidden="true" />}
+              title={isBg ? "Персонализирани AI предложения за работа" : "AI job suggestions, personalized"}
+              desc={isBg ? "Получавайте препоръки според профила си, активността си и позициите, които разглеждате." : "Get recommendations based on your profile, activity, and the roles you engage with."}
               bullets={isBg
-                ? ["Знайте преди да кликате", "Без скрити пренасочвания", "Прозрачен ATS процес при директни обяви"]
-                : ["Know before you click", "No hidden redirects", "Transparent ATS flow for direct roles"]}
+                ? ["По-малко скролване, по-релевантни позиции", "Препоръките се подобряват с времето"]
+                : ["Less scrolling, more relevant roles", "Suggestions improve over time"]}
             />
-            {/* Card 6 — Apply Flow */}
+            {/* Card 6 — Match Clarity */}
             <FeatureTile
-              icon={<LinkIcon className="w-5 h-5 text-blue-600" aria-hidden="true" />}
-              title={isBg ? "Прецизен процес на кандидатстване" : "Clean Apply Flow"}
-              desc={isBg ? "External обяви ви водят към оригинала. Директните обяви – директно в платформата." : "External listings route you to the source. Direct roles keep you in-platform."}
+              icon={<Target className="w-5 h-5 text-blue-600" aria-hidden="true" />}
+              title={isBg ? "Ясни сигнали: източник, проверка, съвпадение" : "Clear signals: source, verification, match"}
+              desc={isBg ? "Винаги знаете къде кандидатствате, дали е verified, и колко добре съвпада профилът ви." : "Always know where you're applying, whether it's verified, and how well your profile matches."}
               bullets={isBg
-                ? ["Никога не губите контекста", "1-клик за директни обяви", "Следете кои сте посетили"]
-                : ["Never lose context", "1-click for direct roles", "Track which you've visited"]}
+                ? ["Verified срещу External с един поглед", "Насоки според процент на съвпадение"]
+                : ["Verified vs External at a glance", "Match percentage guidance"]}
             />
           </div>
 
@@ -265,11 +266,11 @@ export default function Index() {
               {isBg ? "Създайте профил" : "Create your profile"}
             </Link>
             <Link
-              to="/jobs"
-              aria-label={isBg ? "Разгледайте обяви" : "Browse jobs"}
+              to="/tools"
+              aria-label={isBg ? "Пробвайте AI адаптиране" : "Try AI tailoring"}
               className="inline-flex justify-center items-center rounded-full border border-gray-300 bg-white px-8 py-4 text-gray-900 font-semibold text-lg hover:bg-gray-50 transition-colors"
             >
-              {isBg ? "Разгледайте обяви" : "Browse jobs"}
+              {isBg ? "Пробвайте AI адаптиране" : "Try AI tailoring"}
             </Link>
           </div>
         </div>
@@ -286,21 +287,21 @@ export default function Index() {
               </span>
               <h2 id="employer-heading" className="text-3xl font-bold mb-4 text-gray-900">
                 {isBg
-                  ? "Станете Verified Employer и наемайте с повече яснота."
-                  : "Become a Verified Employer and hire with signal."}
+                  ? "Цялостен ATS с AI класиране, вграден в подбора ви."
+                  : "A full ATS with AI ranking, built into your hiring."}
               </h2>
               <p className="text-gray-600 leading-relaxed mb-8">
                 {isBg
-                  ? "Заявете профила на компанията, публикувайте директно и управлявайте кандидатури на едно място. Кандидатите виждат ясен бадж и знаят, че кандидатстват по официалния канал."
-                  : "Claim your company profile, post roles directly, and manage applicants in one place. Candidates see a clear badge so they know they're applying to the official employer channel."}
+                  ? "Изберете пакет и се регистрирайте, за да отключите публикуване на позиции, управление на процеса, филтри и AI класиране на кандидати. Ако компанията ви вече присъства, можете да я заявите и да поискате верификация."
+                  : "Choose a package and sign up to unlock job posting, pipeline management, filtering, and AI-ranked applicants. If your company already appears on the platform, you can also claim it and request verification."}
               </p>
 
               <ul className="space-y-4" aria-label={isBg ? "Какво получавате" : "What you get"}>
                 {[
-                  { icon: <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "Verified badge on all your listings", bg: "Бадж 'Verified' на всички ваши обяви" },
-                  { icon: <Zap className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "AI-assisted candidate ranking and scoring", bg: "AI подпомагане за класиране на кандидати" },
-                  { icon: <LayoutGrid className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "Pipeline management in one dashboard", bg: "Управление на канала в едно табло" },
-                  { icon: <BadgeCheck className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "Priority placement in search results", bg: "Приоритетно позициониране в търсенето" },
+                  { icon: <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "AI-ranked applicants and match scoring", bg: "AI класиране на кандидати и оценки за съвпадение" },
+                  { icon: <Target className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "Filters and shortlists", bg: "Филтри и кратки списъци" },
+                  { icon: <LayoutGrid className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "Pipeline stages (ATS workflow)", bg: "Етапи на процеса (ATS работен поток)" },
+                  { icon: <BadgeCheck className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />, en: "Verified Employer badge for trusted direct apply", bg: "Бадж Verified Employer за доверено директно кандидатстване" },
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
                     {item.icon}
@@ -310,11 +311,11 @@ export default function Index() {
               </ul>
 
               <Link
-                to="/employers"
-                aria-label={isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
+                to="/pricing"
+                aria-label={isBg ? "Вижте пакетите за работодатели" : "View employer packages"}
                 className="mt-10 inline-flex justify-center items-center rounded-full bg-blue-600 px-8 py-4 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg"
               >
-                {isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
+                {isBg ? "Вижте пакетите за работодатели" : "View employer packages"}
               </Link>
             </div>
 
@@ -327,23 +328,23 @@ export default function Index() {
                 {[
                   {
                     n: "1",
-                    en: ["Claim profile", "Search for your company and verify ownership."],
-                    bg: ["Заявете профил", "Намерете компанията си и потвърдете собствеността."],
+                    en: ["Pick a package and sign up", "Create your employer workspace in minutes."],
+                    bg: ["Изберете пакет и се регистрирайте", "Създайте работодателско пространство за минути."],
                   },
                   {
                     n: "2",
-                    en: ["Verification", "Our team reviews and activates your Verified Employer status."],
-                    bg: ["Верификация", "Екипът ни преглежда и активира статуса ви Verified Employer."],
+                    en: ["Add company details (or request listing)", "If you're not listed yet, you can still onboard and publish."],
+                    bg: ["Добавете данни за компанията (или поискайте добавяне)", "Ако още не сте налични, пак можете да се включите и да публикувате."],
                   },
                   {
                     n: "3",
-                    en: ["Post roles", "Create bilingual listings with your ATS settings."],
-                    bg: ["Публикувайте позиции", "Създайте двуезични обяви с ATS настройки."],
+                    en: ["Post roles and define requirements", "Capture skills, seniority, and must-haves for better ranking."],
+                    bg: ["Публикувайте позиции и задайте изисквания", "Опишете умения, ниво и ключови изисквания за по-добро класиране."],
                   },
                   {
                     n: "4",
-                    en: ["Review pipeline", "Manage all applicants, stages, and scores in one place."],
-                    bg: ["Прегледайте канала", "Управлявайте всички кандидати, етапи и оценки на едно място."],
+                    en: ["Review an AI-ranked pipeline", "Filter, shortlist, and move candidates through stages like a modern ATS."],
+                    bg: ["Прегледайте AI-класиран процес", "Филтрирайте, селектирайте и движете кандидатите по етапи като в модерен ATS."],
                   },
                 ].map((step) => (
                   <li key={step.n} className="flex items-start gap-4">
@@ -372,15 +373,15 @@ export default function Index() {
           </h2>
           <p className="text-blue-100 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             {isBg
-              ? "Заявете профила на вашата компания и станете Verified Employer. Публикувайте директно, отключете AI подпомагане за класиране и управлявайте процеса като в модерен ATS."
-              : "Claim your company profile to become a Verified Employer. Post roles directly, unlock AI-assisted candidate ranking, and manage your pipeline in a modern ATS-style workflow."}
+              ? "Изберете пакет, публикувайте позиции, отключете AI класиране на кандидати и управлявайте процеса като в модерен ATS."
+              : "Choose a package, post roles directly, unlock AI-assisted candidate ranking, and manage your entire pipeline in a modern ATS-style workflow."}
           </p>
           <Link
-            to="/employers"
-            aria-label={isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
+            to="/pricing"
+            aria-label={isBg ? "Вижте пакетите за работодатели" : "View employer packages"}
             className="inline-block bg-white text-blue-600 font-bold text-lg px-8 py-4 rounded-full hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
           >
-            {isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
+            {isBg ? "Вижте пакетите за работодатели" : "View employer packages"}
           </Link>
         </div>
       </section>
