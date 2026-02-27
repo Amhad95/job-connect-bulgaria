@@ -73,7 +73,7 @@ export default function AdminCompanies() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [scrapeProgress] = useState<Record<string, "idle" | "running" | "done" | "error">>({});
+    const [scrapingIds, setScrapingIds] = useState<Set<string>>(new Set());
     const [scrapeWorking, setScrapeWorking] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -110,17 +110,24 @@ export default function AdminCompanies() {
     const fireBatchScrape = async (companyIds: string[]) => {
         if (!companyIds.length) return;
         setScrapeWorking(true);
+        setScrapingIds(prev => new Set([...prev, ...companyIds]));
         try {
             const { data, error } = await supabase.functions.invoke("batch-scrape", {
                 body: { company_ids: companyIds },
             });
             if (error) {
                 toast.error("Scrape trigger failed: " + error.message);
+                setScrapingIds(prev => { const n = new Set(prev); companyIds.forEach(id => n.delete(id)); return n; });
             } else {
                 toast.success(`Scraping started in background for ${data?.sources_triggered || 0} source(s). You can close this page safely.`);
+                // Auto-clear scraping indicators after 2 minutes
+                setTimeout(() => {
+                    setScrapingIds(prev => { const n = new Set(prev); companyIds.forEach(id => n.delete(id)); return n; });
+                }, 120_000);
             }
         } catch (e: any) {
             toast.error("Scrape trigger failed: " + e.message);
+            setScrapingIds(prev => { const n = new Set(prev); companyIds.forEach(id => n.delete(id)); return n; });
         }
         setScrapeWorking(false);
         setSelected(new Set());
@@ -239,7 +246,7 @@ export default function AdminCompanies() {
                             ) : (
                                 visible.map(company => {
                                     const src = company.employer_sources?.[0];
-                                    const prog = scrapeProgress[company.id];
+                                    const isScraping = scrapingIds.has(company.id);
                                     return (
                                         <tr key={company.id} className={`hover:bg-gray-50 transition-colors ${selected.has(company.id) ? "bg-blue-50/50" : ""}`}>
                                             <td className="px-4 py-3">
@@ -273,9 +280,11 @@ export default function AdminCompanies() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-1">
-                                                    {prog === "running" && <span className="text-xs text-blue-500 animate-pulse">Running…</span>}
-                                                    {prog === "done" && <span className="text-xs text-green-500">Done</span>}
-                                                    {prog === "error" && <span className="text-xs text-red-500">Error</span>}
+                                                    {isScraping && (
+                                                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium animate-pulse">
+                                                            <RefreshCw className="w-3 h-3 animate-spin" />Scraping…
+                                                        </span>
+                                                    )}
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-700"><MoreHorizontal className="w-4 h-4" /></Button>
