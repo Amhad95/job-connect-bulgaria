@@ -1,34 +1,46 @@
 
 
-## Add per-job interactive actions (Cover Letter + Tailor CV)
+## Sync Database Schema to Match Frontend Code
 
-### 1. Add action buttons to JobDetail page
-Add two new buttons to the actions bar (lines 93-108 of `JobDetail.tsx`):
-- **"Generate cover letter"** — links to `/apply-kit?tab=cover&jobId={id}` (or opens a dialog)
-- **"Tailor CV"** — links to `/apply-kit?tab=cv&jobId={id}`
+The other AI wrote frontend code referencing columns and tables that don't exist. We need to create them and fix the edge function type errors.
 
-Both use `FileText` and `PenLine` icons already imported.
+### Step 1: Database Migration — Add Missing Columns and Table
 
-### 2. Add action buttons to Jobs preview panel
-Add the same two buttons to the preview panel footer in `Jobs.tsx` (lines 281-297), below the "Apply" button.
+**`employers` table** — add 4 columns:
+- `company_type` varchar default `'CRAWLED'`
+- `is_signed_up_active` boolean default `false`
+- `ats_direct_access` boolean default `false`
+- `plan_tier` varchar default `'starter'`
 
-### 3. Update ApplyKit to accept job context via URL params
-- Read `jobId` from search params in `ApplyKit.tsx`
-- Fetch job details with `useJob(jobId)` 
-- Pre-fill the cover letter tab with job title, company name, and description
-- Pre-fill the CV tab with job requirements for keyword gap analysis
-- Auto-select the correct tab based on `tab` param
+**`job_postings` table** — add 3 columns:
+- `title_en` text nullable
+- `title_bg` text nullable
+- `approval_status` varchar default `'ACTIVE'` (existing jobs should be ACTIVE, not PENDING)
 
-### 4. Add i18n keys
-Add translation keys for the new buttons: `jobDetail.generateCover`, `jobDetail.tailorCV` in both `en.ts` and `bg.ts`.
+**Create `system_settings` table**:
+- `id` uuid primary key
+- `max_job_age_days` integer default 30
+- `auto_crawl_schedule` text default `'0 0 * * *'`
+- `scrape_unknown_policy` text default `'skip'`
+- `user_agent` text default `'Bachkam/1.0'`
+- `max_concurrent_scrapes` integer default 3
+- `rate_limit_ms` integer default 1000
+- `default_job_status` text default `'PENDING'`
+- Seed one row so AdminSettings can load it
+- RLS: public read, service-role write
 
-### Files changed
+### Step 2: Fix `crawl-source/index.ts` TypeScript Errors
 
-| File | Change |
-|------|--------|
-| `src/pages/JobDetail.tsx` | Add "Generate cover letter" and "Tailor CV" buttons |
-| `src/pages/Jobs.tsx` | Add same buttons to preview panel footer |
-| `src/pages/ApplyKit.tsx` | Accept `jobId` and `tab` query params, fetch and display job context |
-| `src/i18n/en.ts` | Add new translation keys |
-| `src/i18n/bg.ts` | Add new translation keys |
+Change the `upsertJobPosting` function signature to use `any` for the Supabase client type instead of `ReturnType<typeof createClient>`. This resolves all 9 type errors (the generic mismatch between the edge function's `createClient` and the helper's parameter type).
+
+### Step 3: Regenerate Types
+
+After migration, the Supabase types file auto-updates so `system_settings`, the new columns on `employers` and `job_postings` are recognized by the TypeScript client — removing the `as any` casts from AdminSettings, AdminCompanies, and AdminDashboard.
+
+### Files Changed
+
+| Target | Change |
+|--------|--------|
+| Database migration | Add columns to `employers`, `job_postings`; create `system_settings` |
+| `supabase/functions/crawl-source/index.ts` | Fix client type in `upsertJobPosting` signature |
 
