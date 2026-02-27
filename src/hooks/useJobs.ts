@@ -18,6 +18,7 @@ export interface DbJob {
   firstSeenAt: string;
   lastSeenAt: string;
   postedAt?: string;
+  sourceType?: 'EXTERNAL' | 'DIRECT';
 }
 
 async function fetchJobs(): Promise<DbJob[]> {
@@ -31,7 +32,7 @@ async function fetchJobs(): Promise<DbJob[]> {
       id, title, canonical_url, apply_url,
       location_city, work_mode, employment_type, category,
       salary_min, salary_max, currency,
-      first_seen_at, last_seen_at, posted_at, last_scraped_at,
+      first_seen_at, last_seen_at, posted_at, last_scraped_at, source_type,
       employers!inner ( name, logo_url ),
       job_posting_content ( description_text )
     `)
@@ -92,6 +93,7 @@ async function fetchJobs(): Promise<DbJob[]> {
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
     postedAt: row.posted_at ?? row.first_seen_at,
+    sourceType: row.source_type ?? 'EXTERNAL',
   }));
 }
 
@@ -110,7 +112,7 @@ async function fetchJobById(id: string): Promise<DbJob & { description?: string;
       id, title, canonical_url, apply_url,
       location_city, work_mode, employment_type, category,
       salary_min, salary_max, currency,
-      first_seen_at, last_seen_at, posted_at,
+      first_seen_at, last_seen_at, posted_at, source_type,
       employers!inner ( name, logo_url ),
       job_posting_content ( description_text, requirements_text, benefits_text )
     `)
@@ -140,6 +142,7 @@ async function fetchJobById(id: string): Promise<DbJob & { description?: string;
     firstSeenAt: data.first_seen_at,
     lastSeenAt: data.last_seen_at,
     postedAt: data.posted_at ?? data.first_seen_at,
+    sourceType: data.source_type ?? 'EXTERNAL',
     description: content?.description_text ?? undefined,
     requirements: content?.requirements_text ?? undefined,
     benefits: content?.benefits_text ?? undefined,

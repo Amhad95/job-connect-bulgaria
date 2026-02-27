@@ -10,13 +10,22 @@ import Index from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import JobDetail from "./pages/JobDetail";
 import Auth from "./pages/Auth";
-import Tracker from "./pages/Tracker";
-import ApplyKit from "./pages/ApplyKit";
-import Sources from "./pages/Sources";
-import SavedJobs from "./pages/SavedJobs";
+import OptOut from "./pages/OptOut";
+import Employers from "./pages/Employers";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import DashboardLayout from "./layouts/DashboardLayout";
+import DashboardProfile from "./pages/dashboard/DashboardProfile";
+import DashboardSavedJobs from "./pages/dashboard/DashboardSavedJobs";
+import DashboardTracker from "./pages/dashboard/DashboardTracker";
+import DashboardApplyKit from "./pages/dashboard/DashboardApplyKit";
+import { AdminRoute } from "./components/AdminRoute";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCompanies from "./pages/admin/AdminCompanies";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminSources from "./pages/admin/AdminSources";
 import "./i18n";
 
 const queryClient = new QueryClient();
@@ -34,12 +43,26 @@ const App = () => (
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetail />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/tracker" element={<ProtectedRoute><Tracker /></ProtectedRoute>} />
-              <Route path="/apply-kit" element={<ProtectedRoute><ApplyKit /></ProtectedRoute>} />
-              <Route path="/sources" element={<Sources />} />
-              <Route path="/saved" element={<SavedJobs />} />
+              <Route path="/employers" element={<Employers />} />
+              <Route path="/opt-out" element={<OptOut />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+
+              {/* APPLICANT DASHBOARD ROUTES */}
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                <Route index element={<DashboardProfile />} />
+                <Route path="saved" element={<DashboardSavedJobs />} />
+                <Route path="tracker" element={<DashboardTracker />} />
+                <Route path="apply-kit" element={<DashboardApplyKit />} />
+              </Route>
+              {/* ADMIN ROUTES */}
+              <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="companies" element={<AdminCompanies />} />
+                <Route path="sources" element={<AdminSources />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

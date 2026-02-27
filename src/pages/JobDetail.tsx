@@ -8,7 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, ExternalLink, Bookmark, KanbanSquare, FileText, PenLine,
-  Clock, MapPin, Building, Briefcase,
+  Clock, MapPin, Building, Briefcase, CheckCircle, Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -59,6 +59,8 @@ export default function JobDetail() {
     ? `${job.salaryMin.toLocaleString()}–${job.salaryMax.toLocaleString()} ${job.currency}`
     : null;
 
+  const isDirect = job.sourceType === 'DIRECT';
+
   return (
     <Layout>
       <div className="container max-w-4xl py-8">
@@ -76,7 +78,12 @@ export default function JobDetail() {
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">{job.title}</h1>
             <p className="mt-1 text-lg text-muted-foreground">{job.company}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2 items-center">
+              {isDirect ? (
+                <Badge className="bg-primary text-primary-foreground gap-1"><CheckCircle className="h-3 w-3" />{t("jobs.verifiedEmployer", "Verified Employer")}</Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted">{t("jobs.externalListing", "External Listing")}</Badge>
+              )}
               {job.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{job.city}</Badge>}
               {job.workMode && <Badge variant="secondary">{t(`jobs.${job.workMode}`)}</Badge>}
               {job.employmentType && <Badge variant="secondary">{t(`jobs.${job.employmentType}`)}</Badge>}
@@ -91,12 +98,19 @@ export default function JobDetail() {
 
         {/* Actions */}
         <div className="mt-6 flex flex-wrap gap-3">
-          <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="lg" className="gap-2">
-              <ExternalLink className="h-4 w-4" />
-              {t("jobs.applyOn", { employer: job.company })}
+          {isDirect ? (
+            <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+              <Zap className="h-4 w-4" />
+              {t("jobs.easyApply", "Easy Apply")}
             </Button>
-          </a>
+          ) : (
+            <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
+              <Button size="lg" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                {t("jobs.applyOn", { employer: job.company })}
+              </Button>
+            </a>
+          )}
           <Button variant="outline" size="lg" className="gap-2">
             <Bookmark className="h-4 w-4" />
             {t("common.save")}
@@ -105,13 +119,13 @@ export default function JobDetail() {
             <KanbanSquare className="h-4 w-4" />
             {t("jobDetail.addToTracker")}
           </Button>
-          <Link to={`/apply-kit?tab=cover&jobId=${id}`}>
+          <Link to={`/dashboard/apply-kit?tab=cover&jobId=${id}`}>
             <Button variant="outline" size="lg" className="gap-2">
               <PenLine className="h-4 w-4" />
               {t("jobDetail.generateCoverLetter")}
             </Button>
           </Link>
-          <Link to={`/apply-kit?tab=cv&jobId=${id}`}>
+          <Link to={`/dashboard/apply-kit?tab=cv&jobId=${id}`}>
             <Button variant="outline" size="lg" className="gap-2">
               <FileText className="h-4 w-4" />
               {t("jobDetail.tailorCV")}

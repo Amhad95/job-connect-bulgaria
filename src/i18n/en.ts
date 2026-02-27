@@ -30,7 +30,7 @@ export default {
   },
   hero: {
     headline: "Faster job search. Cleaner listings. One place.",
-    subheadline: "Browse jobs indexed directly from official employer career pages in Bulgaria. Every listing links to the employer's original posting. Save roles, build an Apply Kit, and move faster with privacy-first tools.",
+    subheadline: "We bring Bulgaria's top opportunities into one Comprehensive Job Hub. Every listing links to the employer's original posting. Save roles, build an Apply Kit, and move faster with privacy-first tools.",
     primaryCta: "Search jobs",
     secondaryCta: "Upload CV for matches",
   },
@@ -101,6 +101,9 @@ export default {
     showing: "Showing {{count}} jobs",
     searchPlaceholder: "Role, skill, or employer",
     redirectNote: "You will be redirected to the employer's original posting.",
+    verifiedEmployer: "Verified Employer",
+    externalListing: "External Listing",
+    easyApply: "Easy Apply"
   },
   jobDetail: {
     description: "Description",
@@ -166,7 +169,7 @@ export default {
     disableAI: "Disable AI processing",
   },
   employers: {
-    intro: "Bachkam.com indexes jobs directly from official employer career pages. Each listing shows the employer and links to the original posting.",
+    intro: "Bachkam.com discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",
     name: "Employer",
     portal: "Careers portal",
     policyStatus: "Policy status",
@@ -182,7 +185,7 @@ export default {
     submit: "Submit request",
   },
   sources: {
-    intro: "Bachkam.com indexes jobs directly from official employer career pages. Each listing shows the employer and links to the original posting.",
+    intro: "Bachkam.com discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",
     name: "Employer",
     policy: "Policy status",
     stored: "Policy mode",

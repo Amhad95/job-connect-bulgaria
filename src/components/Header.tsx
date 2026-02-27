@@ -17,10 +17,8 @@ export function Header() {
   };
 
   const navLinks = [
-    { to: "/jobs", label: t("nav.jobs") },
-    { to: "/apply-kit", label: t("nav.applyKit") },
-    { to: "/tracker", label: t("nav.tracker") },
-    { to: "/sources", label: t("nav.sources") },
+    { to: "/jobs", label: t("nav.jobs", "Find Jobs") },
+    { to: "/employers", label: t("nav.forEmployers", "For Employers") },
   ];
 
   return (
@@ -57,16 +55,22 @@ export function Header() {
           </Button>
 
           {user ? (
-            <Button variant="ghost" size="sm" onClick={signOut} className="hidden gap-2 md:flex">
-              <LogOut className="h-4 w-4" />
-              {t("common.logout")}
-            </Button>
-          ) : (
-            <Link to="/auth" className="hidden md:block">
-              <Button variant="outline" size="sm">
-                {t("common.login")}
+            <div className="hidden items-center gap-2 md:flex">
+              <Link to="/dashboard">
+                <Button variant="outline" size="sm" className="font-medium text-primary border-primary hover:bg-primary/10">
+                  {t("nav.dashboard") || "Dashboard"}
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={signOut} className="gap-2 text-muted-foreground">
+                <LogOut className="h-4 w-4" />
               </Button>
-            </Link>
+            </div>
+          ) : (
+            <div className="hidden items-center gap-2 md:flex">
+              <Link to="/auth">
+                <Button variant="outline" size="sm">{t("common.login")}</Button>
+              </Link>
+            </div>
           )}
 
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -89,16 +93,25 @@ export function Header() {
               </Link>
             ))}
             {user ? (
-              <Button variant="outline" size="sm" className="mt-2 w-full gap-2" onClick={() => { signOut(); setMobileOpen(false); }}>
-                <LogOut className="h-4 w-4" />
-                {t("common.logout")}
-              </Button>
-            ) : (
-              <Link to="/auth" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" size="sm" className="mt-2 w-full">
-                  {t("common.login")}
+              <div className="flex flex-col gap-2 mt-2">
+                <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full text-primary border-primary">
+                    {t("nav.dashboard") || "Dashboard"}
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={() => { signOut(); setMobileOpen(false); }}>
+                  <LogOut className="h-4 w-4" />
+                  {t("common.logout")}
                 </Button>
-              </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 mt-2">
+                <Link to="/auth" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full">
+                    {t("common.login")}
+                  </Button>
+                </Link>
+              </div>
             )}
           </nav>
         </div>

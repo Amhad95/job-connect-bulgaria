@@ -17,8 +17,8 @@ export function Footer() {
           <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             {t("footer.terms")}
           </Link>
-          <Link to="/sources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            {t("footer.sources")}
+          <Link to="/opt-out" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            {t("footer.optOut", "Opt-Out / Remove Listing")}
           </Link>
         </nav>
       </div>

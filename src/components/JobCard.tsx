@@ -1,7 +1,7 @@
 import { DbJob } from "@/hooks/useJobs";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark, ExternalLink, Clock } from "lucide-react";
+import { Bookmark, ExternalLink, Clock, CheckCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -34,14 +34,26 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
   const dateToCheck = job.postedAt || job.firstSeenAt;
   const isNew = new Date(dateToCheck).getTime() > Date.now() - 48 * 3600 * 1000;
 
+  const isDirect = job.sourceType === 'DIRECT';
+
+  const StatusBadge = isDirect ? (
+    <Badge className="bg-primary text-primary-foreground gap-1">
+      <CheckCircle className="w-3 h-3" />
+      {t("jobs.verifiedEmployer", "Verified Employer")}
+    </Badge>
+  ) : (
+    <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted">
+      {t("jobs.externalListing", "External Listing")}
+    </Badge>
+  );
+
   return (
     <div
       onClick={onClick}
-      className={`group cursor-pointer rounded-lg border p-4 transition-all ${
-        selected
+      className={`group cursor-pointer rounded-lg border p-4 transition-all ${selected
           ? "border-primary bg-primary/5 shadow-sm"
           : "border-border bg-card hover:border-primary/30 hover:shadow-sm"
-      } ${compact ? "p-3" : ""}`}
+        } ${compact ? "p-3" : ""}`}
     >
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8 shrink-0 rounded-md">
@@ -67,7 +79,8 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
       </div>
 
       {badges.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5 ml-11">
+        <div className="mt-2 flex flex-wrap gap-1.5 ml-11 items-center">
+          {StatusBadge}
           {badges.map((b) => (
             <Badge key={b} variant="secondary" className="text-[11px] font-medium">
               {b}
