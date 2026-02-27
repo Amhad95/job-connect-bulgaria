@@ -86,9 +86,9 @@ export default function AdminPartnerDetail() {
         setLoading(true);
         const [pRes, mRes, jRes, eRes] = await Promise.all([
             supabase.from("employers").select("*").eq("id", id).single() as any,
-            supabase.from("partner_memberships").select("*").eq("partner_id", id).order("created_at") as any,
-            supabase.from("job_postings").select("id, title, status, first_seen_at").eq("employer_id", id).eq("source_type", "DIRECT").order("first_seen_at", { ascending: false }).limit(50) as any,
-            supabase.from("partner_events").select("*").eq("partner_id", id).order("created_at", { ascending: false }).limit(30) as any,
+            (supabase.from("partner_memberships" as any).select("*").eq("employer_id", id).order("joined_at") as any),
+            supabase.from("job_postings").select("id, title, status, first_seen_at").eq("employer_id", id).order("first_seen_at", { ascending: false }).limit(50) as any,
+            (supabase.from("partner_events" as any).select("*").eq("employer_id", id).order("created_at", { ascending: false }).limit(30) as any),
         ]);
         if (pRes.error) toast.error("Partner not found");
         else {
@@ -127,7 +127,7 @@ export default function AdminPartnerDetail() {
         await patchPartner({ plan_tier: billingForm.plan_tier, billing_status: billingForm.billing_status, renewal_date: billingForm.renewal_date || null } as any);
         // Log event
         if (partner && billingForm.plan_tier !== partner.plan_tier) {
-            await supabase.from("partner_events").insert({ partner_id: partner.id, event_type: "PLAN_CHANGED", metadata: { from: partner.plan_tier, to: billingForm.plan_tier } } as any);
+            await (supabase as any).from("partner_events").insert({ partner_id: partner.id, event_type: "PLAN_CHANGED", metadata: { from: partner.plan_tier, to: billingForm.plan_tier } });
         }
     };
 
@@ -138,13 +138,13 @@ export default function AdminPartnerDetail() {
     const inviteUser = async () => {
         if (!inviteForm.email || !partner) return;
         setInviting(true);
-        const { error } = await supabase.from("partner_memberships").insert({
+        const { error } = await (supabase as any).from("partner_memberships").insert({
             partner_id: partner.id, email: inviteForm.email, role: inviteForm.role, status: "INVITED",
-        } as any);
+        });
         if (error) toast.error("Invite failed: " + error.message);
         else {
             toast.success(`Invite sent to ${inviteForm.email}`);
-            await supabase.from("partner_events").insert({ partner_id: partner.id, event_type: "USER_INVITED", metadata: { email: inviteForm.email, role: inviteForm.role } } as any);
+            await (supabase as any).from("partner_events").insert({ partner_id: partner.id, event_type: "USER_INVITED", metadata: { email: inviteForm.email, role: inviteForm.role } });
             setInviteOpen(false);
             setInviteForm({ email: "", role: "RECRUITER" });
             fetchAll();
@@ -153,19 +153,19 @@ export default function AdminPartnerDetail() {
     };
 
     const changeMemberStatus = async (memberId: string, status: string) => {
-        await supabase.from("partner_memberships").update({ status } as any).eq("id", memberId);
+        await (supabase as any).from("partner_memberships").update({ status }).eq("id", memberId);
         toast.success("Member updated.");
         fetchAll();
     };
 
     const changeMemberRole = async (memberId: string, role: string) => {
-        await supabase.from("partner_memberships").update({ role } as any).eq("id", memberId);
+        await (supabase as any).from("partner_memberships").update({ role }).eq("id", memberId);
         toast.success("Role updated.");
         fetchAll();
     };
 
     const removeMember = async (memberId: string) => {
-        await supabase.from("partner_memberships").delete().eq("id", memberId);
+        await (supabase as any).from("partner_memberships").delete().eq("id", memberId);
         toast.info("Member removed.");
         fetchAll();
     };
@@ -199,8 +199,8 @@ export default function AdminPartnerDetail() {
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h1 className="text-2xl font-bold text-gray-900">{partner.name}</h1>
-                                {partner.is_verified && <CheckCircle className="w-5 h-5 text-green-500" title="Verified" />}
-                                {partner.is_featured && <Star className="w-5 h-5 text-amber-400" title="Featured" />}
+                                {partner.is_verified && <CheckCircle className="w-5 h-5 text-green-500" />}
+                                {partner.is_featured && <Star className="w-5 h-5 text-amber-400" />}
                             </div>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <Badge className={`text-xs border ${partner.is_signed_up_active ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500 border-gray-200"}`}>

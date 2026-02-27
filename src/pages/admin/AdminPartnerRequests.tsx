@@ -55,8 +55,8 @@ export default function AdminPartnerRequests() {
 
     const fetch = async () => {
         setLoading(true);
-        const query = supabase.from("signup_requests").select("*").order("created_at", { ascending: false });
-        const { data, error } = statusFilter === "all" ? await query : await query.eq("status", statusFilter) as any;
+        const query = (supabase as any).from("signup_requests").select("*").order("created_at", { ascending: false });
+        const { data, error } = statusFilter === "all" ? await query : await query.eq("status", statusFilter);
         if (error) toast.error("Failed: " + error.message);
         else setRequests(data || []);
         setLoading(false);
@@ -71,9 +71,9 @@ export default function AdminPartnerRequests() {
         setWorking(true);
 
         // 1. Mark request approved
-        await supabase.from("signup_requests").update({
+        await (supabase as any).from("signup_requests").update({
             status: "APPROVED", review_notes: reviewNotes, reviewed_at: new Date().toISOString(),
-        } as any).eq("id", reviewTarget.id);
+        }).eq("id", reviewTarget.id);
 
         // 2. Create or update employer record
         const slug = reviewTarget.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -85,18 +85,18 @@ export default function AdminPartnerRequests() {
 
         // 3. Create admin membership if we have user_id
         if (emp && reviewTarget.submitted_by_email) {
-            await supabase.from("partner_memberships").insert({
+            await (supabase as any).from("partner_memberships").insert({
                 partner_id: emp.id, email: reviewTarget.submitted_by_email,
                 role: "COMPANY_ADMIN", status: "ACTIVE",
-            } as any);
+            });
         }
 
         // 4. Log event
         if (emp) {
-            await supabase.from("partner_events").insert({
+            await (supabase as any).from("partner_events").insert({
                 partner_id: emp.id, event_type: "APPROVED",
                 metadata: { request_id: reviewTarget.id, plan: reviewTarget.proposed_plan },
-            } as any);
+            });
         }
 
         toast.success(`${reviewTarget.company_name} approved and activated as a partner.`);
@@ -108,9 +108,9 @@ export default function AdminPartnerRequests() {
     const rejectRequest = async () => {
         if (!reviewTarget) return;
         setWorking(true);
-        await supabase.from("signup_requests").update({
+        await (supabase as any).from("signup_requests").update({
             status: "REJECTED", review_notes: reviewNotes, reviewed_at: new Date().toISOString(),
-        } as any).eq("id", reviewTarget.id);
+        }).eq("id", reviewTarget.id);
         toast.info("Request rejected.");
         setReviewTarget(null);
         setWorking(false);
