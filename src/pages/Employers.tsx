@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 export default function Employers() {
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const isBg = i18n.language === "bg";
 
     return (
@@ -21,7 +21,11 @@ export default function Employers() {
                 <div className="max-w-6xl mx-auto px-4">
                     {/* Eyebrow chips */}
                     <div className="flex flex-wrap gap-2 mb-6 justify-center md:justify-start">
-                        {["Verified Employers", "AI Match Score", "Built-in ATS"].map((chip) => (
+                        {[
+                            t("employers.preview.heroChips.verifiedEmployers"),
+                            t("employers.preview.heroChips.aiMatchScore"),
+                            t("employers.preview.heroChips.builtInAts"),
+                        ].map((chip) => (
                             <span key={chip} className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-sm text-slate-700">
                                 {chip}
                             </span>
@@ -61,19 +65,19 @@ export default function Employers() {
                         <div className="hidden md:block">
                             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                                 <div className="flex items-center justify-between mb-4">
-                                    <span className="font-semibold text-gray-900 text-sm">Pipeline — Backend Engineer</span>
+                                    <span className="font-semibold text-gray-900 text-sm">{t("employers.preview.pipelineTitle")} — Backend Engineer</span>
                                     <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-xs text-green-700 font-medium">
-                                        <CheckCircle className="w-3 h-3" aria-hidden="true" /> Verified Employer
+                                        <CheckCircle className="w-3 h-3" aria-hidden="true" /> {t("badges.verifiedEmployer")}
                                     </span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { label: "New", color: "bg-slate-100", candidates: [{ name: "A.M.", score: 91 }, { name: "D.K.", score: 78 }] },
-                                        { label: "Shortlist", color: "bg-blue-50", candidates: [{ name: "S.P.", score: 88 }, { name: "T.N.", score: 82 }] },
-                                        { label: "Interview", color: "bg-sky-50", candidates: [{ name: "M.B.", score: 95 }] },
+                                        { labelKey: "employers.preview.columns.new", color: "bg-slate-100", candidates: [{ name: "A.M.", score: 91 }, { name: "D.K.", score: 78 }] },
+                                        { labelKey: "employers.preview.columns.shortlist", color: "bg-blue-50", candidates: [{ name: "S.P.", score: 88 }, { name: "T.N.", score: 82 }] },
+                                        { labelKey: "employers.preview.columns.interview", color: "bg-sky-50", candidates: [{ name: "M.B.", score: 95 }] },
                                     ].map((col) => (
-                                        <div key={col.label}>
-                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{col.label}</p>
+                                        <div key={col.labelKey}>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t(col.labelKey)}</p>
                                             <div className="space-y-2">
                                                 {col.candidates.map((c) => (
                                                     <div key={c.name} className={`${col.color} rounded-lg p-2`}>
@@ -220,28 +224,32 @@ export default function Employers() {
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6" role="img" aria-label="ATS pipeline preview">
                             {/* Top app bar */}
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
-                                <span className="font-semibold text-gray-900">Pipeline</span>
+                                <span className="font-semibold text-gray-900">{t("employers.preview.pipelineTitle")}</span>
                                 <div className="flex flex-wrap gap-2">
-                                    {["Role: Backend", "Match: 70%+", "Location: Sofia"].map((f) => (
+                                    {[
+                                        `${t("employers.preview.filters.role")}: Backend`,
+                                        `${t("employers.preview.filters.match")}: 70%+`,
+                                        `${t("employers.preview.filters.location")}: Sofia`,
+                                    ].map((f) => (
                                         <span key={f} className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
                                             {f}
                                         </span>
                                     ))}
                                 </div>
                                 <button className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-slate-50 transition-colors">
-                                    + Create stage
+                                    + {t("employers.preview.actions.createStage")}
                                 </button>
                             </div>
 
                             {/* Pipeline columns */}
                             <div className="grid grid-cols-3 gap-3 mb-5">
                                 {[
-                                    { label: "New", bg: "bg-slate-50", candidates: [{ name: "Candidate A", score: 86, tags: ["React", "TypeScript"] }, { name: "Candidate B", score: 74, tags: ["Node.js", "SQL"] }] },
-                                    { label: "Shortlist", bg: "bg-blue-50", candidates: [{ name: "Candidate C", score: 91, tags: ["Python", "AWS"] }, { name: "Candidate D", score: 88, tags: ["Go", "Docker"] }] },
-                                    { label: "Interview", bg: "bg-sky-50", candidates: [{ name: "Candidate E", score: 95, tags: ["TypeScript", "React"] }, { name: "Candidate F", score: 83, tags: ["Node.js", "Redis"] }] },
+                                    { labelKey: "employers.preview.columns.new", bg: "bg-slate-50", candidates: [{ name: "Candidate A", score: 86, tags: ["React", "TypeScript"] }, { name: "Candidate B", score: 74, tags: ["Node.js", "SQL"] }] },
+                                    { labelKey: "employers.preview.columns.shortlist", bg: "bg-blue-50", candidates: [{ name: "Candidate C", score: 91, tags: ["Python", "AWS"] }, { name: "Candidate D", score: 88, tags: ["Go", "Docker"] }] },
+                                    { labelKey: "employers.preview.columns.interview", bg: "bg-sky-50", candidates: [{ name: "Candidate E", score: 95, tags: ["TypeScript", "React"] }, { name: "Candidate F", score: 83, tags: ["Node.js", "Redis"] }] },
                                 ].map((col) => (
-                                    <div key={col.label}>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{col.label}</p>
+                                    <div key={col.labelKey}>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t(col.labelKey)}</p>
                                         <div className="space-y-2">
                                             {col.candidates.map((c) => (
                                                 <div key={c.name} className={`${col.bg} rounded-xl p-3 border border-white`}>
@@ -263,7 +271,7 @@ export default function Employers() {
 
                             {/* Match breakdown panel */}
                             <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                                <p className="text-xs font-semibold text-gray-700 mb-3">Match breakdown — Candidate E</p>
+                                <p className="text-xs font-semibold text-gray-700 mb-3">{t("employers.preview.matchBreakdown.title")} — Candidate E</p>
                                 <div className="space-y-1.5 mb-4">
                                     {["TypeScript ✓", "React ✓", "REST API ✓"].map((s) => (
                                         <div key={s} className="flex items-center gap-2 text-xs text-green-700">
@@ -273,13 +281,17 @@ export default function Employers() {
                                     ))}
                                     <div className="flex items-center gap-2 text-xs text-orange-700 mt-1">
                                         <span className="w-3 h-3 flex items-center justify-center flex-shrink-0 text-orange-500 font-bold">!</span>
-                                        <span>Missing: PostgreSQL (must-have)</span>
+                                        <span>{t("employers.preview.matchBreakdown.missingMustHave")}: PostgreSQL</span>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
-                                    {["Shortlist", "Reject", "Message"].map((action) => (
-                                        <button key={action} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-slate-100 transition-colors">
-                                            {action}
+                                    {[
+                                        { key: "employers.preview.matchBreakdown.actions.shortlist" },
+                                        { key: "employers.preview.matchBreakdown.actions.reject" },
+                                        { key: "employers.preview.matchBreakdown.actions.message" },
+                                    ].map(({ key }) => (
+                                        <button key={key} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-slate-100 transition-colors">
+                                            {t(key)}
                                         </button>
                                     ))}
                                 </div>

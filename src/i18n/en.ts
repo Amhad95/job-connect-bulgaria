@@ -21,7 +21,8 @@ export default {
   },
   nav: {
     home: "Home",
-    jobs: "Jobs",
+    jobs: "Find Jobs",
+    forEmployers: "For Employers",
     applyKit: "Apply Kit",
     tracker: "Tracker",
     sources: "Employers",
@@ -34,6 +35,17 @@ export default {
     subheadline: "We bring Bulgaria's top opportunities into one Comprehensive Job Hub. Every listing links to the employer's original posting. Save roles, build an Apply Kit, and move faster with privacy-first tools.",
     primaryCta: "Search jobs",
     secondaryCta: "Upload CV for matches",
+    roleTags: {
+      softwareEngineer: "Software Engineer",
+      marketing: "Marketing",
+      dataAnalyst: "Data Analyst",
+      projectManager: "Project Manager",
+      designer: "Designer",
+      sales: "Sales",
+      accountant: "Accountant",
+      developer: "Developer",
+      remote: "Remote",
+    },
   },
   home: {
     trendingJobs: "Latest from employers",
@@ -46,6 +58,12 @@ export default {
     bullet1: "Your documents stay private, and you can delete them anytime.",
     bullet2: "We curate top opportunities from across the web and verify direct employer listings, creating one comprehensive job hub.",
     bullet3: "No auto-apply. You always apply on the employer's own site.",
+  },
+  badges: {
+    externalListing: "External Listing",
+    verifiedEmployer: "Verified Employer",
+    aiMatchScore: "AI Match Score",
+    builtInAts: "Built-in ATS",
   },
   features: {
     findRoles: {
@@ -104,7 +122,7 @@ export default {
     redirectNote: "You will be redirected to the employer's original posting.",
     verifiedEmployer: "Verified Employer",
     externalListing: "External Listing",
-    easyApply: "Easy Apply"
+    easyApply: "Easy Apply",
   },
   jobDetail: {
     description: "Description",
@@ -184,6 +202,37 @@ export default {
     email: "Your email",
     companyName: "Company name (optional)",
     submit: "Submit request",
+    preview: {
+      pipelineTitle: "Pipeline",
+      filters: {
+        role: "Role",
+        match: "Match",
+        location: "Location",
+      },
+      actions: {
+        createStage: "Create stage",
+      },
+      columns: {
+        new: "New",
+        shortlist: "Shortlist",
+        interview: "Interview",
+      },
+      matchBreakdown: {
+        title: "Match breakdown",
+        skillsMatched: "Skills matched",
+        missingMustHave: "Missing must-have",
+        actions: {
+          shortlist: "Shortlist",
+          reject: "Reject",
+          message: "Message",
+        },
+      },
+      heroChips: {
+        verifiedEmployers: "Verified Employers",
+        aiMatchScore: "AI Match Score",
+        builtInAts: "Built-in ATS",
+      },
+    },
   },
   sources: {
     intro: "Bachkam.com discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",

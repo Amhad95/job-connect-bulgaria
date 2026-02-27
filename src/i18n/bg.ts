@@ -22,6 +22,7 @@ export default {
   nav: {
     home: "Начало",
     jobs: "Обяви",
+    forEmployers: "За работодатели",
     applyKit: "Apply Kit",
     tracker: "Тракер",
     sources: "Работодатели",
@@ -34,6 +35,17 @@ export default {
     subheadline: "Събираме най-добрите възможности в България в един Пълноценен портал за работа. Всяка обява води до оригиналната публикация. Запазвайте позиции, подгответе Apply Kit и кандидатствайте по-бързо с инструменти, които пазят личните ви данни.",
     primaryCta: "Търси работа",
     secondaryCta: "Качи CV за съвпадения",
+    roleTags: {
+      softwareEngineer: "Софтуерен инженер",
+      marketing: "Маркетинг",
+      dataAnalyst: "Анализатор на данни",
+      projectManager: "Проектен мениджър",
+      designer: "Дизайнер",
+      sales: "Продажби",
+      accountant: "Счетоводител",
+      developer: "Програмист",
+      remote: "Дистанционно",
+    },
   },
   home: {
     trendingJobs: "Последни от работодатели",
@@ -46,6 +58,12 @@ export default {
     bullet1: "Документите ви остават лични и можете да ги изтриете по всяко време.",
     bullet2: "Ние подбираме топ възможности от мрежата и проверяваме директните обяви на работодатели, създавайки един цялостен портал за работа.",
     bullet3: "Няма auto-apply. Винаги кандидатствате в сайта на работодателя.",
+  },
+  badges: {
+    externalListing: "Външна обява",
+    verifiedEmployer: "Потвърден работодател",
+    aiMatchScore: "AI оценка за съвпадение",
+    builtInAts: "Вграден ATS",
   },
   features: {
     findRoles: {
@@ -104,7 +122,7 @@ export default {
     redirectNote: "Ще бъдете пренасочени към оригиналната обява на работодателя.",
     verifiedEmployer: "Потвърден работодател",
     externalListing: "Външна обява",
-    easyApply: "Бързо кандидатстване"
+    easyApply: "Бързо кандидатстване",
   },
   jobDetail: {
     description: "Описание",
@@ -184,6 +202,37 @@ export default {
     email: "Вашият имейл",
     companyName: "Име на компанията (по избор)",
     submit: "Изпрати заявка",
+    preview: {
+      pipelineTitle: "Процес",
+      filters: {
+        role: "Роля",
+        match: "Съвпадение",
+        location: "Локация",
+      },
+      actions: {
+        createStage: "Създай етап",
+      },
+      columns: {
+        new: "Нови",
+        shortlist: "Кратък списък",
+        interview: "Интервю",
+      },
+      matchBreakdown: {
+        title: "Разбивка на съвпадението",
+        skillsMatched: "Съвпадащи умения",
+        missingMustHave: "Липсва задължително умение",
+        actions: {
+          shortlist: "В списък",
+          reject: "Отхвърли",
+          message: "Съобщение",
+        },
+      },
+      heroChips: {
+        verifiedEmployers: "Потвърдени работодатели",
+        aiMatchScore: "AI оценка за съвпадение",
+        builtInAts: "Вграден ATS",
+      },
+    },
   },
   sources: {
     intro: "Bachkam.com открива обяви чрез нашата партньорска мрежа. Всяка обява показва работодателя и води към оригиналната публикация.",

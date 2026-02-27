@@ -12,10 +12,7 @@ import { useJobs } from "@/hooks/useJobs";
 import heroIllustration from "@/assets/hero-illustration.svg";
 import { useState } from "react";
 
-const popularSearches = [
-  "Software Engineer", "Marketing", "Data Analyst", "Project Manager",
-  "Designer", "Sales", "Счетоводител", "Програмист", "Remote",
-];
+
 
 export default function Index() {
   const { t, i18n } = useTranslation();
@@ -23,6 +20,18 @@ export default function Index() {
   const { data: jobs = [] } = useJobs();
   const trendingJobs = jobs.slice(0, 6);
   const recentJobs = jobs.slice(0, 4);
+
+  const roleTagKeys = [
+    "hero.roleTags.softwareEngineer",
+    "hero.roleTags.marketing",
+    "hero.roleTags.dataAnalyst",
+    "hero.roleTags.projectManager",
+    "hero.roleTags.designer",
+    "hero.roleTags.sales",
+    "hero.roleTags.accountant",
+    "hero.roleTags.developer",
+    "hero.roleTags.remote",
+  ] as const;
 
   return (
     <Layout>
@@ -65,15 +74,14 @@ export default function Index() {
               </Button>
             </Link>
 
-            {/* Popular searches */}
             <div className="flex flex-wrap justify-center gap-2 md:justify-start">
-              {popularSearches.map((s) => (
+              {roleTagKeys.map((key) => (
                 <Link
-                  key={s}
-                  to={`/jobs?q=${encodeURIComponent(s)}`}
+                  key={key}
+                  to={`/jobs?q=${encodeURIComponent(t(key))}`}
                   className="rounded-pill border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
                 >
-                  {s}
+                  {t(key)}
                 </Link>
               ))}
             </div>
@@ -152,7 +160,7 @@ export default function Index() {
               </p>
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700">
-                  External Listing
+                  {t("badges.externalListing")}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-700">
                   <ExternalLink className="w-3 h-3" aria-hidden="true" />
@@ -175,7 +183,7 @@ export default function Index() {
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-sm text-green-700">
                   <CheckCircle className="w-3 h-3" aria-hidden="true" />
-                  Verified Employer
+                  {t("badges.verifiedEmployer")}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700">
                   {isBg ? "Кандидатствайте тук" : "Apply here"}
