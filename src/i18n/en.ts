@@ -44,7 +44,7 @@ export default {
     sourceShown: "Employer shown on every listing",
     deleteAnytime: "Delete your data anytime",
     bullet1: "Your documents stay private, and you can delete them anytime.",
-    bullet2: "We partner directly with top brands and rigorously verify external listings.",
+    bullet2: "We curate top opportunities from across the web and verify direct employer listings, creating one comprehensive job hub.",
     bullet3: "No auto-apply. You always apply on the employer's own site.",
   },
   features: {

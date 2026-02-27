@@ -42,7 +42,7 @@ export default function Index() {
                 />
               </div>
               <Link to="/jobs">
-                <Button size="lg" className="h-12 rounded-lg px-6 font-display font-semibold shadow-sm">
+                <Button size="lg" className="h-12 rounded-xl px-6 font-display font-semibold shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5">
                   {t("hero.primaryCta")}
                 </Button>
               </Link>

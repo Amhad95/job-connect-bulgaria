@@ -58,19 +58,19 @@ export default function Employers() {
                             <FeatureCard
                                 icon={<Columns className="w-6 h-6 text-indigo-500" />}
                                 iconBg="bg-indigo-500/10"
-                                title={isBg ? "Интерактивен процес на кандидатстване" : "Interactive Pipeline"}
+                                title={isBg ? "Интерактивна фуния за кандидати" : "Interactive Applicant Pipeline"}
                                 desc={isBg ? "Управлявайте кандидатите визуално чрез персонализирани етапи." : "Manage candidates visually through highly customizable, modular applicant stages."}
                             />
                             <FeatureCard
                                 icon={<Sparkles className="w-6 h-6 text-amber-500" />}
                                 iconBg="bg-amber-500/10"
-                                title={isBg ? "AI-оптимизирано класиране" : "AI-Powered Ranking"}
+                                title={isBg ? "Автоматизирано класиране на кандидати" : "Automated Candidate Ranking"}
                                 desc={isBg ? "Автоматично съвпадение и класиране на профилите на кандидатите спрямо вашите специфични изисквания." : "Automatically match and rank candidate CVs directly to your defined job requirements."}
                             />
                             <FeatureCard
                                 icon={<Zap className="w-6 h-6 text-emerald-500" />}
                                 iconBg="bg-emerald-500/10"
-                                title={isBg ? "Бързо кандидатстване" : "Easy Apply Infrastructure"}
+                                title={isBg ? "Безплатно двуезично публикуване" : "Seamless Bilingual Job Posting"}
                                 desc={isBg ? "Позволете на кандидатите да кандидатстват с един клик, намалявайки спада с над 60%." : "Allow candidates to apply in one click using platform profiles, drastically accelerating funnels."}
                             />
                         </div>
