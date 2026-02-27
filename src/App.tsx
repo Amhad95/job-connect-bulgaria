@@ -26,6 +26,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSources from "./pages/admin/AdminSources";
+import AdminPartners from "./pages/admin/AdminPartners";
+import AdminPartnerRequests from "./pages/admin/AdminPartnerRequests";
+import AdminPartnerDetail from "./pages/admin/AdminPartnerDetail";
 import "./i18n";
 
 const queryClient = new QueryClient();
@@ -61,6 +64,9 @@ const App = () => (
                 <Route path="companies" element={<AdminCompanies />} />
                 <Route path="sources" element={<AdminSources />} />
                 <Route path="settings" element={<AdminSettings />} />
+                <Route path="partners" element={<AdminPartners />} />
+                <Route path="partners/requests" element={<AdminPartnerRequests />} />
+                <Route path="partners/:id" element={<AdminPartnerDetail />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
