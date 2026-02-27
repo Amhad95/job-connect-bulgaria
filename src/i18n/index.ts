@@ -12,15 +12,18 @@ i18n
       en: { translation: en },
       bg: { translation: bg },
     },
-    fallbackLng: "en",
+    lng: "bg",
+    fallbackLng: "bg",
     supportedLngs: ["en", "bg"],
     interpolation: {
       escapeValue: false,
     },
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["localStorage"],
       caches: ["localStorage"],
+      lookupLocalStorage: "i18nextLng",
     },
   });
 
 export default i18n;
+
