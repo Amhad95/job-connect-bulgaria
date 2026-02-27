@@ -116,51 +116,54 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Distinction Grid */}
-      <section className="border-y bg-background py-20 px-6">
-        <div className="container max-w-6xl mx-auto">
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Column 1 */}
-            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-card border border-border shadow-sm hover:shadow-xl transition-all duration-300">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500">
-                <Globe className="h-8 w-8" />
-              </div>
-              <h3 className="mb-4 font-display text-2xl md:text-3xl font-bold text-foreground">
+      {/* How It Works — Two-column card grid */}
+      <section className="bg-slate-50 py-20">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+            {isBg ? "Два начина да откриете следващата си роля" : "Two ways to find your next role"}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            {/* Card 1 — Aggregator */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <Globe className="w-10 h-10 text-blue-600 mb-6" />
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">
                 {isBg ? "Покритие на целия пазар" : "Market-Wide Discovery"}
               </h3>
-              <p className="text-muted-foreground leading-relaxed text-lg max-w-md">
+              <p className="text-gray-600 leading-relaxed">
                 {isBg
                   ? "Ние подбираме най-добрите външни обяви от сайтовете на компаниите. Когато видите бадж 'Външна обява', ще ви насочим директно към източника за кандидатстване."
                   : "We curate the best external listings from top company websites. When you see an 'External Listing' badge, we'll direct you straight to the source to apply."}
               </p>
             </div>
 
-            {/* Column 2 */}
-            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-card border border-border shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-blue-600/5 rounded-bl-[100px] pointer-events-none" />
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600 relative z-10">
-                <CheckCircle className="h-8 w-8" />
-              </div>
-              <h3 className="mb-4 font-display text-2xl md:text-3xl font-bold text-foreground relative z-10">
+            {/* Card 2 — ATS */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <CheckCircle className="w-10 h-10 text-blue-600 mb-6" />
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">
                 {isBg ? "Директно кандидатстване с 1 клик" : "1-Click Direct Apply"}
               </h3>
-              <p className="text-muted-foreground leading-relaxed text-lg max-w-md relative z-10">
+              <p className="text-gray-600 leading-relaxed">
                 {isBg
                   ? "Търсете баджа 'Потвърден работодател'. Тези компании използват нашата платформа директно, което ви позволява да кандидатствате мигновено с вашия запазен профил и AI-оптимизирано CV."
                   : "Look for the 'Verified Employer' badge. These companies use our platform directly, allowing you to apply instantly using your saved profile and AI-optimized CV."}
               </p>
             </div>
+
           </div>
         </div>
       </section>
 
-      {/* Applicant Tools Banner */}
-      <section className="bg-muted/40 py-20 px-6">
-        <div className="container text-center max-w-3xl mx-auto flex flex-col items-center justify-center">
-          <h2 className="mb-6 font-display text-3xl md:text-5xl font-extrabold text-foreground tracking-tight">
+      {/* Applicant Tools — clean white feature highlight */}
+      <section className="bg-white py-20">
+        <div className="max-w-4xl mx-auto text-center px-4">
+          <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm mb-4 block">
+            {isBg ? "За кандидати" : "For Candidates"}
+          </span>
+          <h2 className="text-3xl font-bold mb-6 text-gray-900">
             {isBg ? "Цялото ви търсене на работа, най-накрая организирано." : "Your entire job search, finally organized."}
           </h2>
-          <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-2xl font-medium">
+          <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
             {isBg
               ? "Създайте своя интерактивен профил веднъж. Проследявайте външни линкове и директни кандидатури на едно място във вашия личен Канбан борд."
               : "Build your interactive profile once. Track external links and direct applications side-by-side in your personal Kanban board."}
@@ -168,24 +171,22 @@ export default function Index() {
         </div>
       </section>
 
-      {/* B2B Employer Banner */}
-      <section className="bg-blue-600 py-24 px-6 text-center text-white relative overflow-hidden">
-        <div className="absolute left-0 top-0 w-64 h-64 bg-white/5 rounded-br-full blur-3xl pointer-events-none" />
-        <div className="absolute right-0 bottom-0 w-64 h-64 bg-blue-400/20 rounded-tl-full blur-3xl pointer-events-none" />
-
-        <div className="container max-w-4xl mx-auto flex flex-col items-center relative z-10">
-          <h2 className="mb-8 font-display text-4xl font-extrabold md:text-6xl leading-[1.1] tracking-tight">
+      {/* B2B Employer — billboard card banner */}
+      <section className="py-16 px-4">
+        <div className="bg-blue-600 rounded-3xl max-w-6xl mx-auto px-6 py-16 md:py-20 text-center text-white shadow-xl">
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">
             {isBg ? "Уморени сте от неподходящи CV-та? Поемете контрол над подбора си." : "Tired of unqualified CVs? Take control of your hiring."}
           </h2>
-          <p className="mb-12 text-xl md:text-2xl text-blue-100/90 max-w-3xl leading-relaxed font-medium">
+          <p className="text-blue-100 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             {isBg
-              ? "Заявете профила на вашата компания, за да станете Потвърден работодател. Публикувайте обяви директно, отключете нашето AI класиране на кандидати и управлявайте процеса в модерна ATS, създадена за българския пазар."
-              : "Claim your company profile to become a Verified Employer. Post roles directly, unlock our AI candidate ranking, and manage your pipeline in a modern ATS built for the Bulgarian market."}
+              ? "Заявете профила на вашата компания, за да станете Потвърден работодател. Публикувайте обяви директно, отключете нашето AI класиране на кандидати и управлявайте процеса в модерна ATS."
+              : "Claim your company profile to become a Verified Employer. Post roles directly, unlock our AI candidate ranking, and manage your pipeline in a modern ATS."}
           </p>
-          <Link to="/employers">
-            <Button size="lg" className="h-16 px-10 rounded-2xl bg-white text-blue-600 hover:bg-gray-50 text-xl font-bold shadow-2xl shadow-blue-900/30 transition-all hover:-translate-y-1">
-              {isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
-            </Button>
+          <Link
+            to="/employers"
+            className="inline-block bg-white text-blue-600 font-bold text-lg px-8 py-4 rounded-full hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
+          >
+            {isBg ? "Вижте функциите за работодатели" : "View Employer Features"}
           </Link>
         </div>
       </section>
