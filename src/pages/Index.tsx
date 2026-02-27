@@ -27,8 +27,9 @@ export default function Index() {
   return (
     <Layout>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-l from-sky-100/80 via-sky-50/40 to-transparent" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5 bg-white/70 backdrop-blur-[1px]">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-l from-sky-200/90 via-sky-100/50 to-transparent" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_right,rgba(56,189,248,0.35),rgba(56,189,248,0.00)_60%)]" />
         <div className="container grid items-center gap-8 py-10 md:grid-cols-2 md:py-16">
           <div className="flex flex-col gap-6 text-center md:text-left">
             <h1 className="max-w-3xl font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in drop-shadow-sm">
