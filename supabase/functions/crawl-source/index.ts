@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
               policy_status: "PENDING",
               policy_reason: "Auto-discovered ATS board, pending robots.txt check",
             })
-            .select("id, policy_status")
+          .select("id, policy_status, ats_type")
             .single();
 
           if (insertErr) {
@@ -299,13 +299,13 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          atsSource = newSource;
+          atsSource = newSource!;
           atsSourcesDiscovered++;
           console.log(`Discovered ATS source: ${atsType} at ${atsCareersUrl} (PENDING)`);
         }
 
-        if (atsSource.policy_status !== "ACTIVE") {
-          console.log(`ATS source ${atsType} is ${atsSource.policy_status}, skipping ${atsLinks.length} links`);
+        if (atsSource!.policy_status !== "ACTIVE") {
+          console.log(`ATS source ${atsType} is ${atsSource!.policy_status}, skipping ${atsLinks.length} links`);
           continue;
         }
 
@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
         jobsFound += cappedAtsLinks.length;
 
         for (const jobUrl of cappedAtsLinks) {
-          const result = await upsertJobPosting(supabase, jobUrl, employerId, atsSource.id, errors);
+          const result = await upsertJobPosting(supabase, jobUrl, employerId, atsSource!.id, errors);
           if (result === "added") jobsAdded++;
           else if (result === "updated") jobsUpdated++;
           await delay(100);
@@ -500,7 +500,7 @@ Deno.serve(async (req) => {
 
 // ── Helper: upsert a job posting ────────────────────────────────────
 async function upsertJobPosting(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   jobUrl: string,
   employerId: string,
   employerSourceId: string,
