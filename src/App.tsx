@@ -32,6 +32,8 @@ import EmployerLogin from "./pages/employer/EmployerLogin";
 import EmployerSignup from "./pages/employer/EmployerSignup";
 import EmployerPipeline from "./pages/employer/EmployerPipeline";
 import EmployerSettings from "./pages/employer/EmployerSettings";
+import TeamSettings from "./pages/employer/TeamSettings";
+import JoinInvite from "./pages/employer/JoinInvite";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
@@ -89,11 +91,14 @@ const App = () => (
               {/* /employer/login + /employer/signup are public — same Supabase auth */}
               <Route path="/employer/login" element={<EmployerLogin />} />
               <Route path="/employer/signup" element={<EmployerSignup />} />
+              {/* /employer/join is public — invited user may not be logged in yet */}
+              <Route path="/employer/join" element={<JoinInvite />} />
               <Route path="/employer" element={<EmployerRoute><EmployerLayout /></EmployerRoute>}>
                 <Route index element={<EmployerJobs />} />
                 <Route path="jobs" element={<EmployerJobs />} />
                 <Route path="jobs/:id/pipeline" element={<EmployerPipeline />} />
                 <Route path="settings" element={<EmployerSettings />} />
+                <Route path="settings/team" element={<TeamSettings />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

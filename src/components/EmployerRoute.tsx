@@ -9,10 +9,11 @@ import { Clock, ArrowRight } from "lucide-react";
  * EmployerRoute
  *
  * Guards all /employer/* routes. Checks employer_profiles.
- * Also reads employers.approval_status and injects it into context.
+ * Reads employers.approval_status and employer_subscriptions (plan, status, trial_ends_at)
+ * and injects all into context.
  *
  * Approved employers: full workspace.
- * Pending/rejected employers: layout renders but a persistent restriction
+ * Pending/rejected/suspended employers: layout renders but a persistent restriction
  * banner is shown via EmployerLayout (read from context).
  */
 export function EmployerRoute({ children }: { children: React.ReactNode }) {
@@ -29,18 +30,59 @@ export function EmployerRoute({ children }: { children: React.ReactNode }) {
         (async () => {
             const { data, error } = await (supabase as any)
                 .from("employer_profiles")
-                .select("employer_id, role, employers(name, approval_status)")
+                .select(`
+          employer_id, role,
+          employers ( name, approval_status ),
+          employer_subscriptions: employers!inner ( employer_subscriptions ( plan_id, status, trial_ends_at ) )
+        `)
                 .eq("user_id", user.id)
                 .limit(1)
                 .maybeSingle();
 
             if (!error && data) {
+                // Flatten subscription — employers.employer_subscriptions[0]
+                const sub = data.employers?.employer_subscriptions?.[0] ?? null;
                 setEmployerCtx({
                     employerId: data.employer_id,
                     employerName: data.employers?.name ?? "My Company",
                     role: data.role as EmployerContextValue["role"],
                     approvalStatus: data.employers?.approval_status ?? "pending",
+                    planId: sub?.plan_id ?? "starter",
+                    subStatus: sub?.status ?? "active",
+                    trialEndsAt: sub?.trial_ends_at ?? null,
                 });
+            } else {
+                // Simpler fallback: fetch profile + employer + sub separately
+                const { data: profile } = await (supabase as any)
+                    .from("employer_profiles")
+                    .select("employer_id, role")
+                    .eq("user_id", user.id)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (profile) {
+                    const { data: emp } = await (supabase as any)
+                        .from("employers")
+                        .select("name, approval_status")
+                        .eq("id", profile.employer_id)
+                        .single();
+
+                    const { data: sub } = await (supabase as any)
+                        .from("employer_subscriptions")
+                        .select("plan_id, status, trial_ends_at")
+                        .eq("employer_id", profile.employer_id)
+                        .single();
+
+                    setEmployerCtx({
+                        employerId: profile.employer_id,
+                        employerName: emp?.name ?? "My Company",
+                        role: profile.role as EmployerContextValue["role"],
+                        approvalStatus: emp?.approval_status ?? "pending",
+                        planId: sub?.plan_id ?? "starter",
+                        subStatus: sub?.status ?? "active",
+                        trialEndsAt: sub?.trial_ends_at ?? null,
+                    });
+                }
             }
             setChecking(false);
         })();
@@ -82,8 +124,7 @@ export function EmployerRoute({ children }: { children: React.ReactNode }) {
 
 /**
  * PendingApprovalBanner
- * Non-dismissible banner shown inside EmployerLayout when approval_status != 'approved'.
- * Import and render at the top of EmployerLayout's main content area.
+ * Non-dismissible banner for approval_status != 'approved'.
  */
 export function PendingApprovalBanner({ status }: { status: string }) {
     if (status === "approved") return null;
@@ -114,26 +155,28 @@ export function PendingApprovalBanner({ status }: { status: string }) {
                 <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                     <p className="text-sm font-semibold text-amber-900 mb-1">
-                        Your workspace is pending review
+                        {status === "suspended" ? "Workspace suspended" : "Your workspace is pending review"}
                     </p>
                     <p className="text-sm text-amber-700 mb-3">
-                        We're reviewing your application — this usually takes 1–2 business days.
-                        While you wait, you can complete your company profile and prepare job drafts.
+                        {status === "suspended"
+                            ? "Your trial has ended or your subscription is inactive. Upgrade your plan to restore access."
+                            : "We're reviewing your application — this usually takes 1–2 business days. While you wait, you can complete your profile and prepare job drafts."}
                     </p>
-                    <div className="grid gap-1.5 text-xs text-amber-800">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-green-600 font-semibold">✓</span> Complete company profile
+                    {status === "suspended" && (
+                        <Link
+                            to="/employers#pricing"
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                            View plans <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                    )}
+                    {status !== "suspended" && (
+                        <div className="grid gap-1.5 text-xs text-amber-800">
+                            <div className="flex items-center gap-1.5"><span className="text-green-600 font-semibold">✓</span> Complete company profile</div>
+                            <div className="flex items-center gap-1.5"><span className="text-green-600 font-semibold">✓</span> Create job drafts</div>
+                            <div className="flex items-center gap-1.5"><span className="text-amber-600 font-semibold">⏳</span> Publishing jobs — available after approval</div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-green-600 font-semibold">✓</span> Create job drafts
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-amber-600 font-semibold">⏳</span> Publishing jobs publicly — available after approval
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-amber-600 font-semibold">⏳</span> Verified Employer badge — available after approval
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>

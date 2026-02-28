@@ -3,8 +3,12 @@ import React, { createContext, useContext } from "react";
 export interface EmployerContextValue {
     employerId: string;
     employerName: string;
-    role: "owner" | "admin" | "member";
+    role: "owner" | "admin" | "member" | "viewer";
     approvalStatus: "pending" | "approved" | "rejected" | "suspended";
+    // Subscription state (Prompt 5.3 — trial countdown + workspace locking)
+    planId: string;          // 'starter' | 'growth' | 'enterprise'
+    subStatus: string;          // 'active' | 'trialing' | 'trial_expired' | 'past_due' | 'suspended' | ...
+    trialEndsAt: string | null;   // ISO string, null if no trial
 }
 
 const EmployerContext = createContext<EmployerContextValue | null>(null);
