@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { useJob } from "@/hooks/useJobs";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SourceBadge } from "@/components/SourceBadge";
+import { EasyApplyModal } from "@/components/EasyApplyModal";
 import {
   ArrowLeft, ExternalLink, Bookmark, KanbanSquare, FileText, PenLine,
   Clock, MapPin, Building, Briefcase, Zap
@@ -20,6 +22,8 @@ export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { data: job, isLoading, error } = useJob(id);
+  const [applyOpen, setApplyOpen] = useState(false);
+  const isDirect = job?.sourceType === 'DIRECT';
 
   if (isLoading) {
     return (
@@ -60,7 +64,6 @@ export default function JobDetail() {
     ? `${job.salaryMin.toLocaleString()}–${job.salaryMax.toLocaleString()} ${job.currency}`
     : null;
 
-  const isDirect = job.sourceType === 'DIRECT';
 
   return (
     <Layout>
@@ -97,7 +100,7 @@ export default function JobDetail() {
         {/* Actions */}
         <div className="mt-6 flex flex-wrap gap-3">
           {isDirect ? (
-            <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+            <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setApplyOpen(true)}>
               <Zap className="h-4 w-4" />
               {t("jobs.easyApply")}
             </Button>
@@ -167,5 +170,18 @@ export default function JobDetail() {
         </div>
       </div>
     </Layout>
+
+    {/* Easy Apply modal — only rendered for DIRECT jobs */ }
+  {
+    isDirect && job && (
+      <EasyApplyModal
+        open={applyOpen}
+        jobId={job.id}
+        jobTitle={job.title}
+        companyName={job.company}
+        onClose={() => setApplyOpen(false)}
+      />
+    )
+  }
   );
 }
