@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/Layout";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     ArrowRight, Sparkles, LayoutGrid, BadgeCheck,
     Filter, CheckCircle, Users, Target, PenLine,
 } from "lucide-react";
+import { buildSignupUrl } from "@/lib/employerAuth";
 
 export default function Employers() {
     const { t, i18n } = useTranslation();
     const isBg = i18n.language === "bg";
+    const navigate = useNavigate();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annually'>('monthly');
 
     return (
@@ -437,9 +439,12 @@ export default function Employers() {
                                     </li>
                                 ))}
                             </ul>
-                            <a href="/auth?type=employer&plan=starter" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                            <button
+                                onClick={() => navigate(buildSignupUrl('starter', 'free'))}
+                                className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+                            >
                                 {isBg ? 'Започнете безплатно' : 'Start for Free'}
-                            </a>
+                            </button>
                         </div>
 
                         {/* ── Tier 2: Growth (highlighted) ── */}
@@ -511,9 +516,12 @@ export default function Employers() {
                                     </li>
                                 ))}
                             </ul>
-                            <a href="/auth?type=employer&plan=growth" className="inline-flex w-full justify-center rounded-full bg-white text-blue-600 px-6 py-3 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">
+                            <button
+                                onClick={() => navigate(buildSignupUrl('growth', billingCycle === 'annually' ? 'annual' : billingCycle))}
+                                className="inline-flex w-full justify-center rounded-full bg-white text-blue-600 px-6 py-3 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md"
+                            >
                                 {isBg ? 'Започнете 30-дневен пробен период' : 'Start 30-Day Free Trial'}
-                            </a>
+                            </button>
                         </div>
 
                         {/* ── Tier 3: Enterprise / Agency ── */}
@@ -582,9 +590,12 @@ export default function Employers() {
                                     </li>
                                 ))}
                             </ul>
-                            <a href="/auth?type=employer&plan=enterprise" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                            <button
+                                onClick={() => navigate(buildSignupUrl('enterprise', billingCycle === 'annually' ? 'annual' : billingCycle))}
+                                className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+                            >
                                 {isBg ? 'Регистрирайте се' : 'Sign Up'}
-                            </a>
+                            </button>
                         </div>
 
                     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,19 +8,20 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Building2, ArrowRight } from "lucide-react";
+import { getUserEmployerContext, humanizeAuthError } from "@/lib/employerAuth";
 
 /**
  * EmployerLogin
  *
- * Reuses the same Supabase Auth as the candidate login.
- * After successful login:
- *   - employer_profiles row found  → redirect to /employer
- *   - no row                       → inline "no access" message + link to /employers pricing
+ * Same Supabase auth as candidate login — different post-login redirect.
+ * On success:
+ *   employer_profiles row exists → /employer
+ *   no row                      → inline no-access banner + pricing link
  *
- * Candidate Sign in / Sign up buttons in Header are untouched.
+ * Candidate Sign in / Sign up in Header: untouched.
  */
 export default function EmployerLogin() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -28,31 +29,25 @@ export default function EmployerLogin() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [noAccess, setNoAccess] = useState(false);
+    const [generalError, setGeneralError] = useState<string | null>(null);
+    const [checking, setChecking] = useState(false);
 
-    // If user is already logged in, check employer_profiles immediately
+    // If already logged in, immediately resolve employer access
     useEffect(() => {
-        if (!user) return;
-        checkEmployerAccess(user.id);
-    }, [user]);
+        if (authLoading || !user) return;
+        setChecking(true);
+        getUserEmployerContext(user.id).then((ctx) => {
+            setChecking(false);
+            if (ctx.hasEmployerProfile) {
+                navigate("/employer", { replace: true });
+            } else {
+                setNoAccess(true);
+            }
+        });
+    }, [user, authLoading]);
 
-    async function checkEmployerAccess(userId: string) {
-        const { data } = await (supabase as any)
-            .from("employer_profiles")
-            .select("employer_id")
-            .eq("user_id", userId)
-            .limit(1)
-            .maybeSingle();
-
-        if (data) {
-            navigate("/employer", { replace: true });
-        } else {
-            setNoAccess(true);
-        }
-    }
-
-    // Already logged in and already checked
-    if (user && !noAccess && !loading) {
-        // Still checking — show spinner (handled by useEffect)
+    // Show spinner while resolving auth and employer check
+    if (authLoading || checking) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
@@ -62,19 +57,30 @@ export default function EmployerLogin() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setGeneralError(null);
         setNoAccess(false);
+        setLoading(true);
 
-        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
 
         if (error) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            const { text } = humanizeAuthError(error.message);
+            setGeneralError(text);
             return;
         }
 
-        if (data.user) {
-            await checkEmployerAccess(data.user.id);
+        if (!data.user) {
+            setGeneralError("Sign in failed. Please try again.");
+            return;
+        }
+
+        const ctx = await getUserEmployerContext(data.user.id);
+        if (ctx.hasEmployerProfile) {
+            toast({ title: "Welcome back!", description: "Redirecting to your workspace…" });
+            navigate("/employer", { replace: true });
+        } else {
+            setNoAccess(true);
         }
     };
 
@@ -101,14 +107,21 @@ export default function EmployerLogin() {
                                 This account does not have employer access.
                             </p>
                             <p className="text-sm text-amber-700 mb-3">
-                                You need an employer workspace to continue. Sign up from the pricing page to get started.
+                                You need an employer workspace. Sign up from the pricing page to get started.
                             </p>
                             <Link
                                 to="/employers#pricing"
                                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline"
                             >
-                                View employer pricing <ArrowRight className="w-3.5 h-3.5" />
+                                View employer plans <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
+                        </div>
+                    )}
+
+                    {/* General error */}
+                    {generalError && (
+                        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4">
+                            <p className="text-sm text-red-700">{generalError}</p>
                         </div>
                     )}
 
@@ -122,7 +135,7 @@ export default function EmployerLogin() {
                                     type="email"
                                     placeholder="you@company.com"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => { setEmail(e.target.value); setGeneralError(null); }}
                                     required
                                 />
                             </div>
@@ -132,7 +145,7 @@ export default function EmployerLogin() {
                                     id="emp-password"
                                     type="password"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => { setPassword(e.target.value); setGeneralError(null); }}
                                     required
                                 />
                             </div>
@@ -149,10 +162,7 @@ export default function EmployerLogin() {
 
                         <p className="text-center text-sm text-gray-500">
                             Don't have an employer account?{" "}
-                            <Link
-                                to="/employers#pricing"
-                                className="text-blue-600 font-semibold hover:underline"
-                            >
+                            <Link to="/employers#pricing" className="text-blue-600 font-semibold hover:underline">
                                 View plans
                             </Link>
                         </p>
