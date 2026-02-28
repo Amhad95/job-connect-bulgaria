@@ -25,7 +25,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-foreground">
-          <img src={logo} alt="бачкам" className="h-8 w-8" />
+          <img src={logo} alt="бачкам" className="h-10 w-10" />
           <span>бачкам</span>
         </Link>
 
