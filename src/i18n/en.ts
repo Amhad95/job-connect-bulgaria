@@ -267,15 +267,43 @@ export default {
     returnHome: "Return to Home",
   },
   about: {
-    heroTitle: "About Bachkam Jobs",
-    heroSubtitle: "Empowering Bulgaria's talent market with smarter, faster, privacy-first job search tools.",
-    missionTitle: "Our Mission",
-    pillar1Title: "AI-Powered Matching",
-    pillar1Body: "Our AI ranks listings by how closely they match your skills, experience, and preferences — saving hours of scrolling.",
-    pillar2Title: "Focused on Bulgaria",
-    pillar2Body: "We aggregate opportunities from across the Bulgarian market into one clean, noise-free hub built for local job seekers.",
-    pillar3Title: "Verified Employers",
-    pillar3Body: "Direct employer partners are badge-verified so you always know when you're applying straight to the source.",
+    hero_badge: "Built in Bulgaria",
+    hero_title: "About Bachkam",
+    hero_subtitle: "Bachkam is a Bulgaria-first job platform built to reduce noise, make applications clearer, and help employers hire with better signal.",
+
+    origin_title: "Where this started",
+    origin_p1: "Job search in Bulgaria is often scattered across company websites, multiple ATS systems, and social posts. Candidates lose time jumping between sources, saving links, and rewriting the same information.",
+    origin_p2: "We built Bachkam to bring that experience into one place, without turning it into a data-harvesting marketplace. The goal is simple: clearer job discovery, clearer application paths, and a platform that respects user privacy.",
+
+    definition_title: "What Bachkam is",
+    definition_text: "Bachkam combines curated listings from public company career pages with direct postings from verified employers. We focus on clarity: you should always know where the role comes from, how to apply, and what happens next.",
+
+    expect_title: "What you can expect",
+    expect_items: [
+      "Clear source labels on every job post",
+      "A consistent experience across external and verified roles",
+      "Privacy-first defaults and user control over visibility",
+    ],
+
+    principles_title: "Principles we build by",
+    principles_items: [
+      { title: "Transparency", desc: "We label job sources clearly and avoid dark patterns. If a role redirects you to the source, we tell you upfront." },
+      { title: "Privacy", desc: "We do not sell candidate profiles. You control what you share and when you share it." },
+      { title: "Local relevance", desc: "We focus on the Bulgarian market, so you spend less time filtering and more time finding roles that fit." },
+    ],
+
+    trust_title: "Trust and verification",
+    trust_text: "Bachkam uses simple signals to reduce confusion:",
+    trust_points: [
+      { title: "External Listing", desc: "A curated role from a public company careers page or ATS source. Applying takes you to the official listing." },
+      { title: "Verified Employer", desc: "A company that posts directly on Bachkam. You can apply through the platform with a saved profile where available." },
+    ],
+
+    contact_title: "Feedback or partnership",
+    contact_text: "If you want to suggest employers to add, report an issue, or discuss employer onboarding, reach out through our contact page.",
+    contact_primary: "Contact us",
+    contact_secondary: "Browse jobs",
+    contact_note: "Free for job seekers.",
   },
   contact: {
     title: "Contact Us",
