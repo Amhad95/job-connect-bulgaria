@@ -254,4 +254,9 @@ export default {
     sources: "Работодатели и съответствие",
     copyright: "© {{year}} Bachkam.com. Всички права запазени.",
   },
+  notFound: {
+    title: "404",
+    message: "Опа! Страницата, която търсите, не съществува.",
+    returnHome: "Към началната страница",
+  },
 };
