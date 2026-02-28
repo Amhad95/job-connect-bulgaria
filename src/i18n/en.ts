@@ -120,9 +120,8 @@ export default {
     showing: "Showing {{count}} jobs",
     searchPlaceholder: "Role, skill, or employer",
     redirectNote: "You will be redirected to the employer's original posting.",
-    verifiedEmployer: "Verified Employer",
-    externalListing: "External Listing",
     easyApply: "Easy Apply",
+    posted: "Posted",
   },
   jobDetail: {
     description: "Description",

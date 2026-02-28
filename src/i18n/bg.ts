@@ -120,9 +120,8 @@ export default {
     showing: "Показване на {{count}} обяви",
     searchPlaceholder: "Позиция, умение или работодател",
     redirectNote: "Ще бъдете пренасочени към оригиналната обява на работодателя.",
-    verifiedEmployer: "Потвърден работодател",
-    externalListing: "Външна обява",
     easyApply: "Бързо кандидатстване",
+    posted: "Публикувано",
   },
   jobDetail: {
     description: "Описание",

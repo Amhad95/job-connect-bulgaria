@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SourceBadge } from "@/components/SourceBadge";
 import {
   ArrowLeft, ExternalLink, Bookmark, KanbanSquare, FileText, PenLine,
-  Clock, MapPin, Building, Briefcase, CheckCircle, Zap
+  Clock, MapPin, Building, Briefcase, Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -79,11 +80,8 @@ export default function JobDetail() {
             <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">{job.title}</h1>
             <p className="mt-1 text-lg text-muted-foreground">{job.company}</p>
             <div className="mt-3 flex flex-wrap gap-2 items-center">
-              {isDirect ? (
-                <Badge className="bg-primary text-primary-foreground gap-1"><CheckCircle className="h-3 w-3" />{t("jobs.verifiedEmployer", "Verified Employer")}</Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted">{t("jobs.externalListing", "External Listing")}</Badge>
-              )}
+              {/* Source badge — purely data-driven, no hardcoded strings */}
+              <SourceBadge sourceType={job.sourceType} />
               {job.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{job.city}</Badge>}
               {job.workMode && <Badge variant="secondary">{t(`jobs.${job.workMode}`)}</Badge>}
               {job.employmentType && <Badge variant="secondary">{t(`jobs.${job.employmentType}`)}</Badge>}
@@ -101,7 +99,7 @@ export default function JobDetail() {
           {isDirect ? (
             <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Zap className="h-4 w-4" />
-              {t("jobs.easyApply", "Easy Apply")}
+              {t("jobs.easyApply")}
             </Button>
           ) : (
             <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
