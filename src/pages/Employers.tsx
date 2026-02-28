@@ -437,7 +437,7 @@ export default function Employers() {
                                     </li>
                                 ))}
                             </ul>
-                            <a href="/auth" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                            <a href="/auth?type=employer&plan=starter" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
                                 {isBg ? 'Започнете безплатно' : 'Start for Free'}
                             </a>
                         </div>
@@ -511,7 +511,7 @@ export default function Employers() {
                                     </li>
                                 ))}
                             </ul>
-                            <a href="/auth" className="inline-flex w-full justify-center rounded-full bg-white text-blue-600 px-6 py-3 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">
+                            <a href="/auth?type=employer&plan=growth" className="inline-flex w-full justify-center rounded-full bg-white text-blue-600 px-6 py-3 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">
                                 {isBg ? 'Започнете 30-дневен пробен период' : 'Start 30-Day Free Trial'}
                             </a>
                         </div>
@@ -582,7 +582,7 @@ export default function Employers() {
                                     </li>
                                 ))}
                             </ul>
-                            <a href="/auth" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                            <a href="/auth?type=employer&plan=enterprise" className="inline-flex w-full justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
                                 {isBg ? 'Регистрирайте се' : 'Sign Up'}
                             </a>
                         </div>

@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/bachkam-logo.svg";
 
 export function Header() {
@@ -11,6 +12,20 @@ export function Header() {
   const isBg = i18n.language === "bg";
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isEmployer, setIsEmployer] = useState(false);
+
+  // Check silently whether the logged-in user has employer access.
+  // Used only to conditionally show the "Employer workspace" menu item.
+  useEffect(() => {
+    if (!user) { setIsEmployer(false); return; }
+    (supabase as any)
+      .from("employer_profiles")
+      .select("employer_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: { data: unknown }) => setIsEmployer(!!data));
+  }, [user]);
 
   const toggleLang = () => {
     i18n.changeLanguage(isBg ? "en" : "bg");
@@ -64,6 +79,15 @@ export function Header() {
 
           {user ? (
             <div className="hidden items-center gap-2 md:flex">
+              {/* Employer workspace shortcut — only for employer users */}
+              {isEmployer && (
+                <Link to="/employer">
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-blue-600 hover:bg-blue-50">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Workspace
+                  </Button>
+                </Link>
+              )}
               <Link to="/dashboard">
                 <Button variant="outline" size="sm" className="font-medium text-blue-600 border-blue-600 hover:bg-blue-50">
                   {t("nav.dashboard") || "Dashboard"}
@@ -77,6 +101,13 @@ export function Header() {
             <div className="hidden items-center gap-2 md:flex">
               <Link to="/auth">
                 <Button variant="outline" size="sm">{t("common.login")}</Button>
+              </Link>
+              {/* Secondary employer login — visually muted */}
+              <Link
+                to="/employer/login"
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-1"
+              >
+                Employer login
               </Link>
             </div>
           )}

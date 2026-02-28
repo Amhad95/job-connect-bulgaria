@@ -28,6 +28,7 @@ import { AdminRoute } from "./components/AdminRoute";
 import { EmployerRoute } from "./components/EmployerRoute";
 import EmployerLayout from "./layouts/EmployerLayout";
 import EmployerJobs from "./pages/employer/EmployerJobs";
+import EmployerLogin from "./pages/employer/EmployerLogin";
 import EmployerPipeline from "./pages/employer/EmployerPipeline";
 import EmployerSettings from "./pages/employer/EmployerSettings";
 import AdminLayout from "./layouts/AdminLayout";
@@ -84,6 +85,8 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
 
               {/* EMPLOYER ATS ROUTES — protected by employer_profiles membership */}
+              {/* /employer/login is public — no guard, same Supabase auth */}
+              <Route path="/employer/login" element={<EmployerLogin />} />
               <Route path="/employer" element={<EmployerRoute><EmployerLayout /></EmployerRoute>}>
                 <Route index element={<EmployerJobs />} />
                 <Route path="jobs" element={<EmployerJobs />} />
