@@ -253,6 +253,13 @@ export default {
     terms: "Terms of Service",
     sources: "Employers & Compliance",
     copyright: "© {{year}} бачкам. All rights reserved.",
+    tagline: "Bulgaria's comprehensive job hub. Every listing links to the employer's original posting.",
+    company: "Company",
+    aboutUs: "About Us",
+    contactUs: "Contact Us",
+    quickLinks: "Quick Links",
+    blog: "Blog",
+    optOut: "Opt-Out / Remove Listing",
   },
   notFound: {
     title: "404",
