@@ -5,20 +5,10 @@
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
--- A) Ensure job_postings has all needed status values + source_type column
+-- A) Ensure job_postings has all needed columns
+--    NOTE: status is typed as job_status_enum — enum values (DRAFT, PAUSED,
+--    CLOSED) are added in migration 20260302000002_fix_job_status_enum.sql
 -- ---------------------------------------------------------------------------
-
--- Widen status CHECK if it exists and doesn't include DRAFT/PAUSED/CLOSED
-do $$ begin
-  alter table job_postings
-    drop constraint if exists job_postings_status_check;
-exception when others then null;
-end $$;
-
-alter table job_postings
-  add constraint job_postings_status_check
-    check (status in ('DRAFT', 'ACTIVE', 'PAUSED', 'CLOSED'));
-
 -- Add source_type column (key for Milestone 2 public jobs unification)
 do $$ begin
   if not exists (
