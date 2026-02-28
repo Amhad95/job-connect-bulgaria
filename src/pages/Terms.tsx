@@ -18,8 +18,8 @@ export default function Terms() {
             </h2>
             <p>
               {isBg
-                ? "Bachkam.com е агрегатор на обяви за работа. Не публикуваме обяви сами — показваме съдържание от публични източници и винаги свързваме към оригиналната обява."
-                : "Bachkam.com is a job listing aggregator. We do not post jobs ourselves — we display content from public sources and always link to the original posting."}
+                ? "бачкам е агрегатор на обяви за работа. Не публикуваме обяви сами — показваме съдържание от публични източници и винаги свързваме към оригиналната обява."
+                : "бачкам is a job listing aggregator. We do not post jobs ourselves — we display content from public sources and always link to the original posting."}
             </p>
           </section>
           <section>

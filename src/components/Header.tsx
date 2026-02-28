@@ -4,6 +4,7 @@ import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from "@/assets/bachkam-logo.svg";
 
 export function Header() {
   const { t, i18n } = useTranslation();
@@ -23,8 +24,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-gray-900">
-          Bachkam<span className="text-blue-600">.com</span>
+        <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-foreground">
+          <img src={logo} alt="бачкам" className="h-8 w-8" />
+          <span>бачкам</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
