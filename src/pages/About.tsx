@@ -1,22 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Eye, Lock, MapPin, CheckCircle2 } from "lucide-react";
-
-// ── animation helpers ──────────────────────────────────────────────────────
-const fadeUp = {
-    hidden: { opacity: 0, y: 24 },
-    visible: (delay = 0) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.45, ease: "easeOut", delay },
-    }),
-};
 
 const principleIcons = [Eye, Lock, MapPin];
 
@@ -37,30 +26,23 @@ export default function About() {
         <Layout>
             {/* ── Hero ─────────────────────────────────────────────────────────── */}
             <section className="relative overflow-hidden bg-gradient-to-r from-sky-50/60 via-background to-background py-20 border-b">
-                <div className="container max-w-3xl text-center">
-                    <motion.div variants={fadeUp} initial="hidden" animate="visible">
-                        <Badge variant="secondary" className="mb-5 text-xs font-medium tracking-wide">
-                            {t("about.hero_badge")}
-                        </Badge>
-                        <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
-                            {t("about.hero_title")}
-                        </h1>
-                        <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
-                            {t("about.hero_subtitle")}
-                        </p>
-                    </motion.div>
+                <div className="container max-w-3xl text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Badge variant="secondary" className="mb-5 text-xs font-medium tracking-wide">
+                        {t("about.hero_badge")}
+                    </Badge>
+                    <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
+                        {t("about.hero_title")}
+                    </h1>
+                    <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
+                        {t("about.hero_subtitle")}
+                    </p>
                 </div>
             </section>
 
             <div className="container max-w-3xl py-16 space-y-16">
 
                 {/* ── Origin ───────────────────────────────────────────────────────── */}
-                <motion.section
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                >
+                <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <h2 className="font-display text-xl font-bold text-foreground mb-5">
                         {t("about.origin_title")}
                     </h2>
@@ -68,17 +50,12 @@ export default function About() {
                         <p>{t("about.origin_p1")}</p>
                         <p>{t("about.origin_p2")}</p>
                     </div>
-                </motion.section>
+                </section>
 
                 <Separator />
 
                 {/* ── Definition + Expect ──────────────────────────────────────────── */}
-                <motion.section
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                >
+                <section>
                     <h2 className="font-display text-xl font-bold text-foreground mb-3">
                         {t("about.definition_title")}
                     </h2>
@@ -104,17 +81,12 @@ export default function About() {
                             ))}
                         </CardContent>
                     </Card>
-                </motion.section>
+                </section>
 
                 <Separator />
 
                 {/* ── Principles ───────────────────────────────────────────────────── */}
-                <motion.section
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                >
+                <section>
                     <h2 className="font-display text-xl font-bold text-foreground mb-6">
                         {t("about.principles_title")}
                     </h2>
@@ -122,37 +94,29 @@ export default function About() {
                         {principles.map((p, i) => {
                             const Icon = principleIcons[i];
                             return (
-                                <motion.div
+                                <Card
                                     key={i}
-                                    whileHover={{ y: -4 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                    className="h-full border transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
                                 >
-                                    <Card className="h-full border transition-shadow hover:shadow-md">
-                                        <CardHeader className="pb-2">
-                                            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                                                <Icon aria-hidden="true" className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <CardTitle className="font-display text-sm">{p.title}</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-xs text-muted-foreground leading-relaxed">{p.desc}</p>
-                                        </CardContent>
-                                    </Card>
-                                </motion.div>
+                                    <CardHeader className="pb-2">
+                                        <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                                            <Icon aria-hidden="true" className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <CardTitle className="font-display text-sm">{p.title}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">{p.desc}</p>
+                                    </CardContent>
+                                </Card>
                             );
                         })}
                     </div>
-                </motion.section>
+                </section>
 
                 <Separator />
 
                 {/* ── Trust & verification ─────────────────────────────────────────── */}
-                <motion.section
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                >
+                <section>
                     <h2 className="font-display text-xl font-bold text-foreground mb-2">
                         {t("about.trust_title")}
                     </h2>
@@ -169,17 +133,12 @@ export default function About() {
                             </Card>
                         ))}
                     </div>
-                </motion.section>
+                </section>
 
                 <Separator />
 
                 {/* ── Contact CTA ──────────────────────────────────────────────────── */}
-                <motion.section
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                >
+                <section>
                     <Card className="border text-center">
                         <CardContent className="py-10 px-8 space-y-5">
                             <h2 className="font-display text-xl font-bold text-foreground">
@@ -201,7 +160,7 @@ export default function About() {
                             <p className="text-xs text-muted-foreground">{t("about.contact_note")}</p>
                         </CardContent>
                     </Card>
-                </motion.section>
+                </section>
 
             </div>
         </Layout>
