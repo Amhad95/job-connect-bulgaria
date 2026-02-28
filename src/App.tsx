@@ -15,6 +15,10 @@ import Employers from "./pages/Employers";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import DashboardLayout from "./layouts/DashboardLayout";
 import DashboardProfile from "./pages/dashboard/DashboardProfile";
 import DashboardSavedJobs from "./pages/dashboard/DashboardSavedJobs";
@@ -68,6 +72,11 @@ const App = () => (
                 <Route path="partners/requests" element={<AdminPartnerRequests />} />
                 <Route path="partners/:id" element={<AdminPartnerDetail />} />
               </Route>
+
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
