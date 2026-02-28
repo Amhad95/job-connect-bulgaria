@@ -4,6 +4,7 @@ export interface EmployerContextValue {
     employerId: string;
     employerName: string;
     role: "owner" | "admin" | "member";
+    approvalStatus: "pending" | "approved" | "rejected" | "suspended";
 }
 
 const EmployerContext = createContext<EmployerContextValue | null>(null);

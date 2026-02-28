@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 
 type Request = {
     id: string;
+    employer_id: string | null;  // set after provision_employer_workspace() runs
     company_name: string;
     domain: string | null;
     careers_url: string | null;
@@ -70,36 +71,20 @@ export default function AdminPartnerRequests() {
         if (!reviewTarget) return;
         setWorking(true);
 
-        // 1. Mark request approved
-        await (supabase as any).from("signup_requests").update({
-            status: "APPROVED", review_notes: reviewNotes, reviewed_at: new Date().toISOString(),
-        }).eq("id", reviewTarget.id);
+        // Approve via SECURITY DEFINER RPC:
+        // sets approval_status=approved, transitions subscription, logs event, updates signup_request
+        const { error } = await (supabase as any).rpc("approve_employer_workspace", {
+            p_employer_id: reviewTarget.employer_id,
+            p_reviewer_uid: null, // service-role context; admin user id not available client-side
+            p_review_notes: reviewNotes || null,
+        });
 
-        // 2. Create or update employer record
-        const slug = reviewTarget.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        const { data: emp } = await supabase.from("employers").insert({
-            name: reviewTarget.company_name, slug, company_type: "SIGNED_UP",
-            website_domain: reviewTarget.domain || null, logo_url: reviewTarget.logo_url || null,
-            is_signed_up_active: true, plan_tier: reviewTarget.proposed_plan || "starter",
-        } as any).select().single() as any;
-
-        // 3. Create admin membership if we have user_id
-        if (emp && reviewTarget.submitted_by_email) {
-            await (supabase as any).from("partner_memberships").insert({
-                partner_id: emp.id, email: reviewTarget.submitted_by_email,
-                role: "COMPANY_ADMIN", status: "ACTIVE",
-            });
+        if (error) {
+            toast.error("Approval failed: " + error.message);
+        } else {
+            toast.success(`${reviewTarget.company_name} approved.`);
         }
 
-        // 4. Log event
-        if (emp) {
-            await (supabase as any).from("partner_events").insert({
-                partner_id: emp.id, event_type: "APPROVED",
-                metadata: { request_id: reviewTarget.id, plan: reviewTarget.proposed_plan },
-            });
-        }
-
-        toast.success(`${reviewTarget.company_name} approved and activated as a partner.`);
         setReviewTarget(null);
         setWorking(false);
         fetch();
@@ -108,10 +93,19 @@ export default function AdminPartnerRequests() {
     const rejectRequest = async () => {
         if (!reviewTarget) return;
         setWorking(true);
-        await (supabase as any).from("signup_requests").update({
-            status: "REJECTED", review_notes: reviewNotes, reviewed_at: new Date().toISOString(),
-        }).eq("id", reviewTarget.id);
-        toast.info("Request rejected.");
+
+        const { error } = await (supabase as any).rpc("reject_employer_workspace", {
+            p_employer_id: reviewTarget.employer_id,
+            p_reviewer_uid: null,
+            p_review_notes: reviewNotes || null,
+        });
+
+        if (error) {
+            toast.error("Rejection failed: " + error.message);
+        } else {
+            toast.info("Request rejected.");
+        }
+
         setReviewTarget(null);
         setWorking(false);
         fetch();

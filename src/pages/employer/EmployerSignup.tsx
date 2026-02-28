@@ -141,12 +141,12 @@ export default function EmployerSignup() {
             return;
         }
 
-        // Step 2: Provision workspace atomically via SECURITY DEFINER RPC
         const result = await provisionEmployerWorkspace(
             userId,
             companyName.trim(),
             planInfo.planId,
             planInfo.interval,
+            email,       // for signup_requests.submitted_by_email
         );
 
         setLoading(false);
@@ -156,13 +156,10 @@ export default function EmployerSignup() {
             return;
         }
 
-        // Step 3: Success
+        // Step 3: Success — workspace is PENDING APPROVAL
         toast({
-            title: `Welcome! Your ${PLAN_MAP[planInfo.planId].label} plan is active.`,
-            description:
-                planInfo.planId === "growth"
-                    ? "Your 30-day free trial has started."
-                    : "Your workspace is ready.",
+            title: "Application submitted! 🎉",
+            description: "We'll review your account within 1–2 business days. You can explore your workspace while you wait.",
         });
 
         navigate("/employer", { replace: true });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Briefcase, LayoutGrid, Settings, Menu, ChevronRight } from "lucide-react";
 import { useEmployer } from "@/contexts/EmployerContext";
+import { PendingApprovalBanner } from "@/components/EmployerRoute";
 
 const NAV = [
     {
@@ -23,7 +24,7 @@ const NAV = [
 export default function EmployerLayout() {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const { employerName, role } = useEmployer();
+    const { employerName, role, approvalStatus } = useEmployer();
 
     const isActive = (path: string, exact = false) =>
         exact ? location.pathname === path : location.pathname.startsWith(path);
@@ -60,8 +61,8 @@ export default function EmployerLayout() {
                                 key={item.path}
                                 to={item.path}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active
-                                        ? "bg-blue-50 text-blue-700"
-                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                     }`}
                             >
                                 {item.icon}
@@ -99,6 +100,7 @@ export default function EmployerLayout() {
 
                 {/* Page content */}
                 <div className="p-6 md:p-8 flex-1 overflow-auto">
+                    <PendingApprovalBanner status={approvalStatus} />
                     <Outlet />
                 </div>
             </main>

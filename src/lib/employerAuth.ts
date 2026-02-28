@@ -99,12 +99,18 @@ export async function provisionEmployerWorkspace(
     companyName: string,
     planId: PlanId,
     billingInterval: BillingInterval,
+    email?: string,
+    domain?: string,
+    about?: string,
 ): Promise<{ employer_id: string; status: string; error?: string }> {
     const { data, error } = await (supabase as any).rpc("provision_employer_workspace", {
         p_user_id: userId,
         p_company_name: companyName,
         p_plan_id: planId,
         p_billing_interval: billingInterval,
+        p_email: email ?? null,
+        p_domain: domain ?? null,
+        p_about: about ?? null,
     });
 
     if (error) {

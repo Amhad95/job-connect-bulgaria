@@ -18,7 +18,7 @@ export interface DbJob {
   firstSeenAt: string;
   lastSeenAt: string;
   postedAt?: string;
-  sourceType?: 'EXTERNAL' | 'DIRECT';
+  sourceType: 'EXTERNAL' | 'DIRECT';
 }
 
 async function fetchJobs(): Promise<DbJob[]> {
@@ -26,10 +26,10 @@ async function fetchJobs(): Promise<DbJob[]> {
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const cutoff = oneMonthAgo.toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("job_postings")
     .select(`
-      id, title, canonical_url, apply_url,
+      id, title, canonical_url, apply_url, source_type,
       location_city, work_mode, employment_type, category,
       salary_min, salary_max, currency,
       first_seen_at, last_seen_at, posted_at, last_scraped_at,
@@ -37,37 +37,49 @@ async function fetchJobs(): Promise<DbJob[]> {
       job_posting_content ( description_text )
     `)
     .eq("status", "ACTIVE")
-    .not("last_scraped_at", "is", null)
     .or(`posted_at.gte.${cutoff},and(posted_at.is.null,first_seen_at.gte.${cutoff})`)
     .order("posted_at", { ascending: false, nullsFirst: false });
 
   if (error) throw error;
 
   const validJobs = (data ?? []).filter((row: any) => {
-    // 1. Must have a real title
+    const isDirect = row.source_type === 'DIRECT';
+
+    // ── EMPLOYER-POSTED JOBS (DIRECT source) bypass scraped-job heuristics ──
+    if (isDirect) {
+      // Only require a real title for employer-posted jobs
+      if (!row.title || row.title.length < 3) return false;
+      return true;
+    }
+
+    // ── SCRAPED JOBS: apply quality heuristics ──
+
+    // 1. Must have been scraped at least once
+    if (!row.last_scraped_at) return false;
+
+    // 2. Must have a real title
     if (!row.title || row.title.includes("Untitled Position") || row.title.length < 5) return false;
 
-    // 2. Must have explicitly crawled posted date (fixes relative date NULLs forcing crawl-date sorting)
+    // 3. Must have a crawled posted date
     if (!row.posted_at) return false;
 
-    // 3. Location threshold (must drop global job list bleed-over)
+    // 4. Location threshold (drop global job list bleed-over)
     const loc = (row.location_city || "").toLowerCase();
     const foreign = ["london", "new york", "berlin", "paris", "madrid", "amsterdam", "dubai", "usa", "uk", "germany", "france", "spain", "italy", "poland", "romania", "greece", "turkey", "serbia"];
     if (foreign.some(f => loc.includes(f))) return false;
     if (!row.location_city && row.work_mode !== "remote") return false;
 
-    // 4. Must have a deep extracted description (fixes "Life at our company" sparse extracts)
+    // 5. Must have a sufficiently detailed description
     const content = Array.isArray(row.job_posting_content) ? row.job_posting_content[0] : row.job_posting_content;
     const desc = content?.description_text || "";
     if (desc.length < 150) return false;
 
-    // 5. Must NOT be a generic URL (fixes main careers page bleeding in)
+    // 6. Must NOT be a generic URL
     try {
       const url = new URL(row.canonical_url);
       const path = url.pathname.replace(/\/$/, "").toLowerCase();
       const genericPaths = ["", "/", "/careers", "/jobs", "/karieri", "/bg/careers", "/en/careers", "/about", "/life"];
       if (genericPaths.includes(path)) return false;
-      // If the path is extremely short and has no identifiers (hyphens, numbers, or 'job')
       if (path.length < 10 && !path.includes('-') && !path.includes('job') && !path.match(/\d/)) return false;
     } catch {
       return false;
@@ -93,7 +105,7 @@ async function fetchJobs(): Promise<DbJob[]> {
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
     postedAt: row.posted_at ?? row.first_seen_at,
-    sourceType: row.source_type ?? 'EXTERNAL',
+    sourceType: (row.source_type as 'EXTERNAL' | 'DIRECT') ?? 'EXTERNAL',
   }));
 }
 
@@ -106,10 +118,10 @@ export function useJobs() {
 }
 
 async function fetchJobById(id: string): Promise<DbJob & { description?: string; requirements?: string; benefits?: string }> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("job_postings")
     .select(`
-      id, title, canonical_url, apply_url,
+      id, title, canonical_url, apply_url, source_type,
       location_city, work_mode, employment_type, category,
       salary_min, salary_max, currency,
       first_seen_at, last_seen_at, posted_at,
@@ -142,7 +154,7 @@ async function fetchJobById(id: string): Promise<DbJob & { description?: string;
     firstSeenAt: data.first_seen_at,
     lastSeenAt: data.last_seen_at,
     postedAt: data.posted_at ?? data.first_seen_at,
-    sourceType: (data as any).source_type ?? 'EXTERNAL',
+    sourceType: ((data as any).source_type as 'EXTERNAL' | 'DIRECT') ?? 'EXTERNAL',
     description: content?.description_text ?? undefined,
     requirements: content?.requirements_text ?? undefined,
     benefits: content?.benefits_text ?? undefined,
