@@ -25,6 +25,11 @@ import DashboardSavedJobs from "./pages/dashboard/DashboardSavedJobs";
 import DashboardTracker from "./pages/dashboard/DashboardTracker";
 import DashboardApplyKit from "./pages/dashboard/DashboardApplyKit";
 import { AdminRoute } from "./components/AdminRoute";
+import { EmployerRoute } from "./components/EmployerRoute";
+import EmployerLayout from "./layouts/EmployerLayout";
+import EmployerJobs from "./pages/employer/EmployerJobs";
+import EmployerPipeline from "./pages/employer/EmployerPipeline";
+import EmployerSettings from "./pages/employer/EmployerSettings";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
@@ -77,6 +82,14 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+
+              {/* EMPLOYER ATS ROUTES — protected by employer_profiles membership */}
+              <Route path="/employer" element={<EmployerRoute><EmployerLayout /></EmployerRoute>}>
+                <Route index element={<EmployerJobs />} />
+                <Route path="jobs" element={<EmployerJobs />} />
+                <Route path="jobs/:id/pipeline" element={<EmployerPipeline />} />
+                <Route path="settings" element={<EmployerSettings />} />
+              </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
