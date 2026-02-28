@@ -41,8 +41,8 @@ export default function Employers() {
                             </h1>
                             <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-xl">
                                 {isBg
-                                    ? "Публикувайте позиции, класирайте кандидатите по съвпадение, филтрирайте бързо и управлявайте процеса в едно пространство. Работодателите се включват чрез избор на пакет. Ако компанията ви вече присъства в Bachkam, можете да я заявите и да поискате верификация."
-                                    : "Post roles, rank applicants by match, filter fast, and manage the pipeline in one workspace. Employers can onboard by choosing a package. If your company already appears on Bachkam, you can also claim it and request verification."}
+                                    ? "Публикувайте позиции, класирайте кандидатите по съвпадение, филтрирайте бързо и управлявайте процеса в едно пространство. Работодателите се включват чрез избор на пакет. Ако компанията ви вече присъства в бачкам, можете да я заявите и да поискате верификация."
+                                    : "Post roles, rank applicants by match, filter fast, and manage the pipeline in one workspace. Employers can onboard by choosing a package. If your company already appears on бачкам, you can also claim it and request verification."}
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <Link
@@ -652,7 +652,7 @@ function employerFaqs(isBg: boolean) {
                 : "Yes. We support hard filters (must-have skills, location, seniority) and saved filters for recurring searches. You can name shortlist sets per role.",
         },
         {
-            q: isBg ? "Могат ли кандидатите да кандидатстват с профила си от Bachkam?" : "Can candidates apply with their Bachkam profile?",
+            q: isBg ? "Могат ли кандидатите да кандидатстват с профила си от бачкам?" : "Can candidates apply with their бачкам profile?",
             a: isBg
                 ? "Да. Кандидатите, регистрирани в платформата, могат да кандидатстват за позиции на Verified Employers с един клик, използвайки запазения си профил. Получавате структурирани данни, а не само PDF."
                 : "Yes. Registered candidates can apply to Verified Employer roles in one click using their saved profile. You receive structured data, not just a PDF.",

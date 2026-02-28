@@ -188,7 +188,7 @@ export default {
     disableAI: "Disable AI processing",
   },
   employers: {
-    intro: "Bachkam.com discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",
+    intro: "бачкам discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",
     name: "Employer",
     portal: "Careers portal",
     policyStatus: "Policy status",
@@ -235,7 +235,7 @@ export default {
     },
   },
   sources: {
-    intro: "Bachkam.com discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",
+    intro: "бачкам discovers jobs via our Partner Network. Each listing shows the employer and links to the original posting.",
     name: "Employer",
     policy: "Policy status",
     stored: "Policy mode",
@@ -252,7 +252,7 @@ export default {
     privacy: "Privacy Policy",
     terms: "Terms of Service",
     sources: "Employers & Compliance",
-    copyright: "© {{year}} Bachkam.com. All rights reserved.",
+    copyright: "© {{year}} бачкам. All rights reserved.",
   },
   notFound: {
     title: "404",
