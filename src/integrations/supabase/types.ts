@@ -651,6 +651,7 @@ export type Database = {
           location_city: string | null
           location_country: string | null
           location_region: string | null
+          location_slug: string | null
           posted_at: string | null
           salary_max: number | null
           salary_min: number | null
@@ -683,6 +684,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           location_region?: string | null
+          location_slug?: string | null
           posted_at?: string | null
           salary_max?: number | null
           salary_min?: number | null
@@ -715,6 +717,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           location_region?: string | null
+          location_slug?: string | null
           posted_at?: string | null
           salary_max?: number | null
           salary_min?: number | null
@@ -743,6 +746,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      locations: {
+        Row: {
+          name_bg: string
+          name_en: string
+          slug: string
+        }
+        Insert: {
+          name_bg: string
+          name_en: string
+          slug: string
+        }
+        Update: {
+          name_bg?: string
+          name_en?: string
+          slug?: string
+        }
+        Relationships: []
       }
       notification_events: {
         Row: {
@@ -1269,6 +1290,7 @@ export type Database = {
         Args: { p_job_id: string }
         Returns: boolean
       }
+      normalize_city: { Args: { raw_text: string }; Returns: string }
       provision_employer_workspace:
         | {
             Args: {

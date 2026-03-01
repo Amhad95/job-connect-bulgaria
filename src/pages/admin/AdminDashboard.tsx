@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
     Check, X, RefreshCw, Search, ChevronUp, ChevronDown,
     ExternalLink, CheckCircle, XCircle, Filter, Clock, AlertCircle,
 } from "lucide-react";
+import { CANONICAL_CITIES } from "@/lib/cities";
 
 type Job = {
     id: string;
@@ -18,6 +20,7 @@ type Job = {
     title_bg: string | null;
     first_seen_at: string;
     location_city: string | null;
+    location_slug: string | null;
     work_mode: string | null;
     canonical_url: string;
     approval_status: string;
@@ -57,7 +60,7 @@ export default function AdminDashboard() {
     const [sortField, setSortField] = useState<"first_seen_at" | "title">("first_seen_at");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
     const [editJob, setEditJob] = useState<Job | null>(null);
-    const [editForm, setEditForm] = useState({ title_en: "", title_bg: "", location_city: "", work_mode: "" });
+    const [editForm, setEditForm] = useState({ title_en: "", title_bg: "", location_slug: "", work_mode: "" });
     const [saving, setSaving] = useState(false);
     const [bulkWorking, setBulkWorking] = useState(false);
 
@@ -65,7 +68,7 @@ export default function AdminDashboard() {
         setLoading(true);
         const { data, error } = await supabase
             .from("job_postings")
-            .select("id, title, title_en, title_bg, first_seen_at, location_city, work_mode, canonical_url, approval_status, employers(name, logo_url)")
+            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, employers(name, logo_url)")
             .eq("approval_status", "PENDING")
             .order(sortField, { ascending: sortDir === "asc" })
             .limit(200);
@@ -141,7 +144,7 @@ export default function AdminDashboard() {
         setEditForm({
             title_en: job.title_en || job.title,
             title_bg: job.title_bg || "",
-            location_city: job.location_city || "",
+            location_slug: job.location_slug || "",
             work_mode: job.work_mode || "",
         });
     };
@@ -149,10 +152,12 @@ export default function AdminDashboard() {
     const saveEdit = async (approve = false) => {
         if (!editJob) return;
         setSaving(true);
+        const cityEntry = CANONICAL_CITIES.find(c => c.slug === editForm.location_slug);
         const patch: Record<string, unknown> = {
             title_en: editForm.title_en,
             title_bg: editForm.title_bg || null,
-            location_city: editForm.location_city || null,
+            location_slug: editForm.location_slug || null,
+            location_city: cityEntry?.name_en || null,
             work_mode: editForm.work_mode || null,
         };
         if (approve) { patch.approval_status = "APPROVED"; patch.status = "ACTIVE"; }
@@ -271,7 +276,7 @@ export default function AdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-gray-500">
-                                            {job.location_city || "—"}{job.work_mode ? <span className="ml-1 text-xs opacity-60">· {job.work_mode}</span> : ""}
+                                            {job.location_city || (job.location_slug ? CANONICAL_CITIES.find(c => c.slug === job.location_slug)?.name_en : null) || "—"}{job.work_mode ? <span className="ml-1 text-xs opacity-60">· {job.work_mode}</span> : ""}
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-1.5">
@@ -329,7 +334,15 @@ export default function AdminDashboard() {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <Label htmlFor="loc" className="text-xs font-semibold text-gray-600 uppercase tracking-wider">City</Label>
-                                <Input id="loc" className="mt-1" value={editForm.location_city} onChange={e => setEditForm(f => ({ ...f, location_city: e.target.value }))} />
+                                <Select value={editForm.location_slug} onValueChange={v => setEditForm(f => ({ ...f, location_slug: v }))}>
+                                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select city" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">Unknown</SelectItem>
+                                        {CANONICAL_CITIES.map(c => (
+                                            <SelectItem key={c.slug} value={c.slug}>{c.name_en} ({c.name_bg})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div>
                                 <Label htmlFor="wm" className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Work Mode</Label>

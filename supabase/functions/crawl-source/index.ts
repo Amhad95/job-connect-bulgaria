@@ -48,6 +48,25 @@ function isBlockedAggregator(hostname: string): boolean {
   return BLOCKED_AGGREGATORS.some(d => h === d || h.endsWith(`.${d}`));
 }
 
+// ── City normalization ──────────────────────────────────────────────
+function normalizeCitySlug(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const lower = raw.trim().toLowerCase();
+  const map: Record<string, string> = {
+    sofia: "sofia", "софия": "sofia",
+    plovdiv: "plovdiv", "пловдив": "plovdiv",
+    varna: "varna", "варна": "varna",
+    burgas: "burgas", "бургас": "burgas",
+    ruse: "ruse", "русе": "ruse", rousse: "ruse",
+    "stara zagora": "stara-zagora", "стара загора": "stara-zagora",
+    "veliko tarnovo": "veliko-tarnovo", "велико търново": "veliko-tarnovo", "veliko turnovo": "veliko-tarnovo",
+    pleven: "pleven", "плевен": "pleven",
+    blagoevgrad: "blagoevgrad", "благоевград": "blagoevgrad",
+    gabrovo: "gabrovo", "габрово": "gabrovo",
+  };
+  return map[lower] ?? null;
+}
+
 // ── Rate-limit helper ───────────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -80,7 +99,7 @@ const JOB_DETAIL_SCHEMA = {
     description: { type: "string", description: "Full job description text" },
     requirements: { type: "string", description: "Job requirements, qualifications, skills needed" },
     benefits: { type: "string", description: "Benefits, perks offered" },
-    location_city: { type: "string", description: "City where the job is located" },
+    location_city: { type: "string", description: "City where the job is located. MUST be one of: Sofia, Plovdiv, Varna, Burgas, Ruse, Stara Zagora, Veliko Tarnovo, Pleven, Blagoevgrad, Gabrovo. Use null if the city is not in this list or unclear." },
     work_mode: { type: "string", enum: ["remote", "hybrid", "onsite"], description: "Work arrangement" },
     employment_type: { type: "string", enum: ["full-time", "part-time", "contract", "internship"], description: "Type of employment" },
     posted_date: { type: "string", description: "Date the job was posted, in ISO 8601 or any parseable date format" },
@@ -401,10 +420,14 @@ Deno.serve(async (req) => {
             }
           }
 
+          // Normalize city to slug
+          const citySlug = normalizeCitySlug(extracted.location_city);
+
           // Update job_postings metadata
           await supabase.from("job_postings").update({
             title: extracted.title,
             location_city: extracted.location_city || null,
+            location_slug: citySlug,
             work_mode: extracted.work_mode || null,
             employment_type: extracted.employment_type || null,
             salary_min: extracted.salary_min || null,

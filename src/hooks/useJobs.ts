@@ -7,6 +7,7 @@ export interface DbJob {
   company: string;
   companyLogo?: string;
   city?: string;
+  citySlug?: string;
   workMode?: string;
   employmentType?: string;
   category?: string;
@@ -30,7 +31,7 @@ async function fetchJobs(): Promise<DbJob[]> {
     .from("job_postings")
     .select(`
       id, title, canonical_url, apply_url, source_type,
-      location_city, work_mode, employment_type, category,
+      location_city, location_slug, work_mode, employment_type, category,
       salary_min, salary_max, currency,
       first_seen_at, last_seen_at, posted_at, last_scraped_at,
       employers!inner ( name, logo_url ),
@@ -94,6 +95,7 @@ async function fetchJobs(): Promise<DbJob[]> {
     company: row.employers.name,
     companyLogo: row.employers.logo_url ?? undefined,
     city: row.location_city ?? undefined,
+    citySlug: row.location_slug ?? undefined,
     workMode: row.work_mode ?? undefined,
     employmentType: row.employment_type ?? undefined,
     category: row.category ?? undefined,
@@ -122,7 +124,7 @@ async function fetchJobById(id: string): Promise<DbJob & { description?: string;
     .from("job_postings")
     .select(`
       id, title, canonical_url, apply_url, source_type,
-      location_city, work_mode, employment_type, category,
+      location_city, location_slug, work_mode, employment_type, category,
       salary_min, salary_max, currency,
       first_seen_at, last_seen_at, posted_at,
       employers!inner ( name, logo_url ),
@@ -143,6 +145,7 @@ async function fetchJobById(id: string): Promise<DbJob & { description?: string;
     company: (data.employers as any).name,
     companyLogo: (data.employers as any).logo_url ?? undefined,
     city: data.location_city ?? undefined,
+    citySlug: data.location_slug ?? undefined,
     workMode: data.work_mode ?? undefined,
     employmentType: data.employment_type ?? undefined,
     category: data.category ?? undefined,
