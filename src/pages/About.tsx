@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Layout } from "@/components/Layout";
+
 import { Eye, Lock, MapPin, CheckCircle, ArrowRight } from "lucide-react";
 
 const principleIcons = [Eye, Lock, MapPin];
@@ -19,7 +19,7 @@ export default function About() {
     }[];
 
     return (
-        <Layout>
+        <>
 
             {/* ── HERO ───────────────────────────────────────────────────────── */}
             <section className="relative overflow-hidden py-16 md:py-20" aria-labelledby="about-hero-heading">
@@ -151,6 +151,6 @@ export default function About() {
                 </div>
             </section>
 
-        </Layout>
+        </>
     );
 }

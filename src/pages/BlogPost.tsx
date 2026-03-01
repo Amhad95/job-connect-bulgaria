@@ -2,7 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
-import { Layout } from "@/components/Layout";
+
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -61,16 +61,13 @@ export default function BlogPost() {
 
     if (isLoading) {
         return (
-            <Layout>
-                <BlogPostSkeleton />
-            </Layout>
+            <BlogPostSkeleton />
         );
     }
 
     if (!post) {
         return (
-            <Layout>
-                <div className="container max-w-3xl py-20 text-center">
+            <div className="container max-w-3xl py-20 text-center">
                     <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
                     <p className="mb-6 text-muted-foreground">{t("blog.notFound")}</p>
                     <Link to="/blog">
@@ -80,12 +77,10 @@ export default function BlogPost() {
                         </Button>
                     </Link>
                 </div>
-            </Layout>
         );
     }
 
     return (
-        <Layout>
             <article className="container max-w-3xl py-10">
                 <Link
                     to="/blog"
@@ -132,6 +127,5 @@ export default function BlogPost() {
                     </Link>
                 </div>
             </article>
-        </Layout>
     );
 }

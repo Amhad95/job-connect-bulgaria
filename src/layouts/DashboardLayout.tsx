@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { UserCircle, Bookmark, Trello, Sparkles, Menu } from "lucide-react";
-import { Layout } from "@/components/Layout";
+
 
 export default function DashboardLayout() {
     const { t } = useTranslation();
@@ -18,7 +18,6 @@ export default function DashboardLayout() {
     ];
 
     return (
-        <Layout>
             <div className="min-h-[calc(100vh-4rem)] bg-background flex border-t">
                 {/* Sidebar */}
                 <aside className={`bg-card border-r w-64 flex-shrink-0 transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 absolute md:static h-full min-h-[calc(100vh-4rem)] z-10`}>
@@ -61,6 +60,5 @@ export default function DashboardLayout() {
                     </div>
                 </main>
             </div>
-        </Layout>
     );
 }

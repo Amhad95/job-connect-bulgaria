@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Layout } from "@/components/Layout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +39,7 @@ export default function OptOut() {
     };
 
     return (
-        <Layout>
-            <div className="container py-12 md:py-24 max-w-2xl flex justify-center">
+        <div className="container py-12 md:py-24 max-w-2xl flex justify-center">
                 <div className="w-full bg-white border border-gray-200 shadow-sm rounded-xl p-8">
                     <h1 className="mb-4 font-display text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                         {t("sources.requestRemoval", "Opt-Out / Remove Listing")}
@@ -82,6 +81,5 @@ export default function OptOut() {
                     </form>
                 </div>
             </div>
-        </Layout>
     );
 }

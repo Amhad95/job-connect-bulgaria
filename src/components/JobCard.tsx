@@ -38,7 +38,7 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`group cursor-pointer rounded-lg border p-4 transition-all ${selected
+      className={`group cursor-pointer rounded-lg border p-4 transition-all overflow-hidden min-w-0 ${selected
         ? "border-primary bg-primary/5 shadow-sm"
         : "border-border bg-card hover:border-primary/30 hover:shadow-sm"
         } ${compact ? "p-3" : ""}`}

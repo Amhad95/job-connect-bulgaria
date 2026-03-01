@@ -6,7 +6,7 @@ import {
   Globe, CheckCircle, Shield, Trash2, Zap,
   User, LayoutGrid, BadgeCheck, FileText, Sparkles, PenLine, Target,
 } from "lucide-react";
-import { Layout } from "@/components/Layout";
+
 import { JobCard } from "@/components/JobCard";
 import { useJobs } from "@/hooks/useJobs";
 import heroIllustration from "@/assets/hero-illustration.svg";
@@ -34,7 +34,7 @@ export default function Index() {
   ] as const;
 
   return (
-    <Layout>
+    <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-highlight/5 bg-white/70 backdrop-blur-[1px]">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-l from-sky-200/90 via-sky-100/50 to-transparent" />
@@ -87,8 +87,8 @@ export default function Index() {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center justify-center animate-fade-in">
-            <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-md drop-shadow-lg" />
+          <div className="flex items-center justify-center animate-fade-in">
+            <img src={heroIllustration} alt="Career growth illustration" className="w-full max-w-[200px] md:max-w-md drop-shadow-lg" />
           </div>
         </div>
       </section>
@@ -408,7 +408,7 @@ export default function Index() {
           </dl>
         </div>
       </section>
-    </Layout>
+    </>
   );
 }
 
