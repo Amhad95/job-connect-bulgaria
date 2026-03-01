@@ -15,7 +15,7 @@ export function Footer() {
               <img src={logo} alt="бачкам" className="h-8 w-8" />
               <span className="font-display text-xl font-bold text-primary">бачкам</span>
             </div>
-            <p className="text-sm text-primary-foreground/80 max-w-sm leading-relaxed">
+            <p className="text-primary-foreground/80 max-w-sm leading-relaxed text-sm font-medium">
               {t("footer.tagline", "Bulgaria's comprehensive job hub. Every listing links to the employer's original posting.")}
             </p>
           </div>
