@@ -126,11 +126,10 @@ export default function Jobs() {
   const FiltersContent = () => (
     <div className="space-y-6">
       {/* Location */}
-      {activeCitySlugs.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.city")}</h4>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {activeCitySlugs.map((c) => (
+      <div>
+        <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.city")}</h4>
+        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          {CANONICAL_CITIES.map((c) => (
               <label key={c.slug} className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox checked={selectedCitySlugs.includes(c.slug)} onCheckedChange={() => toggle(selectedCitySlugs, c.slug, setSelectedCitySlugs)} />
                 <span className="text-muted-foreground truncate">
@@ -140,7 +139,6 @@ export default function Jobs() {
             ))}
           </div>
         </div>
-      )}
       {/* Work Mode */}
       {workModes.length > 0 && (
         <div>
