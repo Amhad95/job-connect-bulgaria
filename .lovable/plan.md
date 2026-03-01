@@ -1,22 +1,19 @@
 
-## Fix: Restore contained scrolling for the 3-column layout
 
-The previous fix changed `height` to `minHeight`, which broke the contained layout. The 3-column Jobs page (filters | job list | preview) needs a **fixed height** container so each column scrolls independently — otherwise the entire page scrolls and the preview panel becomes unusable.
+## Push Footer Down on Jobs Page
+
+The Jobs page is inside `AppLayout` which renders Header → `<main>` (flex-1) → Footer. The 3-column container uses `height: calc(100vh - 8rem)` which leaves too little breathing room.
 
 ### Change
 
-**`src/pages/Jobs.tsx` line 225**: Revert to a fixed `height` but use a taller calculation that leaves proper space from the footer. Change from:
+**`src/pages/Jobs.tsx` line 225**: Reduce the subtracted value from `8rem` to `7rem` so the columns get more vertical space, pushing the footer further down:
 
 ```tsx
-<div className="container flex gap-6 py-6" style={{ minHeight: "calc(100vh - 10rem)" }}>
+// from
+style={{ height: "calc(100vh - 8rem)" }}
+// to
+style={{ height: "calc(100vh - 7rem)" }}
 ```
 
-to:
+Additionally, reduce vertical padding from `py-6` to `py-4` to reclaim even more space for the columns themselves while still maintaining a gap before the footer.
 
-```tsx
-<div className="container flex gap-6 py-6" style={{ height: "calc(100vh - 8rem)" }}>
-```
-
-This gives the container a fixed height (enabling independent column scrolling for the preview panel) while using `8rem` instead of `10rem` to provide more vertical space for content — the previous `10rem` subtraction was too aggressive and squeezed the view.
-
-The `py-6` padding already adds bottom spacing from the footer.
