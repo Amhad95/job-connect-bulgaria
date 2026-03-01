@@ -1246,7 +1246,7 @@ export type Database = {
       }
       create_employer_invite: {
         Args: { p_email: string; p_employer_id: string; p_role?: string }
-        Returns: string
+        Returns: Json
       }
       get_employer_active_seat_count: {
         Args: { p_employer_id: string }
@@ -1318,6 +1318,7 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: string
       }
+      revoke_employer_invite: { Args: { p_invite_id: string }; Returns: Json }
       set_application_ai_score: {
         Args: { p_application_id: string; p_reasoning: string; p_score: number }
         Returns: undefined

@@ -130,9 +130,9 @@ export default function TeamSettings() {
                 p_role: inviteRole,
             });
 
-        if (error || !data?.ok) {
-            const msg = data?.error ?? error?.message ?? "Invite failed.";
-            if (msg === "seat_cap_reached") {
+        if (error) {
+            const msg = error.message ?? "Invite failed.";
+            if (msg.includes("Seat cap reached")) {
                 setInviteError(`Seat cap reached (${members.length + invites.length}/${seatCap} on ${plan} plan). Upgrade to add more members.`);
             } else {
                 setInviteError(msg);
@@ -140,14 +140,14 @@ export default function TeamSettings() {
             setInviting(false); return;
         }
 
+        if (!data?.ok) {
+            setInviteError(data?.error ?? "Invite failed.");
+            setInviting(false); return;
+        }
+
         // Fire email via send-invite edge function (non-blocking)
-        fetch(`${(supabase as any).supabaseUrl}/functions/v1/send-invite`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${(supabase as any).supabaseKey}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ invite_id: data.invite_id }),
+        supabase.functions.invoke("send-invite", {
+            body: { invite_id: data.invite_id },
         }).catch(console.warn);
 
         setInviting(false);
@@ -162,9 +162,7 @@ export default function TeamSettings() {
 
     const revokeInvite = async (invite: PendingInvite) => {
         await (supabase as any)
-            .from("employer_invites")
-            .update({ status: "revoked" })
-            .eq("id", invite.id);
+            .rpc("revoke_employer_invite", { p_invite_id: invite.id });
         setRevokeTarget(null);
         fetchData();
     };
