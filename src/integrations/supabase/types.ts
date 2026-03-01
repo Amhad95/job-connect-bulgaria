@@ -956,6 +956,7 @@ export type Database = {
           phone: string | null
           proposed_plan: string | null
           reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           submitted_by_uid: string | null
         }
@@ -973,6 +974,7 @@ export type Database = {
           phone?: string | null
           proposed_plan?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           submitted_by_uid?: string | null
         }
@@ -990,6 +992,7 @@ export type Database = {
           phone?: string | null
           proposed_plan?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           submitted_by_uid?: string | null
         }
