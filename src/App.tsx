@@ -34,6 +34,7 @@ import EmployerPipeline from "./pages/employer/EmployerPipeline";
 import EmployerSettings from "./pages/employer/EmployerSettings";
 import TeamSettings from "./pages/employer/TeamSettings";
 import JoinInvite from "./pages/employer/JoinInvite";
+import NotificationSettings from "./pages/employer/NotificationSettings";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
@@ -99,6 +100,7 @@ const App = () => (
                 <Route path="jobs/:id/pipeline" element={<EmployerPipeline />} />
                 <Route path="settings" element={<EmployerSettings />} />
                 <Route path="settings/team" element={<TeamSettings />} />
+                <Route path="settings/notifications" element={<NotificationSettings />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
