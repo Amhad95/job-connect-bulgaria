@@ -1159,6 +1159,10 @@ export type Database = {
         Args: { p_email: string; p_employer_id: string; p_role?: string }
         Returns: Json
       }
+      get_employer_owner_email: {
+        Args: { p_employer_id: string }
+        Returns: string
+      }
       get_seat_cap: { Args: { p_plan: string }; Returns: number }
       has_role: {
         Args: {
