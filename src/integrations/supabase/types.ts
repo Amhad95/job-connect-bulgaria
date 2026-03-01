@@ -943,43 +943,52 @@ export type Database = {
       }
       signup_requests: {
         Row: {
+          about: string | null
           billing_interval: string
           company_name: string
           contact_email: string
-          contact_name: string
+          contact_name: string | null
           created_at: string
+          domain: string | null
           employer_id: string | null
           id: string
           message: string | null
           phone: string | null
+          proposed_plan: string | null
           reviewed_at: string | null
           status: string
           submitted_by_uid: string | null
         }
         Insert: {
+          about?: string | null
           billing_interval?: string
           company_name: string
           contact_email: string
-          contact_name: string
+          contact_name?: string | null
           created_at?: string
+          domain?: string | null
           employer_id?: string | null
           id?: string
           message?: string | null
           phone?: string | null
+          proposed_plan?: string | null
           reviewed_at?: string | null
           status?: string
           submitted_by_uid?: string | null
         }
         Update: {
+          about?: string | null
           billing_interval?: string
           company_name?: string
           contact_email?: string
-          contact_name?: string
+          contact_name?: string | null
           created_at?: string
+          domain?: string | null
           employer_id?: string | null
           id?: string
           message?: string | null
           phone?: string | null
+          proposed_plan?: string | null
           reviewed_at?: string | null
           status?: string
           submitted_by_uid?: string | null
@@ -1163,6 +1172,17 @@ export type Database = {
       queue_application_scoring: {
         Args: { p_application_id: string }
         Returns: string
+      }
+      queue_notification: {
+        Args: {
+          p_channel?: string
+          p_employer_id?: string
+          p_event_type: string
+          p_idempotency_key?: string
+          p_payload?: Json
+          p_recipient_email: string
+        }
+        Returns: undefined
       }
       reject_employer_workspace: {
         Args: {
