@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_scoring_daily: {
+        Row: {
+          count: number
+          employer_id: string
+          id: string
+          scored_date: string
+        }
+        Insert: {
+          count?: number
+          employer_id: string
+          id?: string
+          scored_date?: string
+        }
+        Update: {
+          count?: number
+          employer_id?: string
+          id?: string
+          scored_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_scoring_daily_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          ai_error: string | null
+          ai_match_reasoning: string | null
+          ai_match_score: number | null
+          ai_status: string
+          applied_at: string
+          email: string
+          first_name: string
+          id: string
+          job_id: string
+          last_name: string
+          resume_url: string
+          status: Database["public"]["Enums"]["application_status_enum"]
+          user_id: string | null
+        }
+        Insert: {
+          ai_error?: string | null
+          ai_match_reasoning?: string | null
+          ai_match_score?: number | null
+          ai_status?: string
+          applied_at?: string
+          email: string
+          first_name: string
+          id?: string
+          job_id: string
+          last_name: string
+          resume_url: string
+          status?: Database["public"]["Enums"]["application_status_enum"]
+          user_id?: string | null
+        }
+        Update: {
+          ai_error?: string | null
+          ai_match_reasoning?: string | null
+          ai_match_score?: number | null
+          ai_status?: string
+          applied_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          job_id?: string
+          last_name?: string
+          resume_url?: string
+          status?: Database["public"]["Enums"]["application_status_enum"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocked_urls: {
         Row: {
           created_at: string
@@ -35,6 +120,75 @@ export type Database = {
           id?: string
           reason?: string | null
           url_pattern?: string
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          content: string
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published_at: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: string
+          subject?: string
         }
         Relationships: []
       }
@@ -153,6 +307,82 @@ export type Database = {
         }
         Relationships: []
       }
+      employer_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          employer_id: string
+          expires_at: string
+          id: string
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          employer_id: string
+          expires_at?: string
+          id?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          employer_id?: string
+          expires_at?: string
+          id?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_invites_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_profiles: {
+        Row: {
+          created_at: string
+          employer_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          employer_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          employer_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_profiles_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employer_sources: {
         Row: {
           ats_type: string | null
@@ -222,10 +452,52 @@ export type Database = {
           },
         ]
       }
+      employer_subscriptions: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          employer_id: string
+          id: string
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+        }
+        Insert: {
+          billing_interval: string
+          created_at?: string
+          employer_id: string
+          id?: string
+          plan_id: string
+          status?: string
+          trial_ends_at?: string | null
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          employer_id?: string
+          id?: string
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_subscriptions_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: true
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employers: {
         Row: {
           about_text: string | null
           admin_notes: string | null
+          approval_review_notes: string | null
+          approval_reviewed_at: string | null
+          approval_reviewed_by: string | null
+          approval_status: string
           ats_direct_access: boolean
           billing_email: string | null
           billing_status: string | null
@@ -256,6 +528,10 @@ export type Database = {
         Insert: {
           about_text?: string | null
           admin_notes?: string | null
+          approval_review_notes?: string | null
+          approval_reviewed_at?: string | null
+          approval_reviewed_by?: string | null
+          approval_status?: string
           ats_direct_access?: boolean
           billing_email?: string | null
           billing_status?: string | null
@@ -286,6 +562,10 @@ export type Database = {
         Update: {
           about_text?: string | null
           admin_notes?: string | null
+          approval_review_notes?: string | null
+          approval_reviewed_at?: string | null
+          approval_reviewed_by?: string | null
+          approval_status?: string
           ats_direct_access?: boolean
           billing_email?: string | null
           billing_status?: string | null
@@ -376,6 +656,7 @@ export type Database = {
           salary_min: number | null
           salary_period: string | null
           seniority: string | null
+          source_type: string
           status: Database["public"]["Enums"]["job_status_enum"]
           title: string
           title_bg: string | null
@@ -407,6 +688,7 @@ export type Database = {
           salary_min?: number | null
           salary_period?: string | null
           seniority?: string | null
+          source_type?: string
           status?: Database["public"]["Enums"]["job_status_enum"]
           title: string
           title_bg?: string | null
@@ -438,6 +720,7 @@ export type Database = {
           salary_min?: number | null
           salary_period?: string | null
           seniority?: string | null
+          source_type?: string
           status?: Database["public"]["Enums"]["job_status_enum"]
           title?: string
           title_bg?: string | null
@@ -660,39 +943,56 @@ export type Database = {
       }
       signup_requests: {
         Row: {
+          billing_interval: string
           company_name: string
           contact_email: string
           contact_name: string
           created_at: string
+          employer_id: string | null
           id: string
           message: string | null
           phone: string | null
           reviewed_at: string | null
           status: string
+          submitted_by_uid: string | null
         }
         Insert: {
+          billing_interval?: string
           company_name: string
           contact_email: string
           contact_name: string
           created_at?: string
+          employer_id?: string | null
           id?: string
           message?: string | null
           phone?: string | null
           reviewed_at?: string | null
           status?: string
+          submitted_by_uid?: string | null
         }
         Update: {
+          billing_interval?: string
           company_name?: string
           contact_email?: string
           contact_name?: string
           created_at?: string
+          employer_id?: string | null
           id?: string
           message?: string | null
           phone?: string | null
           reviewed_at?: string | null
           status?: string
+          submitted_by_uid?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "signup_requests_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
@@ -815,11 +1115,81 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_employer_invite: { Args: { p_token: string }; Returns: Json }
+      approve_employer_workspace: {
+        Args: {
+          p_employer_id: string
+          p_review_notes?: string
+          p_reviewer_uid: string
+        }
+        Returns: undefined
+      }
+      check_job_publish_allowed: {
+        Args: { p_employer_id: string }
+        Returns: Json
+      }
+      create_employer_invite: {
+        Args: { p_email: string; p_employer_id: string; p_role?: string }
+        Returns: Json
+      }
+      get_seat_cap: { Args: { p_plan: string }; Returns: number }
+      is_employer_member: { Args: { p_employer_id: string }; Returns: boolean }
+      is_employer_member_for_job: {
+        Args: { p_job_id: string }
+        Returns: boolean
+      }
+      provision_employer_workspace:
+        | {
+            Args: {
+              p_billing_interval: string
+              p_company_name: string
+              p_plan_id: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_about?: string
+              p_billing_interval: string
+              p_company_name: string
+              p_domain?: string
+              p_email?: string
+              p_plan_id: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+      queue_application_scoring: {
+        Args: { p_application_id: string }
+        Returns: string
+      }
+      reject_employer_workspace: {
+        Args: {
+          p_employer_id: string
+          p_review_notes?: string
+          p_reviewer_uid: string
+        }
+        Returns: undefined
+      }
+      retry_application_scoring: {
+        Args: { p_application_id: string }
+        Returns: string
+      }
+      set_application_ai_score: {
+        Args: { p_application_id: string; p_reasoning: string; p_score: number }
+        Returns: undefined
+      }
     }
     Enums: {
+      application_status_enum:
+        | "new"
+        | "reviewing"
+        | "interviewing"
+        | "offered"
+        | "rejected"
       crawl_run_status_enum: "RUNNING" | "COMPLETED" | "FAILED"
-      job_status_enum: "ACTIVE" | "INACTIVE"
+      job_status_enum: "ACTIVE" | "INACTIVE" | "DRAFT" | "PAUSED" | "CLOSED"
       note_type: "note" | "interview_date" | "contact" | "status_change"
       policy_check_result_enum: "PASS" | "FAIL"
       policy_mode_enum:
@@ -964,8 +1334,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      application_status_enum: [
+        "new",
+        "reviewing",
+        "interviewing",
+        "offered",
+        "rejected",
+      ],
       crawl_run_status_enum: ["RUNNING", "COMPLETED", "FAILED"],
-      job_status_enum: ["ACTIVE", "INACTIVE"],
+      job_status_enum: ["ACTIVE", "INACTIVE", "DRAFT", "PAUSED", "CLOSED"],
       note_type: ["note", "interview_date", "contact", "status_change"],
       policy_check_result_enum: ["PASS", "FAIL"],
       policy_mode_enum: [
