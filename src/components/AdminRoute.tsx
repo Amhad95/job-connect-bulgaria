@@ -9,11 +9,15 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (user) {
-            // Temporarily allowing any authenticated user to access the admin panel
-            // In production, we should assert an admin role against a user_roles schema
-            setIsAdmin(true);
+            supabase.rpc("has_role", { _user_id: user.id, _role: "admin" } as any)
+                .then(({ data, error }) => {
+                    if (error) { setIsAdmin(false); return; }
+                    setIsAdmin(!!data);
+                });
+        } else if (!loading) {
+            setIsAdmin(false);
         }
-    }, [user]);
+    }, [user, loading]);
 
     if (loading || (user && isAdmin === null)) {
         return (

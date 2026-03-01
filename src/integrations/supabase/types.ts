@@ -1119,6 +1119,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1142,6 +1160,13 @@ export type Database = {
         Returns: Json
       }
       get_seat_cap: { Args: { p_plan: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_employer_member: { Args: { p_employer_id: string }; Returns: boolean }
       is_employer_member_for_job: {
         Args: { p_job_id: string }
@@ -1202,6 +1227,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       application_status_enum:
         | "new"
         | "reviewing"
@@ -1354,6 +1380,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       application_status_enum: [
         "new",
         "reviewing",
