@@ -64,6 +64,7 @@ export function JobEditorDialog({ open, initial, onClose, onSaved }: JobEditorDi
                 salary_min: form.salary_min ? parseInt(form.salary_min) : null,
                 salary_max: form.salary_max ? parseInt(form.salary_max) : null,
                 currency: form.currency || "BGN",
+                canonical_url: null,
                 source_type: "DIRECT",
                 employer_id: employerId,
                 status: publish ? "ACTIVE" : "DRAFT",
