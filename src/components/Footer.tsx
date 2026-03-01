@@ -11,9 +11,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand column */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="inline-flex items-center gap-2.5 rounded-lg bg-white px-4 py-2">
+            <div className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2">
               <img src={logo} alt="бачкам" className="h-8 w-8" />
-              <span className="font-display text-lg font-bold text-primary">бачкам</span>
+              <span className="font-display text-xl font-bold text-primary">бачкам</span>
             </div>
             <p className="text-sm text-primary-foreground/80 max-w-sm leading-relaxed">
               {t("footer.tagline", "Bulgaria's comprehensive job hub. Every listing links to the employer's original posting.")}
