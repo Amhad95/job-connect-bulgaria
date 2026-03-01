@@ -1,44 +1,76 @@
 
 
-## Diagnosis
+## Issues and Fixes
 
-The notification chain is broken at **three points**:
+### 1. Hero illustration hidden on mobile
+**Line 90 in Index.tsx**: `className="hidden md:flex ..."` — the illustration is intentionally hidden below `md` breakpoint. Fix: change to show on mobile too, but smaller.
 
-1. **`notification_events` table doesn't exist** — The `dispatch-notification` edge function reads/writes this table, but it was never created.
+### 2. Language toggle too big on mobile, should be in side menu
+**Header.tsx lines 61-78**: The language toggle sits in the main navbar bar (visible on all sizes). On mobile it takes up significant space. Fix: hide it from the top bar on mobile (`hidden md:inline-flex`) and add it inside the mobile side menu (`mobileOpen` section, lines 121-161).
 
-2. **`notifications` table doesn't exist** — The edge function inserts in-app notifications here, but this table doesn't exist either.
+### 3. Job cards overflow on mobile
+**Index.tsx line 117**: The grid `className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"` is fine, but the parent `<section>` uses `container` which should constrain width. The real issue is likely the JobCard itself — it has no `overflow-hidden` and contains `min-w-0` only on the inner div but the outer card div has no width constraint. Fix: add `overflow-hidden min-w-0` to the JobCard root div, and ensure the trending jobs section has `overflow-hidden` on its container.
 
-3. **`queue_notification()` is a stub** — The trigger `trg_notify_employer_approval` fires correctly on `employers` and calls `queue_notification()`, but that function is just a stub that logs to `partner_events`. It never inserts into `notification_events` or calls the edge function.
+### 4. Logo SVG flickers on navigation
+The logo is imported as `import logo from "@/assets/bachkam-logo.svg"` — Vite bundles this as a hashed URL. The flicker happens because each page wraps content in `<Layout>` which includes `<Header>`, and since each page is a separate component, React unmounts and remounts `Layout`/`Header` on every route change. 
 
-**Result:** The trigger fires → stub does nothing useful → no notification event queued → edge function never invoked → no email or in-app notification.
+Fix: Move `Header` and `Footer` outside individual page routes in `App.tsx` so they persist across navigations. Create a shared layout route wrapper, or restructure so `Layout` wraps `<Routes>` at the top level instead of being called inside each page.
 
-## Fix (single migration)
+Actually, looking more carefully — the `DashboardLayout`, `AdminLayout`, and `EmployerLayout` already use `<Layout>` internally. The issue is that every page individually renders `<Layout>`. When navigating between `/` and `/jobs`, React unmounts the Index `<Layout>` and mounts the Jobs `<Layout>`, causing the Header to remount and the logo `<img>` to re-render (brief flash).
 
-### 1. Create `notification_events` table
-Outbox table for all notification events with columns: `id`, `event_type`, `channel` (email/in_app/both), `recipient_email`, `recipient_user_id`, `employer_id`, `payload` (jsonb), `idempotency_key`, `status` (queued/sent/failed/skipped), `error_message`, `sent_at`, `created_at`. RLS: service-role only (no client access).
+**Best fix**: Extract `Header` and `Footer` into a top-level layout route in `App.tsx` so they never unmount during client-side navigation. Pages that currently wrap in `<Layout>` will need that wrapper removed. The nested layouts (`DashboardLayout`, etc.) also use `<Layout>` internally — they'll need updating too.
 
-### 2. Create `notifications` table
-In-app notifications with columns: `id`, `user_id`, `title`, `body`, `link`, `is_read`, `created_at`. RLS: users read/update own notifications only.
+---
 
-### 3. Replace `queue_notification()` stub
-The real implementation will:
-- Insert a row into `notification_events` with status `'queued'`
-- Use `pg_net` (`net.http_post`) to asynchronously call the `dispatch-notification` edge function with the `event_id`
-- Respect the `idempotency_key` to avoid duplicate events
+## Implementation Plan
 
-### 4. Deploy `dispatch-notification` edge function
-The function code already exists but has no logs, suggesting it may not be deployed. The migration + deploy together complete the chain.
+### Task 1: Persistent layout — fix logo flicker
+- In `App.tsx`, wrap all routes in a new layout `Route` element that renders `Header`, `<Outlet>`, `Footer`
+- Remove `<Layout>` wrapper from individual pages: `Index.tsx`, `Jobs.tsx`, `JobDetail.tsx`, `Auth.tsx`, `Employers.tsx`, `OptOut.tsx`, `Privacy.tsx`, `Terms.tsx`, `NotFound.tsx`, `About.tsx`, `Contact.tsx`, `Blog.tsx`, `BlogPost.tsx`
+- Remove `<Layout>` from `DashboardLayout.tsx`, `EmployerLayout.tsx`, `AdminLayout.tsx`
+- Wrap the `<main>` content directly
 
-### Technical detail: notification flow after fix
+### Task 2: Mobile hero illustration
+- In `Index.tsx` line 90, change `hidden md:flex` to `flex` and add responsive sizing (smaller on mobile)
 
-```text
-Admin clicks Approve
-  → approve_employer_workspace() updates employers.approval_status
-  → trg_notify_employer_approval trigger fires
-  → calls queue_notification() [now real, not stub]
-  → INSERT into notification_events (status=queued)
-  → pg_net.http_post → dispatch-notification edge function
-  → edge function reads event, sends email via Resend, creates in-app notification
-  → marks event as sent
+### Task 3: Language toggle — mobile-friendly
+- In `Header.tsx`, hide the language toggle from the top bar on mobile: add `hidden md:inline-flex` to the button
+- Make the toggle smaller on mobile with compact classes
+- Add the language toggle inside the mobile menu section
+
+### Task 4: Job cards overflow
+- Add `overflow-hidden` to the JobCard root div
+- Add `overflow-hidden` to the trending jobs section container in Index.tsx
+
+### Technical details
+
+**App.tsx** restructure:
+```tsx
+// New top-level layout
+function AppLayout() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1"><Outlet /></main>
+      <Footer />
+    </div>
+  );
+}
+
+// Routes wrapped:
+<Route element={<AppLayout />}>
+  <Route path="/" element={<Index />} />
+  ...
+</Route>
 ```
+
+**Header.tsx** language toggle changes:
+- Top bar: `className="hidden md:inline-flex ..."` 
+- Mobile menu: Add compact toggle with `px-2 py-1 text-xs`
+
+**Index.tsx** hero illustration:
+- Change `hidden md:flex` → `flex` with `max-w-[200px] md:max-w-md`
+
+**JobCard.tsx**:
+- Add `overflow-hidden` to root div
 
