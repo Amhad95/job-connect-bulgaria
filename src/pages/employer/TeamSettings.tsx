@@ -145,10 +145,27 @@ export default function TeamSettings() {
             setInviting(false); return;
         }
 
-        // Fire email via send-invite edge function (non-blocking)
-        supabase.functions.invoke("send-invite", {
-            body: { invite_id: data.invite_id },
-        }).catch(console.warn);
+        // Fire email via send-invite edge function and surface errors
+        try {
+            const { data: emailResult, error: emailError } = await supabase.functions.invoke("send-invite", {
+                body: { invite_id: data.invite_id },
+            });
+            if (emailError || (emailResult && emailResult.error)) {
+                const errMsg = emailError?.message ?? emailResult?.error ?? "Failed to send email";
+                console.warn("send-invite error:", errMsg);
+                // Invite was created but email failed — still show success but warn
+                setInviteError(`Invite created but email failed to send: ${errMsg}`);
+                setInviting(false);
+                fetchData();
+                return;
+            }
+        } catch (e: any) {
+            console.warn("send-invite exception:", e);
+            setInviteError("Invite created but email could not be sent.");
+            setInviting(false);
+            fetchData();
+            return;
+        }
 
         setInviting(false);
         setInviteSuccess(true);
@@ -161,9 +178,21 @@ export default function TeamSettings() {
     };
 
     const revokeInvite = async (invite: PendingInvite) => {
-        await (supabase as any)
-            .rpc("revoke_employer_invite", { p_invite_id: invite.id });
+        // Optimistically remove from UI
+        setInvites(prev => prev.filter(i => i.id !== invite.id));
         setRevokeTarget(null);
+
+        const { data, error } = await (supabase as any)
+            .rpc("revoke_employer_invite", { p_invite_id: invite.id });
+
+        if (error || (data && !data.ok)) {
+            console.warn("Revoke failed:", error?.message ?? data?.error);
+            // Revert optimistic update
+            fetchData();
+            return;
+        }
+
+        // Confirm with fresh data
         fetchData();
     };
 
