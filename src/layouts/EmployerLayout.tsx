@@ -8,6 +8,7 @@ import { useEmployer } from "@/contexts/EmployerContext";
 import { PendingApprovalBanner } from "@/components/EmployerRoute";
 import { NotificationBell } from "@/components/NotificationBell";
 import { differenceInDays } from "date-fns";
+import logo from "@/assets/bachkam-logo.svg";
 
 const NAV_BASE = [
     { label: "Job Postings", path: "/employer/jobs", icon: <Briefcase className="w-5 h-5" />, exact: false },
@@ -75,7 +76,7 @@ export default function EmployerLayout() {
         exact ? location.pathname === path : location.pathname.startsWith(path);
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-sans">
+        <div className="h-screen w-full overflow-hidden bg-slate-50 flex font-sans">
             {/* Overlay for mobile sidebar */}
             {sidebarOpen && (
                 <div
@@ -85,15 +86,13 @@ export default function EmployerLayout() {
             )}
 
             {/* Sidebar - Dark Premium Theme */}
-            <aside className={`bg-slate-950 text-slate-300 border-r border-slate-800 w-64 flex-shrink-0 flex flex-col transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:static h-full z-30 shadow-2xl md:shadow-none`}>
+            <aside className={`bg-slate-950 text-slate-300 border-r border-slate-800 w-64 flex-shrink-0 flex flex-col transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:sticky top-0 h-full z-30 shadow-2xl md:shadow-none`}>
                 {/* Workspace header */}
                 <div className="p-6 border-b border-slate-800/60 flex justify-between items-start">
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                            <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center shrink-0 shadow-sm shadow-blue-900/20">
-                                <Building2 className="w-4 h-4 text-white" />
-                            </div>
-                            <span className="text-sm font-bold text-white tracking-tight">Job Connect</span>
+                            <img src={logo} alt="бачкам" className="h-7 w-7 filter brightness-0 invert opacity-90" />
+                            <span className="text-xl font-display font-bold text-white tracking-tight">бачкам</span>
                         </div>
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-1">Workspace</p>
                         <h2 className="text-sm font-medium text-slate-200 truncate">{employerName}</h2>
@@ -146,7 +145,7 @@ export default function EmployerLayout() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col min-h-screen overflow-hidden relative">
+            <main className="flex-1 flex flex-col h-full relative">
                 {/* Top header */}
                 <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 h-16 flex items-center px-4 md:px-8 shrink-0 gap-3 sticky top-0 z-10 transition-all">
                     <button

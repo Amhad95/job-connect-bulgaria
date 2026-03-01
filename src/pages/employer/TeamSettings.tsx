@@ -197,7 +197,7 @@ export default function TeamSettings() {
     };
 
     return (
-        <div className="max-w-2xl">
+        <div className="max-w-4xl animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>

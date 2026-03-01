@@ -16,7 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { JobEditorDialog } from "@/components/employer/JobEditorDialog";
 import {
     Plus, MoreHorizontal, KanbanSquare, Pencil, Eye, EyeOff,
-    XCircle, Briefcase, Users, TrendingUp, Clock, MapPin, Search
+    XCircle, Briefcase, Users, TrendingUp, Clock, MapPin, Search,
+    LayoutGrid, List, CheckSquare, AlertTriangle
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,8 @@ export default function EmployerJobs() {
     const [jobs, setJobs] = useState<EmployerJob[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
 
     // Dialog / Modal states
     const [editorOpen, setEditorOpen] = useState(false);
@@ -175,7 +178,7 @@ export default function EmployerJobs() {
             </div>
 
             {/* Metric Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                 {[
                     { label: "Total Jobs", value: metrics.total, icon: <Briefcase className="w-5 h-5 text-blue-600" />, bg: "bg-blue-50" },
                     { label: "Active Postings", value: metrics.active, icon: <TrendingUp className="w-5 h-5 text-emerald-600" />, bg: "bg-emerald-50" },
@@ -194,11 +197,44 @@ export default function EmployerJobs() {
                 ))}
             </div>
 
+            {/* Job Postings Section Header */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+                <div className="flex flex-col">
+                    <h2 className="text-xl font-bold text-slate-800">Your Job Postings</h2>
+                    <p className="text-sm text-slate-500 mt-1">Manage all your active and draft roles here.</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {selectedJobs.size > 0 && (
+                        <div className="flex items-center gap-2 mr-2">
+                            <span className="text-sm font-medium text-blue-600">{selectedJobs.size} selected</span>
+                            <Button variant="outline" size="sm" className="h-8 text-xs border-slate-300">Bulk Actions</Button>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60 shrink-0">
+                        <button
+                            onClick={() => setViewMode("grid")}
+                            className={`p-1.5 rounded-md flex items-center gap-1.5 text-sm font-medium transition-all ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                            <span className="hidden sm:inline px-1">Grid</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode("list")}
+                            className={`p-1.5 rounded-md flex items-center gap-1.5 text-sm font-medium transition-all ${viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                        >
+                            <List className="w-4 h-4" />
+                            <span className="hidden sm:inline px-1">List</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Job Cards Layout */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className={`grid gap-5 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
                     {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-48 w-full rounded-2xl" />
+                        <Skeleton key={i} className={`rounded-2xl ${viewMode === "grid" ? "h-48 w-full" : "h-24 w-full"}`} />
                     ))}
                 </div>
             ) : jobs.length === 0 ? (
@@ -220,105 +256,219 @@ export default function EmployerJobs() {
                     No jobs found matching "{searchQuery}"
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className={`grid gap-5 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 flex flex-col"}`}>
                     {filteredJobs.map(job => {
                         const s = STATUS_BADGE[job.status];
+                        const isSelected = selectedJobs.has(job.id);
+
                         return (
-                            <div key={job.id} className="group bg-white rounded-2xl border border-slate-200/70 p-5 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all duration-300 flex flex-col">
-                                {/* Card Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <Badge variant="outline" className={`text-xs font-medium px-2.5 py-0.5 gap-1.5 border ${s.cls}`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                                        {s.label}
-                                    </Badge>
+                            <div key={job.id} className={`group bg-white rounded-2xl border ${isSelected ? "border-blue-400 ring-1 ring-blue-400/20 bg-blue-50/10" : "border-slate-200/70 hover:border-slate-300"} p-5 shadow-sm hover:shadow-md transition-all duration-300 flex ${viewMode === "grid" ? "flex-col" : "flex-row items-center gap-4"}`}>
 
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
-                                                <MoreHorizontal className="w-4 h-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                                            <DropdownMenuItem onClick={() => openEditor(job)} className="gap-2">
-                                                <Pencil className="w-4 h-4 text-slate-400" /> Edit Details
-                                            </DropdownMenuItem>
-                                            {job.status === "DRAFT" || job.status === "PAUSED" ? (
-                                                <DropdownMenuItem onClick={() => changeStatus(job, "ACTIVE")} className="gap-2">
-                                                    <Eye className="w-4 h-4 text-slate-400" /> Publish Job
-                                                </DropdownMenuItem>
-                                            ) : job.status === "ACTIVE" ? (
-                                                <DropdownMenuItem onClick={() => changeStatus(job, "PAUSED")} className="gap-2">
-                                                    <EyeOff className="w-4 h-4 text-slate-400" /> Pause Hiring
-                                                </DropdownMenuItem>
-                                            ) : null}
-                                            {job.status !== "CLOSED" && (
-                                                <>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        className="text-red-600 gap-2 focus:bg-red-50 focus:text-red-700"
-                                                        onClick={() => setCloseTarget(job)}
-                                                    >
-                                                        <XCircle className="w-4 h-4" /> Close Posting
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-
-                                {/* Title & Location */}
-                                <div className="mb-6 flex-1">
-                                    <h3 className="font-bold text-lg text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
-                                        <Link to={`/employer/jobs/${job.id}/pipeline`}>{job.title}</Link>
-                                    </h3>
-                                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                                        {(job.city || job.work_mode) && (
-                                            <div className="flex items-center gap-1.5">
-                                                <MapPin className="w-3.5 h-3.5" />
-                                                <span>{[job.city, job.work_mode].filter(Boolean).join(" · ")}</span>
-                                            </div>
-                                        )}
-                                        {job.posted_at && (
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="w-3.5 h-3.5" />
-                                                <span>{formatDistanceToNow(new Date(job.posted_at), { addSuffix: true })}</span>
-                                            </div>
-                                        )}
+                                {/* Item Checkbox */}
+                                <div className={`shrink-0 ${viewMode === "grid" ? "absolute top-4 right-4 z-10" : ""}`} onClick={(e) => {
+                                    e.stopPropagation();
+                                    const next = new Set(selectedJobs);
+                                    if (next.has(job.id)) next.delete(job.id);
+                                    else next.add(job.id);
+                                    setSelectedJobs(next);
+                                }}>
+                                    <div className={`w-5 h-5 rounded border ${isSelected ? "bg-blue-600 border-blue-600" : "bg-white border-slate-300 group-hover:border-slate-400"} flex items-center justify-center cursor-pointer transition-colors shadow-sm`}>
+                                        {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                     </div>
                                 </div>
 
-                                {/* Divider */}
-                                <div className="h-px w-full bg-slate-100 mb-4" />
+                                {viewMode === "grid" ? (
+                                    <>
+                                        {/* Grid Mode Header */}
+                                        <div className="flex items-start justify-between mb-4">
+                                            <Badge variant="outline" className={`text-[10px] font-medium px-2 py-0.5 gap-1.5 border uppercase tracking-wider ${s.cls}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                                                {s.label}
+                                            </Badge>
 
-                                {/* Footer Metrics & Primary Action */}
-                                <div className="flex items-center justify-between mt-auto">
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">Pipeline</span>
-                                            <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                                                <Users className="w-4 h-4 text-blue-500" />
-                                                {job.applicant_count}
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white">
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                                                    <DropdownMenuItem onClick={() => openEditor(job)} className="gap-2">
+                                                        <Pencil className="w-4 h-4 text-slate-400" /> Edit Details
+                                                    </DropdownMenuItem>
+                                                    {job.status === "DRAFT" || job.status === "PAUSED" ? (
+                                                        <DropdownMenuItem onClick={() => changeStatus(job, "ACTIVE")} className="gap-2">
+                                                            <Eye className="w-4 h-4 text-slate-400" /> Publish Job
+                                                        </DropdownMenuItem>
+                                                    ) : job.status === "ACTIVE" ? (
+                                                        <DropdownMenuItem onClick={() => changeStatus(job, "PAUSED")} className="gap-2">
+                                                            <EyeOff className="w-4 h-4 text-slate-400" /> Pause Hiring
+                                                        </DropdownMenuItem>
+                                                    ) : null}
+                                                    {job.status !== "CLOSED" && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-red-600 gap-2 focus:bg-red-50 focus:text-red-700"
+                                                                onClick={() => setCloseTarget(job)}
+                                                            >
+                                                                <XCircle className="w-4 h-4" /> Close Posting
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+
+                                        {/* Grid Mode Title & Location */}
+                                        <div className="mb-6 flex-1">
+                                            <h3 className="font-bold text-lg text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                                <Link to={`/employer/jobs/${job.id}/pipeline`}>{job.title}</Link>
+                                            </h3>
+                                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                                {(job.city || job.work_mode) && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <MapPin className="w-3.5 h-3.5" />
+                                                        <span>{[job.city, job.work_mode].filter(Boolean).join(" · ")}</span>
+                                                    </div>
+                                                )}
+                                                {job.posted_at && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        <span>{formatDistanceToNow(new Date(job.posted_at), { addSuffix: true })}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                        {job.avg_score !== null && (
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">Match</span>
-                                                <div className="flex items-center gap-1 text-slate-700 font-semibold">
-                                                    <span className={`flex items-center gap-1 ${job.avg_score >= 80 ? "text-emerald-600" : job.avg_score >= 50 ? "text-amber-600" : "text-slate-500"}`}>
-                                                        <TrendingUp className="w-3.5 h-3.5" />
-                                                        {job.avg_score}%
-                                                    </span>
+
+                                        <div className="h-px w-full bg-slate-100 mb-4" />
+
+                                        {/* Grid Mode Footer Metrics & Action */}
+                                        <div className="flex items-center justify-between mt-auto">
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">Pipeline</span>
+                                                    <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                                                        <Users className="w-4 h-4 text-blue-500" />
+                                                        {job.applicant_count}
+                                                    </div>
+                                                </div>
+                                                {job.avg_score !== null && (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">Match</span>
+                                                        <div className="flex items-center gap-1 text-slate-700 font-semibold">
+                                                            <span className={`flex items-center gap-1 ${job.avg_score >= 80 ? "text-emerald-600" : job.avg_score >= 50 ? "text-amber-600" : "text-slate-500"}`}>
+                                                                <TrendingUp className="w-3.5 h-3.5" />
+                                                                {job.avg_score}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Button asChild size="sm" className="gap-2 rounded-xl bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white transition-all">
+                                                <Link to={`/employer/jobs/${job.id}/pipeline`}>
+                                                    <KanbanSquare className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">View Pipeline</span>
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* List Mode Layout */
+                                    <>
+                                        <div className="flex-1 min-w-0 flex items-center justify-between gap-6 pl-2">
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                                                        <Link to={`/employer/jobs/${job.id}/pipeline`}>{job.title}</Link>
+                                                    </h3>
+                                                    <Badge variant="outline" className={`text-[10px] uppercase font-bold px-2 py-0.5 gap-1 shrink-0 border ${s.cls}`}>
+                                                        <span className={`w-1 h-1 rounded-full ${s.dot}`} />
+                                                        {s.label}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm text-slate-500">
+                                                    {(job.city || job.work_mode) && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <MapPin className="w-3.5 h-3.5" />
+                                                            <span>{[job.city, job.work_mode].filter(Boolean).join(" · ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {job.posted_at && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                            <span>{formatDistanceToNow(new Date(job.posted_at), { addSuffix: true })}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                    <Button asChild size="sm" className="gap-2 rounded-xl bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white transition-all">
-                                        <Link to={`/employer/jobs/${job.id}/pipeline`}>
-                                            <KanbanSquare className="w-4 h-4" />
-                                            <span className="hidden sm:inline">View Board</span>
-                                        </Link>
-                                    </Button>
-                                </div>
+
+                                            {/* List View Metrics */}
+                                            <div className="hidden md:flex items-center gap-8 shrink-0 px-6 border-l border-slate-100">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">Pipeline</span>
+                                                    <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                                                        <Users className="w-4 h-4 text-blue-500" />
+                                                        {job.applicant_count}
+                                                    </div>
+                                                </div>
+                                                {job.avg_score !== null && (
+                                                    <div className="flex flex-col min-w-[60px]">
+                                                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">Match</span>
+                                                        <div className="flex items-center gap-1 text-slate-700 font-semibold">
+                                                            <span className={`flex items-center gap-1 ${job.avg_score >= 80 ? "text-emerald-600" : job.avg_score >= 50 ? "text-amber-600" : "text-slate-500"}`}>
+                                                                <TrendingUp className="w-3.5 h-3.5" />
+                                                                {job.avg_score}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <Button asChild size="sm" className="gap-2 rounded-xl bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white transition-all h-9 hidden sm:flex">
+                                                    <Link to={`/employer/jobs/${job.id}/pipeline`}>
+                                                        <KanbanSquare className="w-4 h-4" />
+                                                        View Pipeline
+                                                    </Link>
+                                                </Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white hover:bg-slate-100 rounded-xl">
+                                                            <MoreHorizontal className="w-4 h-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                                                        <DropdownMenuItem onClick={() => openEditor(job)} className="gap-2">
+                                                            <Pencil className="w-4 h-4 text-slate-400" /> Edit Details
+                                                        </DropdownMenuItem>
+                                                        {job.status === "DRAFT" || job.status === "PAUSED" ? (
+                                                            <DropdownMenuItem onClick={() => changeStatus(job, "ACTIVE")} className="gap-2">
+                                                                <Eye className="w-4 h-4 text-slate-400" /> Publish Job
+                                                            </DropdownMenuItem>
+                                                        ) : job.status === "ACTIVE" ? (
+                                                            <DropdownMenuItem onClick={() => changeStatus(job, "PAUSED")} className="gap-2">
+                                                                <EyeOff className="w-4 h-4 text-slate-400" /> Pause Hiring
+                                                            </DropdownMenuItem>
+                                                        ) : null}
+                                                        {job.status !== "CLOSED" && (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem
+                                                                    className="text-red-600 gap-2 focus:bg-red-50 focus:text-red-700"
+                                                                    onClick={() => setCloseTarget(job)}
+                                                                >
+                                                                    <XCircle className="w-4 h-4" /> Close Posting
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         );
                     })}

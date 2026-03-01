@@ -77,7 +77,7 @@ export default function NotificationSettings() {
     const isOwnerOrAdmin = role === "owner" || role === "admin";
 
     return (
-        <div className="max-w-lg">
+        <div className="max-w-4xl animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="font-display text-2xl font-bold text-gray-900">Notification settings</h1>
