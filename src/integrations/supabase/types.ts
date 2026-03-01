@@ -744,6 +744,89 @@ export type Database = {
           },
         ]
       }
+      notification_events: {
+        Row: {
+          channel: string
+          created_at: string
+          employer_id: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          payload: Json
+          recipient_email: string | null
+          recipient_user_id: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          employer_id?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          employer_id?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       partner_events: {
         Row: {
           created_at: string
