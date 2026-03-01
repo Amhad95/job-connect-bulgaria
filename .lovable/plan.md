@@ -1,62 +1,66 @@
 
 
-## Fixing Employer Workspace Issues
+## Standardize City Tags Across the Stack
 
-Four distinct bugs identified after investigating the code and database schema.
+### Current state
+- `location_city` on `job_postings` is free-text, filled by the LLM scraper with messy values like "Various locations worldwide", "Bitola, Burgas, Istanbul, Plovdiv...", "Not specified", etc.
+- The `locations` table migration exists in code but was **never applied** — the table doesn't exist in the database.
+- The admin moderation edit modal has a free-text input for city — no dropdown, no standardization.
+- The Jobs page filter derives city options directly from the raw `location_city` values.
+- The employer job editor also uses a free-text city input.
 
----
+### Plan
 
-### Issue 1: Cannot save/publish jobs — `canonical_url` NOT NULL violation
+#### 1. Database migration
+- **Create the `locations` table** (slug, name_en, name_bg) and **seed the 10 canonical cities**.
+- **Add a `location_slug` column** to `job_postings` (nullable, text) that references the standardized slug (e.g. `sofia`, `plovdiv`, `remote`). Keep `location_city` for raw scraped data / backwards compat.
+- Create a helper SQL function `normalize_city(raw_text)` that maps common Bulgarian/English city names to their slug (case-insensitive matching). Returns null for unrecognized values.
+- Run a one-time data UPDATE to populate `location_slug` for all existing jobs using `normalize_city(location_city)`.
 
-**Root cause**: `JobEditorDialog.tsx` never sets `canonical_url` in the insert payload. The column has a NOT NULL constraint in the actual database (despite schema metadata suggesting otherwise).
+Seed data:
+| slug | name_en | name_bg |
+|---|---|---|
+| sofia | Sofia | София |
+| plovdiv | Plovdiv | Пловдив |
+| varna | Varna | Варна |
+| burgas | Burgas | Бургас |
+| ruse | Ruse | Русе |
+| stara-zagora | Stara Zagora | Стара Загора |
+| veliko-tarnovo | Veliko Tarnovo | Велико Търново |
+| pleven | Pleven | Плевен |
+| blagoevgrad | Blagoevgrad | Благоевград |
+| gabrovo | Gabrovo | Габрово |
 
-**Fix**: 
-- **DB migration**: `ALTER TABLE job_postings ALTER COLUMN canonical_url DROP NOT NULL;` to allow null for employer-posted (DIRECT) jobs that don't have an external URL.
-- **Code** (`JobEditorDialog.tsx`): Optionally set `canonical_url` to null explicitly in the jobRow object for clarity.
+#### 2. Scraper update (`crawl-source/index.ts`)
+- Update the `location_city` schema description to instruct the LLM: "Must be one of: Sofia, Plovdiv, Varna, Burgas, Ruse, Stara Zagora, Veliko Tarnovo, Pleven, Blagoevgrad, Gabrovo. Use null if not in Bulgaria or unclear."
+- After extraction, run a server-side normalization map (same logic as `normalize_city`) to set `location_slug` alongside the raw `location_city`.
 
----
+#### 3. Frontend: Shared city constants
+- Create `src/lib/cities.ts` exporting the canonical city list with slug, name_en, name_bg.
+- The display function picks `name_en` or `name_bg` based on current i18n language.
 
-### Issue 2: Team invitations — RPC return type mismatch + email never sent
+#### 4. Jobs page filter + display (`useJobs.ts`, `Jobs.tsx`, `JobCard.tsx`)
+- `useJobs.ts`: Fetch `location_slug` alongside `location_city`. Map to `DbJob.citySlug`.
+- `Jobs.tsx` filters: Instead of deriving cities from raw data, use the canonical city list. Filter by `citySlug`.
+- `JobCard.tsx` + `JobPreviewContent`: Display the localized city name using the slug → city map, falling back to raw `location_city`.
 
-**Root cause**: The `create_employer_invite` RPC returns a plain **text** string (the token), not a JSON object. But `TeamSettings.tsx` line 133 checks `data?.ok` (always undefined on a string) and line 150 sends `data.invite_id` (also undefined). So:
-- The code falls into the error branch incorrectly ("Invite failed") even though the invite was created successfully — OR it passes but sends a bad payload to the edge function.
-- The edge function receives `{ invite_id: undefined }`, so the email is never sent.
+#### 5. Admin moderation queue (`AdminDashboard.tsx`)
+- Replace the free-text city input in the edit modal with a `<Select>` dropdown listing the 10 standardized cities + an "Other / Unknown" option.
+- Saving writes both `location_city` (display name) and `location_slug` (canonical slug).
+- Add more editable fields: employment_type, seniority, salary_min/max, description — so admins can fully fix scraped job data.
 
-**Fix** (`TeamSettings.tsx`):
-- After the RPC call, treat `data` as a string token (the return value).
-- If `error` is null and `data` is truthy, the invite succeeded.
-- To call `send-invite`, we need the invite ID. Query `employer_invites` by token to get the ID, or change the approach: look up the most recent pending invite for that email, or modify the RPC to return jsonb. The simplest client-side fix: query the invite by token after creation.
+#### 6. Employer job editor (`JobEditorDialog.tsx`)
+- Replace the free-text city input with the same standardized `<Select>` dropdown.
 
-Alternatively, **update the RPC** `create_employer_invite` to return `jsonb` containing `{ ok: true, token, invite_id }` instead of just the token text. This is cleaner.
-
----
-
-### Issue 3: Revoking invitations fails silently
-
-**Root cause**: The RLS policy `invite: deny user mutate` is a **restrictive ALL** policy with `WITH CHECK (false)`. This blocks all INSERT/UPDATE/DELETE from the client, including the revoke UPDATE at line 164-167.
-
-**Fix**: Create a new **security definer RPC** `revoke_employer_invite(p_invite_id uuid)` that:
-- Verifies the caller is owner/admin of the invite's employer.
-- Updates the invite status to `'revoked'`.
-- Call this RPC from `TeamSettings.tsx` instead of a direct `.update()`.
-
----
-
-### Issue 4: Employer-posted jobs don't appear on /jobs page
-
-**Root cause**: This is a downstream effect of Issue 1 — jobs can't be created at all due to the NOT NULL constraint. Once Issue 1 is fixed, the `useJobs.ts` filter already handles `DIRECT` source_type correctly (lines 48-53: bypasses scraping heuristics, only requires title length >= 3).
-
-No additional code change needed for this once Issue 1 is resolved.
-
----
-
-### Summary of changes
-
-| File / Layer | Change |
+### Files to change
+| File | Change |
 |---|---|
-| **DB migration** | 1. `ALTER TABLE job_postings ALTER COLUMN canonical_url DROP NOT NULL` |
-| **DB migration** | 2. Alter `create_employer_invite` RPC to return `jsonb` with `ok`, `token`, `invite_id` |
-| **DB migration** | 3. Create `revoke_employer_invite(p_invite_id uuid)` security definer RPC |
-| `src/pages/employer/TeamSettings.tsx` | Fix `handleInvite` to use new jsonb return; fix `revokeInvite` to call new RPC |
-| `src/components/employer/JobEditorDialog.tsx` | Minor: explicitly set `canonical_url: null` in jobRow for DIRECT jobs |
+| DB migration | Create `locations` table, add `location_slug` column, seed cities, backfill data |
+| `supabase/functions/crawl-source/index.ts` | Constrain LLM city extraction + normalize slug post-extraction |
+| `src/lib/cities.ts` | New shared constants file |
+| `src/hooks/useJobs.ts` | Fetch + expose `citySlug`, use for display |
+| `src/pages/Jobs.tsx` | Filter by canonical slugs, show localized names |
+| `src/components/JobCard.tsx` | Show localized city name |
+| `src/pages/admin/AdminDashboard.tsx` | City dropdown + more editable fields in edit modal |
+| `src/components/employer/JobEditorDialog.tsx` | City dropdown |
 
