@@ -1,59 +1,31 @@
 
-You’re right to call this out — the previous fix targeted clipping, but not the actual mobile layout behavior on Home.
 
-## What is actually wrong
+## Job Preview: Bottom Drawer for Smaller Screens
 
-On Home (`Index.tsx`), the “Latest from employers / Trending Jobs” list is rendered in a CSS grid with:
+**Problem**: The job preview panel is only visible on `lg` screens (`hidden ... lg:flex` at line 234). On any smaller screen, clicking a job card selects it visually but shows no preview — nothing happens.
 
-- `grid gap-3 sm:grid-cols-2 lg:grid-cols-3`
+**Solution**: When a job is selected on screens below `lg`, show the preview content in a bottom **Drawer** (using the existing `vaul` Drawer component) that the user can swipe down or tap outside to dismiss.
 
-On **mobile**, there is no explicit `grid-cols-1`, so the implicit column sizing can behave like `auto` and expand to fit long unbreakable content (badges/salary text), which makes cards push wider than the viewport.
+### Changes
 
-Why it looks fine on `/jobs`:
-- `/jobs` does **not** use this grid card layout; it uses a vertical list container (`space-y-2`), so no implicit grid column expansion issue.
+**`src/pages/Jobs.tsx`**:
+1. Import `Drawer`, `DrawerContent`, `DrawerHeader`, `DrawerTitle` from `@/components/ui/drawer` and `useIsMobile` from `@/hooks/use-mobile`.
+2. Extract the preview panel content (lines 235-305) into a shared `<JobPreviewContent />` inline component to avoid duplication.
+3. Keep the existing `<aside>` for `lg` screens (desktop sidebar) — no change there.
+4. Add a `<Drawer>` that:
+   - Is `open` when `selectedJob` is not null AND screen is below `lg` (use a media query hook or the existing `useIsMobile` — but since the breakpoint here is `lg` not `md`, we need a small adjustment or a new check).
+   - `onOpenChange` sets `selectedJob` to `null` when closed.
+   - Contains `<DrawerContent>` with the same preview content, scrollable, max height ~85vh.
+5. Since `useIsMobile` uses 768px but we need 1024px (lg), we'll use a simple `useState` + `matchMedia` inline for the `lg` breakpoint, or just always render the Drawer and control visibility: the Drawer opens when `selectedJob` is set and the `aside` is hidden (below lg). On lg+ the aside is visible and the Drawer won't interfere because we only open it when not lg.
 
-`overflow-hidden` on section/grid only masks overflow visually; it does not fix the root sizing behavior of the grid track itself.
+**Approach**: Use a `useIsLg` check (inline `matchMedia` for `min-width: 1024px`). When `!isLg && selectedJob`, open the Drawer. When the user dismisses it, clear `selectedJob`.
 
-## Implementation plan
-
-1. Update Home jobs grid to force one constrained column on mobile.
-   - In `src/pages/Index.tsx`, change:
-   - `grid gap-3 sm:grid-cols-2 lg:grid-cols-3 ...`
-   - to:
-   - `grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 ...`
-
-2. Ensure each grid item can shrink within track width.
-   - Add `className="block min-w-0"` to the wrapping `<Link>` around each `JobCard` in the Home trending section.
-
-3. Keep `JobCard` as shrink-safe (already has `overflow-hidden min-w-0`), and if needed harden further:
-   - add `w-full` on the card root so the card always fills the constrained track instead of sizing by content.
-
-4. Validate where overflow actually appears.
-   - Test Home on mobile width (320–390px), specifically jobs with long city/work mode/salary labels.
-   - Confirm no horizontal scroll and no card extension beyond viewport.
-
-## Technical details (concise)
-
-Files to update:
-- `src/pages/Index.tsx`
-  - Grid classes: add `grid-cols-1`
-  - Card link wrapper: add `block min-w-0`
-- `src/components/JobCard.tsx` (optional hardening)
-  - Root class: include `w-full`
-
-Why this works:
-- Explicit `grid-cols-1` uses `minmax(0,1fr)` behavior for small screens, preventing content-driven widening.
-- `min-w-0` on grid item wrappers allows child truncation/shrinking.
-- `w-full` on the card prevents intrinsic content width from dictating outer width.
+### Technical detail
 
 ```text
-Mobile before:
-grid (implicit auto column) + long badge text
-→ column grows beyond viewport
-→ card extends off-screen
-
-Mobile after:
-grid-cols-1 (fixed fractional track) + link min-w-0 + card w-full
-→ track stays within container
-→ card content truncates/wraps instead of widening layout
+Desktop (>=1024px):  sidebar preview (existing, unchanged)
+Tablet/Mobile (<1024px):  bottom Drawer with swipe-to-dismiss
 ```
+
+The Drawer will reuse the exact same preview content (company header, badges, description, action buttons) wrapped in a scrollable container with `max-h-[85vh]`.
+
