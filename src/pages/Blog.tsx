@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
-import { Layout } from "@/components/Layout";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +53,7 @@ export default function Blog() {
     });
 
     return (
-        <Layout>
+        <>
             {/* ── Hero ─────────────────────────────────────────────────────────── */}
             <section className="border-b bg-gradient-to-br from-primary/5 via-background to-background py-16">
                 <div className="container max-w-3xl text-center">
@@ -134,6 +134,6 @@ export default function Blog() {
                     </div>
                 )}
             </section>
-        </Layout>
+        </>
     );
 }

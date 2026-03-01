@@ -634,7 +634,7 @@ export type Database = {
         Row: {
           apply_url: string | null
           approval_status: string
-          canonical_url: string
+          canonical_url: string | null
           category: string | null
           content_hash: string | null
           currency: string | null
@@ -666,7 +666,7 @@ export type Database = {
         Insert: {
           apply_url?: string | null
           approval_status?: string
-          canonical_url: string
+          canonical_url?: string | null
           category?: string | null
           content_hash?: string | null
           currency?: string | null
@@ -698,7 +698,7 @@ export type Database = {
         Update: {
           apply_url?: string | null
           approval_status?: string
-          canonical_url?: string
+          canonical_url?: string | null
           category?: string | null
           content_hash?: string | null
           currency?: string | null
@@ -1246,7 +1246,11 @@ export type Database = {
       }
       create_employer_invite: {
         Args: { p_email: string; p_employer_id: string; p_role?: string }
-        Returns: Json
+        Returns: string
+      }
+      get_employer_active_seat_count: {
+        Args: { p_employer_id: string }
+        Returns: number
       }
       get_employer_owner_email: {
         Args: { p_employer_id: string }

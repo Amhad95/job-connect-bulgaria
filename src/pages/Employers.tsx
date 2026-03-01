@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Layout } from "@/components/Layout";
+
 import { Link, useNavigate } from "react-router-dom";
 import {
     ArrowRight, Sparkles, LayoutGrid, BadgeCheck,
@@ -15,7 +15,7 @@ export default function Employers() {
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annually'>('monthly');
 
     return (
-        <Layout>
+        <>
             {/* ── SECTION 1: Hero ── */}
             <section className="relative overflow-hidden py-16 md:py-20" aria-labelledby="employers-hero-heading">
                 <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-l from-sky-200/80 via-sky-100/40 to-transparent" />
@@ -615,7 +615,7 @@ export default function Employers() {
                     </dl>
                 </div>
             </section>
-        </Layout>
+        </>
     );
 }
 

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
-import { Layout } from "@/components/Layout";
+
 import { JobCard } from "@/components/JobCard";
 import { JobCardSkeleton } from "@/components/JobCardSkeleton";
 import { useJobs, useJob, DbJob } from "@/hooks/useJobs";
@@ -156,7 +156,7 @@ export default function Jobs() {
   );
 
   return (
-    <Layout>
+    <>
       {/* Search header */}
       <div className="sticky top-16 z-40 border-b bg-background/95 backdrop-blur-sm">
         <div className="container flex items-center gap-3 py-3">
@@ -306,6 +306,6 @@ export default function Jobs() {
           </aside>
         )}
       </div>
-    </Layout>
+    </>
   );
 }

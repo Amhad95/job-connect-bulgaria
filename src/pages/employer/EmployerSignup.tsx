@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Layout } from "@/components/Layout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +56,7 @@ export default function EmployerSignup() {
     // Guard: invalid plan params → show error and link back
     if (!planInfo.isValid) {
         return (
-            <Layout>
+            <div className="container flex items-center justify-center py-24">
                 <div className="container flex items-center justify-center py-24">
                     <div className="w-full max-w-md text-center">
                         <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
@@ -76,7 +76,7 @@ export default function EmployerSignup() {
                         </Link>
                     </div>
                 </div>
-            </Layout>
+            </div>
         );
     }
 
@@ -166,7 +166,7 @@ export default function EmployerSignup() {
     };
 
     return (
-        <Layout>
+        <div className="container flex items-center justify-center py-16 md:py-24">
             <div className="container flex items-center justify-center py-16 md:py-24">
                 <div className="w-full max-w-md">
 
@@ -299,6 +299,6 @@ export default function EmployerSignup() {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </div>
     );
 }

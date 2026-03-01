@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Layout } from "@/components/Layout";
+
 import {
     Form,
     FormControl,
@@ -54,7 +54,7 @@ export default function Contact() {
     }
 
     return (
-        <Layout>
+        <>
             {/* ── Hero ─────────────────────────────────────────────────────────── */}
             <section className="border-b bg-gradient-to-br from-primary/5 via-background to-background py-16">
                 <div className="container max-w-3xl text-center">
@@ -189,6 +189,6 @@ export default function Contact() {
                     </div>
                 </div>
             </section>
-        </Layout>
+        </>
     );
 }

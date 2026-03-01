@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Layout } from "@/components/Layout";
+
 import { useJob } from "@/hooks/useJobs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,34 +27,30 @@ export default function JobDetail() {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="container max-w-4xl py-8 space-y-4">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-10 w-3/4" />
-          <Skeleton className="h-6 w-1/2" />
-          <div className="flex gap-2 mt-4">
-            <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-          <Skeleton className="h-40 w-full mt-8" />
+      <div className="container max-w-4xl py-8 space-y-4">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-10 w-3/4" />
+        <Skeleton className="h-6 w-1/2" />
+        <div className="flex gap-2 mt-4">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-24" />
         </div>
-      </Layout>
+        <Skeleton className="h-40 w-full mt-8" />
+      </div>
     );
   }
 
   if (!job || error) {
     return (
-      <Layout>
-        <div className="container py-20 text-center">
-          <p className="text-muted-foreground">{t("common.noResults")}</p>
-          <Link to="/jobs">
-            <Button variant="outline" className="mt-4 gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {t("jobDetail.backToResults")}
-            </Button>
-          </Link>
-        </div>
-      </Layout>
+      <div className="container py-20 text-center">
+        <p className="text-muted-foreground">{t("common.noResults")}</p>
+        <Link to="/jobs">
+          <Button variant="outline" className="mt-4 gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            {t("jobDetail.backToResults")}
+          </Button>
+        </Link>
+      </div>
     );
   }
 
@@ -67,8 +63,7 @@ export default function JobDetail() {
 
   return (
     <>
-      <Layout>
-        <div className="container max-w-4xl py-8">
+      <div className="container max-w-4xl py-8">
           <Link to="/jobs" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             {t("jobDetail.backToResults")}
@@ -170,7 +165,6 @@ export default function JobDetail() {
             </div>
           </div>
         </div>
-      </Layout >
 
       {/* Easy Apply modal — only rendered for DIRECT jobs */}
       {

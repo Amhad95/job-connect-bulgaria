@@ -57,11 +57,11 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* BG / EN flag toggle */}
+          {/* BG / EN flag toggle — hidden on mobile, shown in side menu instead */}
           <button
             onClick={toggleLang}
             aria-label="Toggle language"
-            className="inline-flex rounded-full border border-slate-200 bg-white p-1"
+            className="hidden md:inline-flex rounded-full border border-slate-200 bg-white p-1"
           >
             <span
               className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${isBg ? "bg-blue-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-50"
@@ -131,6 +131,21 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+
+            {/* Language toggle — compact version for mobile menu */}
+            <button
+              onClick={toggleLang}
+              aria-label="Toggle language"
+              className="inline-flex self-start rounded-full border border-slate-200 bg-white p-0.5 mt-1"
+            >
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${isBg ? "bg-blue-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-50"}`}>
+                🇧🇬 BG
+              </span>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${!isBg ? "bg-blue-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-50"}`}>
+                🇬🇧 EN
+              </span>
+            </button>
+
             {user ? (
               <div className="flex flex-col gap-2 mt-2">
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)}>

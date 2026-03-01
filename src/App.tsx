@@ -2,10 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import Index from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import JobDetail from "./pages/JobDetail";
@@ -47,6 +49,19 @@ import "./i18n";
 
 const queryClient = new QueryClient();
 
+/** Persistent layout: Header & Footer never unmount during navigation */
+function AppLayout() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -56,23 +71,39 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/jobs/:id" element={<JobDetail />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/employers" element={<Employers />} />
-              <Route path="/opt-out" element={<OptOut />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
+              {/* Routes with persistent Header + Footer */}
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/jobs" element={<Jobs />} />
+                <Route path="/jobs/:id" element={<JobDetail />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/employers" element={<Employers />} />
+                <Route path="/opt-out" element={<OptOut />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
 
-              {/* APPLICANT DASHBOARD ROUTES */}
-              <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-                <Route index element={<DashboardProfile />} />
-                <Route path="saved" element={<DashboardSavedJobs />} />
-                <Route path="tracker" element={<DashboardTracker />} />
-                <Route path="apply-kit" element={<DashboardApplyKit />} />
+                {/* Employer public pages */}
+                <Route path="/employer/login" element={<EmployerLogin />} />
+                <Route path="/employer/signup" element={<EmployerSignup />} />
+                <Route path="/employer/join" element={<JoinInvite />} />
+
+                {/* APPLICANT DASHBOARD ROUTES */}
+                <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                  <Route index element={<DashboardProfile />} />
+                  <Route path="saved" element={<DashboardSavedJobs />} />
+                  <Route path="tracker" element={<DashboardTracker />} />
+                  <Route path="apply-kit" element={<DashboardApplyKit />} />
+                </Route>
+
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
               </Route>
-              {/* ADMIN ROUTES */}
+
+              {/* ADMIN ROUTES — own chrome, no Header/Footer */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="companies" element={<AdminCompanies />} />
@@ -83,17 +114,7 @@ const App = () => (
                 <Route path="partners/:id" element={<AdminPartnerDetail />} />
               </Route>
 
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-
-              {/* EMPLOYER ATS ROUTES — protected by employer_profiles membership */}
-              {/* /employer/login + /employer/signup are public — same Supabase auth */}
-              <Route path="/employer/login" element={<EmployerLogin />} />
-              <Route path="/employer/signup" element={<EmployerSignup />} />
-              {/* /employer/join is public — invited user may not be logged in yet */}
-              <Route path="/employer/join" element={<JoinInvite />} />
+              {/* EMPLOYER ATS ROUTES — own chrome, no Header/Footer */}
               <Route path="/employer" element={<EmployerRoute><EmployerLayout /></EmployerRoute>}>
                 <Route index element={<EmployerJobs />} />
                 <Route path="jobs" element={<EmployerJobs />} />
@@ -102,9 +123,6 @@ const App = () => (
                 <Route path="settings/team" element={<TeamSettings />} />
                 <Route path="settings/notifications" element={<NotificationSettings />} />
               </Route>
-
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
         </BrowserRouter>

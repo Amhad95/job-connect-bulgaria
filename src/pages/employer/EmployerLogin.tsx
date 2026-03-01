@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Layout } from "@/components/Layout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,7 +85,7 @@ export default function EmployerLogin() {
     };
 
     return (
-        <Layout>
+        <div className="container flex items-center justify-center py-16 md:py-24">
             <div className="container flex items-center justify-center py-16 md:py-24">
                 <div className="w-full max-w-md">
 
@@ -175,6 +175,6 @@ export default function EmployerLogin() {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </div>
     );
 }

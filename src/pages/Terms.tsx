@@ -1,4 +1,3 @@
-import { Layout } from "@/components/Layout";
 import { useTranslation } from "react-i18next";
 
 export default function Terms() {
@@ -6,8 +5,7 @@ export default function Terms() {
   const isBg = i18n.language === "bg";
 
   return (
-    <Layout>
-      <div className="container max-w-3xl py-12 md:py-16">
+    <div className="container max-w-3xl py-12 md:py-16">
         <h1 className="mb-8 font-display text-3xl font-bold">
           {isBg ? "Условия за ползване" : "Terms of Service"}
         </h1>
@@ -44,6 +42,5 @@ export default function Terms() {
           </section>
         </div>
       </div>
-    </Layout>
   );
 }
