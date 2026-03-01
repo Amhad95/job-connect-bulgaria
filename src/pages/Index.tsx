@@ -103,7 +103,7 @@ export default function Index() {
       </section>
 
       {/* Trending Jobs */}
-      <section className="bg-surface">
+      <section className="bg-surface overflow-hidden">
         <div className="container py-16 md:py-20">
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export default function Index() {
               {t("common.viewAll")} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 overflow-hidden">
             {trendingJobs.map((job) => (
               <Link key={job.id} to={`/jobs?id=${job.id}`}>
                 <JobCard job={job} />
