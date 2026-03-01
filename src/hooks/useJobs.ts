@@ -48,8 +48,8 @@ async function fetchJobs(): Promise<DbJob[]> {
 
     // ── EMPLOYER-POSTED JOBS (DIRECT source) bypass scraped-job heuristics ──
     if (isDirect) {
-      // Only require a real title for employer-posted jobs
-      if (!row.title || row.title.length < 3) return false;
+      // Only require a non-empty title for employer-posted jobs
+      if (!row.title || row.title.trim().length === 0) return false;
       return true;
     }
 
@@ -103,7 +103,7 @@ async function fetchJobs(): Promise<DbJob[]> {
     salaryMax: row.salary_max ?? undefined,
     currency: row.currency ?? undefined,
     applyUrl: row.apply_url ?? row.canonical_url,
-    canonicalUrl: row.canonical_url,
+    canonicalUrl: row.canonical_url ?? '',
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
     postedAt: row.posted_at ?? row.first_seen_at,
