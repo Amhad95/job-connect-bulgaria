@@ -11,7 +11,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand column */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2">
+            <div className="inline-flex items-center gap-1.5 bg-white py-2 rounded-3xl px-[15px] opacity-100">
               <img src={logo} alt="бачкам" className="h-8 w-8" />
               <span className="font-display text-xl font-bold text-primary">бачкам</span>
             </div>
@@ -70,6 +70,6 @@ export function Footer() {
           </p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>);
+
 }
