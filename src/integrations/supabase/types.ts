@@ -955,6 +955,7 @@ export type Database = {
           message: string | null
           phone: string | null
           proposed_plan: string | null
+          review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -973,6 +974,7 @@ export type Database = {
           message?: string | null
           phone?: string | null
           proposed_plan?: string | null
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -991,6 +993,7 @@ export type Database = {
           message?: string | null
           phone?: string | null
           proposed_plan?: string | null
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
