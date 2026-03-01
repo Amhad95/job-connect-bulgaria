@@ -222,7 +222,7 @@ export default function Jobs() {
       </div>
 
       {/* Main content */}
-      <div className="container flex gap-6 py-6" style={{ height: "calc(100vh - 8rem)" }}>
+      <div className="container flex gap-6 py-4" style={{ height: "calc(100vh - 7rem)" }}>
         {/* Desktop Filters */}
         <aside className="hidden w-56 shrink-0 md:block overflow-y-auto">
           <div className="rounded-lg border bg-card p-4">
