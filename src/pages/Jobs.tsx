@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
 
@@ -14,11 +14,24 @@ import { Search, SlidersHorizontal, X, ExternalLink, Clock, MapPin, ArrowRight, 
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+
+function useIsLg() {
+  const [isLg, setIsLg] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLg(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return isLg;
+}
 
 export default function Jobs() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { data: jobs = [], isLoading } = useJobs();
+  const isLg = useIsLg();
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -229,82 +242,108 @@ export default function Jobs() {
           </div>
         </div>
 
-        {/* Preview panel */}
+        {/* Desktop preview panel */}
         {previewJob && (
           <aside className="hidden w-[28rem] shrink-0 lg:flex flex-col overflow-hidden rounded-lg border bg-card">
-            <div className="border-b bg-surface p-4">
-              <div className="flex items-start gap-3">
-                <Avatar className="h-10 w-10 shrink-0 rounded-md">
-                  <AvatarImage src={previewJob.companyLogo || avatarUrl(previewJob.company)} alt={previewJob.company} />
-                  <AvatarFallback className="rounded-md text-xs font-semibold">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <h2 className="font-display text-lg font-bold">{previewJob.title}</h2>
-                  <p className="text-sm text-muted-foreground">{previewJob.company}</p>
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {previewJob.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{previewJob.city}</Badge>}
-                {previewJob.workMode && <Badge variant="secondary">{t(`jobs.${previewJob.workMode}`)}</Badge>}
-                {previewJob.employmentType && <Badge variant="secondary">{t(`jobs.${previewJob.employmentType}`)}</Badge>}
-              </div>
-              {previewJob.salaryMin && previewJob.salaryMax && (
-                <p className="mt-2 text-sm font-semibold text-success">
-                  {previewJob.salaryMin.toLocaleString()}–{previewJob.salaryMax.toLocaleString()} {previewJob.currency}
-                </p>
-              )}
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {jobDetail?.description ? (
-                <>
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.description")}</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.description}</p>
-                  </div>
-                  {jobDetail.requirements && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.requirements")}</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.requirements}</p>
-                    </div>
-                  )}
-                  {jobDetail.benefits && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.benefits")}</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.benefits}</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("jobDetail.viewFull")}</p>
-              )}
-            </div>
-            <div className="border-t p-4 space-y-2">
-              <a href={previewJob.applyUrl} target="_blank" rel="noopener noreferrer">
-                <Button className="w-full gap-2"><ExternalLink className="h-4 w-4" />{t("jobs.applyOn", { employer: previewJob.company })}</Button>
-              </a>
-              <Link to={`/jobs/${previewJob.id}`}>
-                <Button variant="outline" className="w-full gap-2 mt-1"><ArrowRight className="h-4 w-4" />{t("jobDetail.viewFull")}</Button>
-              </Link>
-              <div className="flex gap-2 mt-1">
-                <Link to={`/apply-kit?tab=cover&jobId=${previewJob.id}`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><PenLine className="h-3.5 w-3.5" />{t("jobDetail.generateCoverLetter")}</Button>
-                </Link>
-                <Link to={`/apply-kit?tab=cv&jobId=${previewJob.id}`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><FileText className="h-3.5 w-3.5" />{t("jobDetail.tailorCV")}</Button>
-                </Link>
-              </div>
-              <p className="text-center text-[11px] text-muted-foreground">{t("jobs.redirectNote")}</p>
-              <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>
-                  {previewJob.postedAt
-                    ? `${t("jobs.posted") || "Posted"} ${formatDistanceToNow(new Date(previewJob.postedAt), { addSuffix: true })}`
-                    : `${t("jobs.lastChecked")}: ${formatDistanceToNow(new Date(previewJob.lastSeenAt), { addSuffix: true })}`}
-                </span>
-              </div>
-            </div>
+            <JobPreviewContent job={previewJob} jobDetail={jobDetail} t={t} avatarUrl={avatarUrl} />
           </aside>
         )}
+      </div>
+
+      {/* Mobile/Tablet bottom drawer */}
+      <Drawer open={!isLg && !!selectedJob} onOpenChange={(open) => { if (!open) setSelectedJob(null); }}>
+        <DrawerContent className="max-h-[85vh]">
+          {previewJob && (
+            <div className="overflow-y-auto max-h-[80vh]">
+              <JobPreviewContent job={previewJob} jobDetail={jobDetail} t={t} avatarUrl={avatarUrl} />
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
+    </>
+  );
+}
+
+/* Shared preview content used in both desktop sidebar and mobile drawer */
+function JobPreviewContent({ job, jobDetail, t, avatarUrl }: {
+  job: DbJob;
+  jobDetail: any;
+  t: (key: string, opts?: any) => string;
+  avatarUrl: (name: string) => string;
+}) {
+  const initials = job.company.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <>
+      <div className="border-b bg-surface p-4">
+        <div className="flex items-start gap-3">
+          <Avatar className="h-10 w-10 shrink-0 rounded-md">
+            <AvatarImage src={job.companyLogo || avatarUrl(job.company)} alt={job.company} />
+            <AvatarFallback className="rounded-md text-xs font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-bold">{job.title}</h2>
+            <p className="text-sm text-muted-foreground">{job.company}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {job.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{job.city}</Badge>}
+          {job.workMode && <Badge variant="secondary">{t(`jobs.${job.workMode}`)}</Badge>}
+          {job.employmentType && <Badge variant="secondary">{t(`jobs.${job.employmentType}`)}</Badge>}
+        </div>
+        {job.salaryMin && job.salaryMax && (
+          <p className="mt-2 text-sm font-semibold text-success">
+            {job.salaryMin.toLocaleString()}–{job.salaryMax.toLocaleString()} {job.currency}
+          </p>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {jobDetail?.description ? (
+          <>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.description")}</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.description}</p>
+            </div>
+            {jobDetail.requirements && (
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.requirements")}</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.requirements}</p>
+              </div>
+            )}
+            {jobDetail.benefits && (
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.benefits")}</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.benefits}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("jobDetail.viewFull")}</p>
+        )}
+      </div>
+      <div className="border-t p-4 space-y-2">
+        <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
+          <Button className="w-full gap-2"><ExternalLink className="h-4 w-4" />{t("jobs.applyOn", { employer: job.company })}</Button>
+        </a>
+        <Link to={`/jobs/${job.id}`}>
+          <Button variant="outline" className="w-full gap-2 mt-1"><ArrowRight className="h-4 w-4" />{t("jobDetail.viewFull")}</Button>
+        </Link>
+        <div className="flex gap-2 mt-1">
+          <Link to={`/apply-kit?tab=cover&jobId=${job.id}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><PenLine className="h-3.5 w-3.5" />{t("jobDetail.generateCoverLetter")}</Button>
+          </Link>
+          <Link to={`/apply-kit?tab=cv&jobId=${job.id}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><FileText className="h-3.5 w-3.5" />{t("jobDetail.tailorCV")}</Button>
+          </Link>
+        </div>
+        <p className="text-center text-[11px] text-muted-foreground">{t("jobs.redirectNote")}</p>
+        <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span>
+            {job.postedAt
+              ? `${t("jobs.posted") || "Posted"} ${formatDistanceToNow(new Date(job.postedAt), { addSuffix: true })}`
+              : `${t("jobs.lastChecked")}: ${formatDistanceToNow(new Date(job.lastSeenAt), { addSuffix: true })}`}
+          </span>
+        </div>
       </div>
     </>
   );
