@@ -2,6 +2,7 @@ import { DbJob } from "@/hooks/useJobs";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/SourceBadge";
+import { getCityName } from "@/lib/cities";
 import { Bookmark, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -21,14 +22,16 @@ const avatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128&bold=true`;
 
 export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const salaryLabel = job.salaryMin && job.salaryMax
     ? `${job.salaryMin.toLocaleString()}–${job.salaryMax.toLocaleString()} ${job.currency}`
     : null;
 
+  const cityDisplay = getCityName(job.citySlug, i18n.language, job.city);
+
   const badges: string[] = [];
-  if (job.city) badges.push(job.city);
+  if (cityDisplay) badges.push(cityDisplay);
   if (job.workMode) badges.push(t(`jobs.${job.workMode}`));
   if (job.employmentType) badges.push(t(`jobs.${job.employmentType}`));
 

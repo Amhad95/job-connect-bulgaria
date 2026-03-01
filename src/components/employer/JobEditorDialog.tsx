@@ -11,6 +11,7 @@ import {
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { CANONICAL_CITIES, normalizeCityToSlug } from "@/lib/cities";
 
 export interface JobFormData {
     title: string;
@@ -55,9 +56,13 @@ export function JobEditorDialog({ open, initial, onClose, onSaved }: JobEditorDi
         try {
             let jobId = initial?.id;
 
+            const citySlug = form.city || null;
+            const cityEntry = CANONICAL_CITIES.find(c => c.slug === citySlug);
+
             const jobRow: any = {
                 title: form.title.trim(),
-                location_city: form.city || null,
+                location_city: cityEntry?.name_en || null,
+                location_slug: citySlug,
                 work_mode: form.work_mode || null,
                 employment_type: form.employment_type || null,
                 category: form.category || null,
@@ -134,8 +139,15 @@ export function JobEditorDialog({ open, initial, onClose, onSaved }: JobEditorDi
                     {/* Location + work mode */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="city">City</Label>
-                            <Input id="city" placeholder="Sofia" value={form.city} onChange={e => set("city", e.target.value)} />
+                            <Label>City</Label>
+                            <Select value={form.city} onValueChange={v => set("city", v)}>
+                                <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+                                <SelectContent>
+                                    {CANONICAL_CITIES.map(c => (
+                                        <SelectItem key={c.slug} value={c.slug}>{c.name_en} ({c.name_bg})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-1.5">
                             <Label>Work Mode</Label>

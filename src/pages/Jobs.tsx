@@ -15,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { CANONICAL_CITIES, getCityName } from "@/lib/cities";
 
 function useIsLg() {
   const [isLg, setIsLg] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
@@ -28,13 +29,13 @@ function useIsLg() {
 }
 
 export default function Jobs() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const { data: jobs = [], isLoading } = useJobs();
   const isLg = useIsLg();
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [selectedCitySlugs, setSelectedCitySlugs] = useState<string[]>([]);
   const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([]);
   const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
   const [showWithSalary, setShowWithSalary] = useState(false);
@@ -45,10 +46,11 @@ export default function Jobs() {
   const previewId = selectedJob?.id || (jobs.length > 0 ? jobs[0].id : undefined);
   const { data: jobDetail } = useJob(previewId);
 
-  // Derive filter options from data
-  const cities = useMemo(() => {
-    const set = new Set(jobs.map(j => j.city).filter(Boolean) as string[]);
-    return Array.from(set).sort();
+  // Derive which canonical cities actually have jobs
+  const activeCitySlugs = useMemo(() => {
+    const set = new Set<string>();
+    jobs.forEach(j => { if (j.citySlug) set.add(j.citySlug); });
+    return CANONICAL_CITIES.filter(c => set.has(c.slug));
   }, [jobs]);
 
   const workModes = useMemo(() => {
@@ -69,7 +71,7 @@ export default function Jobs() {
         (j) => j.title.toLowerCase().includes(q) || j.company.toLowerCase().includes(q)
       );
     }
-    if (selectedCities.length) result = result.filter((j) => j.city && selectedCities.includes(j.city));
+    if (selectedCitySlugs.length) result = result.filter((j) => j.citySlug && selectedCitySlugs.includes(j.citySlug));
     if (selectedWorkModes.length) result = result.filter((j) => j.workMode && selectedWorkModes.includes(j.workMode));
     if (selectedEmploymentTypes.length) result = result.filter((j) => j.employmentType && selectedEmploymentTypes.includes(j.employmentType));
     if (showWithSalary) result = result.filter((j) => j.salaryMin || j.salaryMax);
@@ -84,12 +86,17 @@ export default function Jobs() {
       result.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
     }
     return result;
-  }, [query, selectedCities, selectedWorkModes, selectedEmploymentTypes, showWithSalary, sortBy, jobs]);
+  }, [query, selectedCitySlugs, selectedWorkModes, selectedEmploymentTypes, showWithSalary, sortBy, jobs]);
 
-  const activeFilters = [...selectedCities, ...selectedWorkModes, ...selectedEmploymentTypes, ...(showWithSalary ? ["Has salary"] : [])];
+  const activeFilterLabels = [
+    ...selectedCitySlugs.map(s => getCityName(s, i18n.language)),
+    ...selectedWorkModes,
+    ...selectedEmploymentTypes,
+    ...(showWithSalary ? ["Has salary"] : []),
+  ];
 
   const clearFilters = () => {
-    setSelectedCities([]);
+    setSelectedCitySlugs([]);
     setSelectedWorkModes([]);
     setSelectedEmploymentTypes([]);
     setShowWithSalary(false);
@@ -98,7 +105,11 @@ export default function Jobs() {
 
   const removeFilter = (f: string) => {
     if (f === "Has salary") { setShowWithSalary(false); return; }
-    setSelectedCities(c => c.filter(x => x !== f));
+    // Check if it's a city name
+    const citySlug = CANONICAL_CITIES.find(c => 
+      c.name_en === f || c.name_bg === f
+    )?.slug;
+    if (citySlug) { setSelectedCitySlugs(c => c.filter(x => x !== citySlug)); return; }
     setSelectedWorkModes(c => c.filter(x => x !== f));
     setSelectedEmploymentTypes(c => c.filter(x => x !== f));
   };
@@ -108,7 +119,6 @@ export default function Jobs() {
   };
 
   const previewJob = selectedJob || filteredJobs[0] || null;
-  const initials = previewJob ? previewJob.company.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "";
 
   const avatarUrl = (name: string) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128&bold=true`;
@@ -116,14 +126,16 @@ export default function Jobs() {
   const FiltersContent = () => (
     <div className="space-y-6">
       {/* Location */}
-      {cities.length > 0 && (
+      {activeCitySlugs.length > 0 && (
         <div>
           <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.city")}</h4>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {cities.map((c) => (
-              <label key={c} className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={selectedCities.includes(c)} onCheckedChange={() => toggle(selectedCities, c, setSelectedCities)} />
-                <span className="text-muted-foreground truncate">{c}</span>
+            {activeCitySlugs.map((c) => (
+              <label key={c.slug} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={selectedCitySlugs.includes(c.slug)} onCheckedChange={() => toggle(selectedCitySlugs, c.slug, setSelectedCitySlugs)} />
+                <span className="text-muted-foreground truncate">
+                  {i18n.language === "bg" ? c.name_bg : c.name_en}
+                </span>
               </label>
             ))}
           </div>
@@ -198,9 +210,9 @@ export default function Jobs() {
             </SheetContent>
           </Sheet>
         </div>
-        {activeFilters.length > 0 && (
+        {activeFilterLabels.length > 0 && (
           <div className="container flex items-center gap-2 pb-3 overflow-x-auto">
-            {activeFilters.map((f) => (
+            {activeFilterLabels.map((f) => (
               <Badge key={f} variant="secondary" className="shrink-0 gap-1 pr-1">
                 {f}
                 <button onClick={() => removeFilter(f)}><X className="h-3 w-3" /></button>
@@ -245,7 +257,7 @@ export default function Jobs() {
         {/* Desktop preview panel */}
         {previewJob && (
           <aside className="hidden w-[28rem] shrink-0 lg:flex flex-col overflow-hidden rounded-lg border bg-card">
-            <JobPreviewContent job={previewJob} jobDetail={jobDetail} t={t} avatarUrl={avatarUrl} />
+            <JobPreviewContent job={previewJob} jobDetail={jobDetail} t={t} lang={i18n.language} avatarUrl={avatarUrl} />
           </aside>
         )}
       </div>
@@ -255,7 +267,7 @@ export default function Jobs() {
         <DrawerContent className="max-h-[85vh]">
           {previewJob && (
             <div className="overflow-y-auto max-h-[80vh]">
-              <JobPreviewContent job={previewJob} jobDetail={jobDetail} t={t} avatarUrl={avatarUrl} />
+              <JobPreviewContent job={previewJob} jobDetail={jobDetail} t={t} lang={i18n.language} avatarUrl={avatarUrl} />
             </div>
           )}
         </DrawerContent>
@@ -265,13 +277,15 @@ export default function Jobs() {
 }
 
 /* Shared preview content used in both desktop sidebar and mobile drawer */
-function JobPreviewContent({ job, jobDetail, t, avatarUrl }: {
+function JobPreviewContent({ job, jobDetail, t, lang, avatarUrl }: {
   job: DbJob;
   jobDetail: any;
   t: (key: string, opts?: any) => string;
+  lang: string;
   avatarUrl: (name: string) => string;
 }) {
   const initials = job.company.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const cityDisplay = getCityName(job.citySlug, lang, job.city);
   return (
     <>
       <div className="border-b bg-surface p-4">
@@ -286,7 +300,7 @@ function JobPreviewContent({ job, jobDetail, t, avatarUrl }: {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {job.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{job.city}</Badge>}
+          {cityDisplay && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{cityDisplay}</Badge>}
           {job.workMode && <Badge variant="secondary">{t(`jobs.${job.workMode}`)}</Badge>}
           {job.employmentType && <Badge variant="secondary">{t(`jobs.${job.employmentType}`)}</Badge>}
         </div>
