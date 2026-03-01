@@ -114,9 +114,9 @@ export default function Index() {
               {t("common.viewAll")} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 overflow-hidden">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 overflow-hidden">
             {trendingJobs.map((job) => (
-              <Link key={job.id} to={`/jobs?id=${job.id}`}>
+              <Link key={job.id} to={`/jobs?id=${job.id}`} className="block min-w-0">
                 <JobCard job={job} />
               </Link>
             ))}
