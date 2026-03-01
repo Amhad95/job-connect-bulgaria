@@ -2,27 +2,23 @@
 
 ## Problem
 
-When approving a signup request, the `approve_employer_workspace` RPC updates `employers.approval_status` from `'pending'` to `'approved'`. This fires the `trg_employer_approval_notification` trigger, which calls `get_employer_owner_email(uuid)` — a function that was defined in a migration file but never actually deployed to the database.
+The `approve_employer_workspace` RPC contains this line:
+
+```sql
+UPDATE signup_requests
+SET status = 'APPROVED', reviewed_at = now(), reviewed_by = p_reviewer_uid, review_notes = p_review_notes
+WHERE employer_id = p_employer_id AND status = 'PENDING';
+```
+
+The `signup_requests` table has `reviewed_at` and `review_notes` columns but **no `reviewed_by` column**. Same issue exists in `reject_employer_workspace`.
 
 ## Fix
 
-Run a single migration that creates the missing `get_employer_owner_email` function:
+Single migration to add the missing column:
 
 ```sql
-CREATE OR REPLACE FUNCTION public.get_employer_owner_email(p_employer_id uuid)
-RETURNS text
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-SET search_path = public
-AS $$
-  SELECT u.email
-  FROM employer_profiles ep
-  JOIN auth.users u ON u.id = ep.user_id
-  WHERE ep.employer_id = p_employer_id AND ep.role = 'owner'
-  LIMIT 1;
-$$;
+ALTER TABLE signup_requests ADD COLUMN IF NOT EXISTS reviewed_by uuid;
 ```
 
-This is the only change needed — one migration, no code file changes.
+No code file changes needed.
 
