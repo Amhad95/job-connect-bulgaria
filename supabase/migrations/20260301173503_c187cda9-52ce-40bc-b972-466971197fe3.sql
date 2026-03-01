@@ -1,0 +1,1 @@
+ALTER TABLE signup_requests ADD COLUMN IF NOT EXISTS reviewed_by uuid;
