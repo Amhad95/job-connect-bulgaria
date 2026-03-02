@@ -1,23 +1,61 @@
 
 
-## Make Moderation Queue Edit Modal Read-Only for Crawled Job Details
+## Update `jobs_list_url` for All Companies
 
-The edit modal in `AdminDashboard.tsx` (lines 319-371) currently lets you edit title translations (EN/BG), city, and work mode for crawled PENDING jobs. You want these fields to be view-only since the data comes from the crawler and shouldn't be manually altered.
+Bulk data update via the insert tool — no schema changes needed. I'll run UPDATE statements against `employer_sources` using each source's `id`.
 
-### Changes to `src/pages/admin/AdminDashboard.tsx`
+### Companies with URL changes (32 updates):
 
-1. **Convert the edit modal into a read-only detail view**: Replace the editable Input/Select fields with static text displays showing the crawled values (title, title_bg, city, work mode).
+| Company | New `jobs_list_url` |
+|---|---|
+| A1 Bulgaria | `https://jobs.a1.com/bg/jobs/?country=bulgaria` |
+| Accenture Bulgaria | `https://www.accenture.com/bg-en/careers/jobsearch` |
+| Aurubis Bulgaria | `https://www.aurubis.com/en/career/jobs` |
+| Bosch Engineering Center Sofia | `https://careers.smartrecruiters.com/BoschGroup/bulgaria` |
+| Bulpros / DIGITALL | `https://digitall.com/careers/apply` |
+| Chaos (V-Ray) | `https://careers.chaos.com/?jobs-c88dea0d%5Bcountry%5D%5B%5D=BG` |
+| Coca-Cola HBC Bulgaria | long URL (country-filtered) |
+| Devexperts Bulgaria | `https://careers.devexperts.com/vacancies?q=&country=bg&cities=Sofia` |
+| Dreamix | `www.dreamix.eu/careers/` |
+| DSK Bank (OTP Group) | encoded BG careers URL |
+| DXC Technology Bulgaria | `https://careers.dxc.com/job-search-results/?compliment[]=Bulgaria` |
+| EPAM Bulgaria | `https://careers.epam.com/en/jobs?country=4060741400008679559` |
+| EVN Bulgaria | `https://careers.evn.bg/Jobs` |
+| Experian Bulgaria | `https://careers.smartrecruiters.com/Experian?search=Sofia,%20Bulgaria` |
+| Fadata Group | personio URL with filters |
+| Fibank | `https://www.fibank.bg/bg/za-nas/karieri` |
+| Huvepharma | `https://www.huvepharma.com/join-us/` |
+| ICB InterConsult Bulgaria | `https://www.icb.bg/careers/` |
+| Kaufland Bulgaria | `https://kariera.kaufland.bg/svobodni-pozitsii` |
+| Leanplum / CleverTap | `clevertap.com/careers/` |
+| Lidl Bulgaria | `https://jobs.lidl.bg/tarsene-na-rabota` |
+| Mondelez Bulgaria | `www.mondelezinternational.com/careers/jobs/?term&countrycode=BG` |
+| Musala Soft | `www.musala.com/careers/` |
+| Nemetschek Bulgaria | `https://careers.nemetschek.bg/positions` |
+| Nestle Bulgaria | `https://www.nestle.bg/bg/jobs/search-jobs?keyword=&country=BG` |
+| Ontotext | `https://www.ontotext.com/company/careers/open-positions/` |
+| Payhawk | `https://payhawk.com/bg/karieri#open-positions` |
+| Paysafe Bulgaria | `https://jobs.paysafe.com/search/?...locationsearch=bulgaria...` |
+| Postbank (Eurobank) | `www.postbank.bg/bg/Karieri` |
+| Progress Software | `https://www.progress.com/company/careers/open-positions?location=Bulgaria` |
+| SAP Labs Bulgaria | `https://jobs.sap.com/search/?q=&locationsearch=Sofia` |
+| Scalefocus | `https://www.scalefocus.com/open-positions` |
+| Schneider Electric Bulgaria | `https://careers.se.com/jobs?lang=en-US&country=Bulgaria&page=1` |
+| Schwarz IT | `it.schwarz/en/career` |
+| Siemens Bulgaria | `https://jobs.siemens.com/...` |
+| Sopharma | `https://www.sopharmagroup.com/bg/karieri/otvoreni-pozitsii?...` |
+| Strypes | `https://ict-strypes.eu/careers/` |
+| SuperHosting.BG | `https://superhosting.teamtailor.com/bg/jobs` |
+| TechnoLogica | `https://technologica.com/careers/open-positions/` |
+| Telerik Academy | `www.telerikacademy.com/about/careers` |
+| Uber Bulgaria | `www.uber.com/bg/en/careers/` |
+| UniCredit Bulbank | `https://careers.unicredit.eu/en_GB/jobsuche/SearchJobs/?...` |
+| Vivacom | `https://www.vivacom.bg/bg/residential/za-nas/karieri/obiavi-za-rabota` |
+| Yettel Bulgaria | `https://jobs.ceetelcogroup.com/yettel/search/?...` |
 
-2. **Remove "Save draft" button**: Since nothing is editable, the only actions should be "Cancel", "Reject", and "Approve" (which just sets `approval_status`/`status` without patching any job fields).
+### Companies set to NULL (no URL / "—"):
+Acme Corp, Endava Bulgaria (all 3 sources), Gtmhub / Quantive (both sources), MentorMate (both sources), SiteGround (both sources), VMware / Broadcom
 
-3. **Rename the modal** from "Edit Job" to "Review Job" to reflect its purpose.
-
-4. **Remove the `editForm` state and `saveEdit` function** — replace with a simpler `reviewApprove` / `reviewReject` that only updates `approval_status` and `status`.
-
-5. **Show additional crawled metadata** as read-only info: canonical URL (already there as a link), company name, crawl date — making the review more informative without being editable.
-
-### What stays the same
-- Bulk approve/reject from the table
-- Individual approve/reject buttons in the table rows
-- Search and filter functionality
+### Implementation
+One batch of UPDATE statements using the insert tool, targeting each `employer_sources` row by its `id`.
 
