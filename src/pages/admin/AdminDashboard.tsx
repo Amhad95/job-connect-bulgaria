@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
     Check, X, RefreshCw, Search, ChevronUp, ChevronDown,
-    ExternalLink, CheckCircle, XCircle, Filter, Clock, AlertCircle,
+    ExternalLink, CheckCircle, XCircle, Filter, Clock, Save,
 } from "lucide-react";
 import { CANONICAL_CITIES } from "@/lib/cities";
 
@@ -23,14 +22,65 @@ type Job = {
     work_mode: string | null;
     canonical_url: string;
     approval_status: string;
+    salary_min: number | null;
+    salary_max: number | null;
+    salary_period: string | null;
+    currency: string | null;
+    employment_type: string | null;
+    seniority: string | null;
+    category: string | null;
+    department: string | null;
     employers: { name: string; logo_url: string | null } | null;
 };
 
-const STATUS_BADGE: Record<string, { label: string; class: string }> = {
-    PENDING: { label: "Pending", class: "bg-amber-100 text-amber-800 border-amber-200" },
-    APPROVED: { label: "Approved", class: "bg-green-100 text-green-800 border-green-200" },
-    REJECTED: { label: "Rejected", class: "bg-red-100 text-red-800 border-red-200" },
+type EditForm = {
+    title_en: string;
+    title_bg: string;
+    location_city: string;
+    work_mode: string;
+    salary_min: string;
+    salary_max: string;
+    salary_period: string;
+    currency: string;
+    seniority: string;
+    employment_type: string;
+    category: string;
+    department: string;
 };
+
+function jobToForm(job: Job): EditForm {
+    return {
+        title_en: job.title_en || "",
+        title_bg: job.title_bg || "",
+        location_city: job.location_city || (job.location_slug ? CANONICAL_CITIES.find(c => c.slug === job.location_slug)?.name_en || "" : ""),
+        work_mode: job.work_mode || "",
+        salary_min: job.salary_min?.toString() || "",
+        salary_max: job.salary_max?.toString() || "",
+        salary_period: job.salary_period || "",
+        currency: job.currency || "BGN",
+        seniority: job.seniority || "",
+        employment_type: job.employment_type || "",
+        category: job.category || "",
+        department: job.department || "",
+    };
+}
+
+function formToUpdate(form: EditForm) {
+    return {
+        title_en: form.title_en || null,
+        title_bg: form.title_bg || null,
+        location_city: form.location_city || null,
+        work_mode: form.work_mode || null,
+        salary_min: form.salary_min ? Number(form.salary_min) : null,
+        salary_max: form.salary_max ? Number(form.salary_max) : null,
+        salary_period: form.salary_period || null,
+        currency: form.currency || null,
+        seniority: form.seniority || null,
+        employment_type: form.employment_type || null,
+        category: form.category || null,
+        department: form.department || null,
+    };
+}
 
 function LangBadge({ exists, lang }: { exists: boolean; lang: string }) {
     return (
@@ -50,6 +100,11 @@ function SkeletonRow() {
     );
 }
 
+const WORK_MODES = ["", "On-site", "Remote", "Hybrid"];
+const SENIORITY_OPTIONS = ["", "Junior", "Mid", "Senior", "Lead", "Principal", "Executive"];
+const EMPLOYMENT_TYPES = ["", "Full-time", "Part-time", "Contract", "Internship", "Freelance"];
+const SALARY_PERIODS = ["", "month", "year", "hour"];
+
 export default function AdminDashboard() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -59,13 +114,15 @@ export default function AdminDashboard() {
     const [sortField, setSortField] = useState<"first_seen_at" | "title">("first_seen_at");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
     const [reviewJob, setReviewJob] = useState<Job | null>(null);
+    const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [bulkWorking, setBulkWorking] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const fetchJobs = async () => {
         setLoading(true);
         const { data, error } = await supabase
             .from("job_postings")
-            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, employers(name, logo_url)")
+            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, employers(name, logo_url)")
             .eq("approval_status", "PENDING")
             .order(sortField, { ascending: sortDir === "asc" })
             .limit(200);
@@ -75,6 +132,16 @@ export default function AdminDashboard() {
     };
 
     useEffect(() => { fetchJobs(); }, [sortField, sortDir]);
+
+    const openReview = (job: Job) => {
+        setReviewJob(job);
+        setEditForm(jobToForm(job));
+    };
+
+    const closeReview = () => {
+        setReviewJob(null);
+        setEditForm(null);
+    };
 
     const handleSort = (field: "first_seen_at" | "title") => {
         if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -136,16 +203,43 @@ export default function AdminDashboard() {
         setBulkWorking(false);
     };
 
-    const reviewApprove = async (job: Job) => {
-        const { error } = await supabase.from("job_postings").update({ approval_status: "APPROVED", status: "ACTIVE" } as any).eq("id", job.id);
-        if (error) toast.error("Approve failed: " + error.message);
-        else { toast.success("Approved!"); setReviewJob(null); setJobs(prev => prev.filter(j => j.id !== job.id)); }
+    const saveDraft = async () => {
+        if (!reviewJob || !editForm) return;
+        setSaving(true);
+        const { error } = await supabase.from("job_postings").update(formToUpdate(editForm) as any).eq("id", reviewJob.id);
+        if (error) toast.error("Save failed: " + error.message);
+        else toast.success("Draft saved.");
+        setSaving(false);
     };
 
-    const reviewReject = async (job: Job) => {
-        const { error } = await supabase.from("job_postings").update({ approval_status: "REJECTED", status: "INACTIVE" } as any).eq("id", job.id);
+    const saveAndApprove = async () => {
+        if (!reviewJob || !editForm) return;
+        setSaving(true);
+        const { error } = await supabase.from("job_postings").update({
+            ...formToUpdate(editForm),
+            approval_status: "APPROVED",
+            status: "ACTIVE",
+        } as any).eq("id", reviewJob.id);
+        if (error) toast.error("Approve failed: " + error.message);
+        else {
+            toast.success("Approved!");
+            setJobs(prev => prev.filter(j => j.id !== reviewJob.id));
+            closeReview();
+        }
+        setSaving(false);
+    };
+
+    const reviewReject = async () => {
+        if (!reviewJob) return;
+        setSaving(true);
+        const { error } = await supabase.from("job_postings").update({ approval_status: "REJECTED", status: "INACTIVE" } as any).eq("id", reviewJob.id);
         if (error) toast.error("Reject failed: " + error.message);
-        else { toast.info("Rejected."); setReviewJob(null); setJobs(prev => prev.filter(j => j.id !== job.id)); }
+        else { toast.info("Rejected."); setJobs(prev => prev.filter(j => j.id !== reviewJob.id)); closeReview(); }
+        setSaving(false);
+    };
+
+    const updateField = (field: keyof EditForm, value: string) => {
+        setEditForm(prev => prev ? { ...prev, [field]: value } : prev);
     };
 
     return (
@@ -262,7 +356,7 @@ export default function AdminDashboard() {
                                                 <a href={job.canonical_url} target="_blank" rel="noreferrer" className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors" title="View source">
                                                     <ExternalLink className="w-4 h-4" />
                                                 </a>
-                                                <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-600 hover:bg-gray-100" onClick={() => setReviewJob(job)}>Review</Button>
+                                                <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-600 hover:bg-gray-100" onClick={() => openReview(job)}>Review</Button>
                                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50" onClick={() => {
                                                     supabase.from("job_postings").update({ approval_status: "REJECTED", status: "INACTIVE" } as any).eq("id", job.id)
                                                         .then(({ error }) => {
@@ -295,57 +389,118 @@ export default function AdminDashboard() {
                 )}
             </div>
 
-            {/* Review Modal */}
-            <Dialog open={!!reviewJob} onOpenChange={() => setReviewJob(null)}>
-                <DialogContent className="max-w-lg">
+            {/* Review & Edit Modal */}
+            <Dialog open={!!reviewJob} onOpenChange={() => closeReview()}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Review Job</DialogTitle>
+                        <DialogTitle>Review & Edit Job</DialogTitle>
                     </DialogHeader>
-                    {reviewJob && (
-                        <div className="space-y-4 py-2">
+                    {reviewJob && editForm && (
+                        <div className="space-y-5 py-2">
+                            {/* Company header */}
                             <div className="flex items-center gap-2 mb-2">
                                 {reviewJob.employers?.logo_url
                                     ? <img src={reviewJob.employers.logo_url} className="w-8 h-8 rounded object-contain border border-gray-100" alt="" />
                                     : <span className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold border border-gray-200">{reviewJob.employers?.name?.[0] || "?"}</span>
                                 }
                                 <span className="font-semibold text-gray-800">{reviewJob.employers?.name || "—"}</span>
+                                <span className="text-xs text-gray-400 ml-auto">
+                                    <Clock className="w-3 h-3 inline mr-1" />
+                                    {new Date(reviewJob.first_seen_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                                </span>
                             </div>
-                            <div>
-                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title (EN)</Label>
-                                <p className="mt-1 text-sm text-gray-900">{reviewJob.title_en || reviewJob.title || "—"}</p>
+
+                            {/* Titles */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title (EN)</Label>
+                                    <Input className="mt-1" value={editForm.title_en} onChange={e => updateField("title_en", e.target.value)} placeholder="English title" />
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title (BG)</Label>
+                                    <Input className="mt-1" value={editForm.title_bg} onChange={e => updateField("title_bg", e.target.value)} placeholder="Bulgarian title" />
+                                </div>
                             </div>
-                            <div>
-                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title (BG)</Label>
-                                <p className="mt-1 text-sm text-gray-900">{reviewJob.title_bg || "—"}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
+
+                            {/* Location + Work Mode */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">City</Label>
-                                    <p className="mt-1 text-sm text-gray-900">
-                                        {reviewJob.location_city || (reviewJob.location_slug ? CANONICAL_CITIES.find(c => c.slug === reviewJob.location_slug)?.name_en : null) || "Unknown"}
-                                    </p>
+                                    <Input className="mt-1" value={editForm.location_city} onChange={e => updateField("location_city", e.target.value)} placeholder="e.g. Sofia" />
                                 </div>
                                 <div>
                                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Work Mode</Label>
-                                    <p className="mt-1 text-sm text-gray-900">{reviewJob.work_mode || "Unknown"}</p>
+                                    <select className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.work_mode} onChange={e => updateField("work_mode", e.target.value)}>
+                                        {WORK_MODES.map(m => <option key={m} value={m}>{m || "— Not set —"}</option>)}
+                                    </select>
                                 </div>
                             </div>
-                            <div>
-                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Crawled</Label>
-                                <p className="mt-1 text-sm text-gray-500">{new Date(reviewJob.first_seen_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
+
+                            {/* Salary */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Salary Min</Label>
+                                    <Input className="mt-1" type="number" value={editForm.salary_min} onChange={e => updateField("salary_min", e.target.value)} placeholder="0" />
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Salary Max</Label>
+                                    <Input className="mt-1" type="number" value={editForm.salary_max} onChange={e => updateField("salary_max", e.target.value)} placeholder="0" />
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Period</Label>
+                                    <select className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.salary_period} onChange={e => updateField("salary_period", e.target.value)}>
+                                        {SALARY_PERIODS.map(p => <option key={p} value={p}>{p || "— Not set —"}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Currency</Label>
+                                    <Input className="mt-1" value={editForm.currency} onChange={e => updateField("currency", e.target.value)} placeholder="BGN" />
+                                </div>
                             </div>
+
+                            {/* Seniority + Employment Type */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Seniority</Label>
+                                    <select className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.seniority} onChange={e => updateField("seniority", e.target.value)}>
+                                        {SENIORITY_OPTIONS.map(s => <option key={s} value={s}>{s || "— Not set —"}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Employment Type</Label>
+                                    <select className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.employment_type} onChange={e => updateField("employment_type", e.target.value)}>
+                                        {EMPLOYMENT_TYPES.map(t => <option key={t} value={t}>{t || "— Not set —"}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Category + Department */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</Label>
+                                    <Input className="mt-1" value={editForm.category} onChange={e => updateField("category", e.target.value)} placeholder="e.g. Engineering" />
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Department</Label>
+                                    <Input className="mt-1" value={editForm.department} onChange={e => updateField("department", e.target.value)} placeholder="e.g. Product" />
+                                </div>
+                            </div>
+
                             <a href={reviewJob.canonical_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
                                 <ExternalLink className="w-3 h-3" /> View original source
                             </a>
                         </div>
                     )}
-                    <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setReviewJob(null)}>Cancel</Button>
-                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={() => reviewJob && reviewReject(reviewJob)}>
+                    <DialogFooter className="gap-2 flex-wrap">
+                        <Button variant="outline" onClick={closeReview} disabled={saving}>Cancel</Button>
+                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={reviewReject} disabled={saving}>
                             <X className="w-4 h-4" /> Reject
                         </Button>
-                        <Button onClick={() => reviewJob && reviewApprove(reviewJob)} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
-                            <Check className="w-4 h-4" /> Approve
+                        <Button variant="outline" className="gap-1.5" onClick={saveDraft} disabled={saving}>
+                            <Save className="w-4 h-4" /> Save Draft
+                        </Button>
+                        <Button onClick={saveAndApprove} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+                            <Check className="w-4 h-4" /> Save & Approve
                         </Button>
                     </DialogFooter>
                 </DialogContent>
