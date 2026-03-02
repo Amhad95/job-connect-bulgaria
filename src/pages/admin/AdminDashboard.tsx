@@ -32,7 +32,7 @@ type Job = {
     category: string | null;
     department: string | null;
     employers: { name: string; logo_url: string | null } | null;
-    job_posting_content: { description_text: string | null; requirements_text: string | null; benefits_text: string | null } | null;
+    job_posting_content: Array<{ description_text: string | null; requirements_text: string | null; benefits_text: string | null }> | { description_text: string | null; requirements_text: string | null; benefits_text: string | null } | null;
 };
 
 type EditForm = {
@@ -54,10 +54,17 @@ type EditForm = {
 };
 
 function jobToForm(job: Job): EditForm {
+    const content = Array.isArray(job.job_posting_content)
+        ? job.job_posting_content[0]
+        : job.job_posting_content;
+    const cityMatch = CANONICAL_CITIES.find(c =>
+        c.name_en.toLowerCase() === (job.location_city || "").toLowerCase()
+        || c.slug === (job.location_slug || "")
+    );
     return {
-        title_en: job.title_en || "",
+        title_en: job.title_en || job.title || "",
         title_bg: job.title_bg || "",
-        location_city: job.location_city || (job.location_slug ? CANONICAL_CITIES.find(c => c.slug === job.location_slug)?.name_en || "" : ""),
+        location_city: cityMatch?.name_en || "",
         work_mode: job.work_mode || "",
         salary_min: job.salary_min?.toString() || "",
         salary_max: job.salary_max?.toString() || "",
@@ -67,15 +74,16 @@ function jobToForm(job: Job): EditForm {
         employment_type: job.employment_type || "",
         category: job.category || "",
         department: job.department || "",
-        description: job.job_posting_content?.description_text || "",
-        requirements: job.job_posting_content?.requirements_text || "",
-        benefits: job.job_posting_content?.benefits_text || "",
+        description: content?.description_text || "",
+        requirements: content?.requirements_text || "",
+        benefits: content?.benefits_text || "",
     };
 }
 
 function formToUpdate(form: EditForm) {
     const city = CANONICAL_CITIES.find(c => c.name_en === form.location_city);
     return {
+        title: form.title_en || form.title_bg || null,
         title_en: form.title_en || null,
         title_bg: form.title_bg || null,
         location_city: form.location_city || null,
