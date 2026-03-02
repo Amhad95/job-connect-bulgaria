@@ -1,39 +1,23 @@
 
 
-## Database Cleanup: Purge Stale Jobs and Stuck Crawl Runs
+## Make Moderation Queue Edit Modal Read-Only for Crawled Job Details
 
-### Problem
-843 job_postings rows but only 27 visible. Hundreds of INACTIVE/stale rows and 50+ stuck crawl_runs are never cleaned up. The existing `auto_archive_expired_jobs` cron targets the wrong column (`approval_status` instead of `status`).
+The edit modal in `AdminDashboard.tsx` (lines 319-371) currently lets you edit title translations (EN/BG), city, and work mode for crawled PENDING jobs. You want these fields to be view-only since the data comes from the crawler and shouldn't be manually altered.
 
-### Plan
+### Changes to `src/pages/admin/AdminDashboard.tsx`
 
-**Single database migration** that:
+1. **Convert the edit modal into a read-only detail view**: Replace the editable Input/Select fields with static text displays showing the crawled values (title, title_bg, city, work mode).
 
-1. **Drops the broken archiver** — unschedule `auto-archive-expired-jobs-cron` and drop the function
-2. **Adds CASCADE delete** on `job_posting_content.job_id` so content rows are auto-removed with their parent job
-3. **Creates `cleanup_stale_data()` function** that:
-   - Deactivates EXTERNAL jobs older than `max_job_age_days` (from `system_settings`, default 30)
-   - **Hard-deletes** INACTIVE jobs older than 90 days (with cascaded content)
-   - Marks RUNNING crawl_runs older than 2 hours as FAILED
-   - Returns a JSON summary of rows affected
-4. **Schedules nightly cron** at 01:00 UTC via `pg_cron`
+2. **Remove "Save draft" button**: Since nothing is editable, the only actions should be "Cancel", "Reject", and "Approve" (which just sets `approval_status`/`status` without patching any job fields).
 
-### Technical Detail
+3. **Rename the modal** from "Edit Job" to "Review Job" to reflect its purpose.
 
-```sql
--- Core cleanup logic
-UPDATE job_postings SET status = 'INACTIVE'
-WHERE source_type = 'EXTERNAL' AND status = 'ACTIVE'
-  AND posted_at < now() - (max_days || ' days')::interval;
+4. **Remove the `editForm` state and `saveEdit` function** — replace with a simpler `reviewApprove` / `reviewReject` that only updates `approval_status` and `status`.
 
-DELETE FROM job_postings
-WHERE status = 'INACTIVE'
-  AND last_seen_at < now() - interval '90 days';
+5. **Show additional crawled metadata** as read-only info: canonical URL (already there as a link), company name, crawl date — making the review more informative without being editable.
 
-UPDATE crawl_runs SET status = 'FAILED', finished_at = now()
-WHERE status = 'RUNNING'
-  AND started_at < now() - interval '2 hours';
-```
-
-No frontend changes needed — purely backend housekeeping.
+### What stays the same
+- Bulk approve/reject from the table
+- Individual approve/reject buttons in the table rows
+- Search and filter functionality
 
