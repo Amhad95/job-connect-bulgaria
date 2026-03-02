@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
     Check, X, RefreshCw, Search, ChevronUp, ChevronDown,
@@ -59,9 +58,7 @@ export default function AdminDashboard() {
     const [companyFilter, setCompanyFilter] = useState("all");
     const [sortField, setSortField] = useState<"first_seen_at" | "title">("first_seen_at");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-    const [editJob, setEditJob] = useState<Job | null>(null);
-    const [editForm, setEditForm] = useState({ title_en: "", title_bg: "", location_slug: "", work_mode: "" });
-    const [saving, setSaving] = useState(false);
+    const [reviewJob, setReviewJob] = useState<Job | null>(null);
     const [bulkWorking, setBulkWorking] = useState(false);
 
     const fetchJobs = async () => {
@@ -139,34 +136,16 @@ export default function AdminDashboard() {
         setBulkWorking(false);
     };
 
-    const openEdit = (job: Job) => {
-        setEditJob(job);
-        setEditForm({
-            title_en: job.title_en || job.title,
-            title_bg: job.title_bg || "",
-            location_slug: job.location_slug || "",
-            work_mode: job.work_mode || "",
-        });
+    const reviewApprove = async (job: Job) => {
+        const { error } = await supabase.from("job_postings").update({ approval_status: "APPROVED", status: "ACTIVE" } as any).eq("id", job.id);
+        if (error) toast.error("Approve failed: " + error.message);
+        else { toast.success("Approved!"); setReviewJob(null); setJobs(prev => prev.filter(j => j.id !== job.id)); }
     };
 
-    const saveEdit = async (approve = false) => {
-        if (!editJob) return;
-        setSaving(true);
-        const cityEntry = CANONICAL_CITIES.find(c => c.slug === editForm.location_slug);
-        const patch: Record<string, unknown> = {
-            title_en: editForm.title_en,
-            title_bg: editForm.title_bg || null,
-            location_slug: editForm.location_slug || null,
-            location_city: cityEntry?.name_en || null,
-            work_mode: editForm.work_mode || null,
-        };
-        if (approve) { patch.approval_status = "APPROVED"; patch.status = "ACTIVE"; }
-        const { error } = await supabase.from("job_postings").update(patch as any).eq("id", editJob.id);
-        if (error) { toast.error("Save failed: " + error.message); setSaving(false); return; }
-        toast.success(approve ? "Saved and approved." : "Saved.");
-        setEditJob(null);
-        fetchJobs();
-        setSaving(false);
+    const reviewReject = async (job: Job) => {
+        const { error } = await supabase.from("job_postings").update({ approval_status: "REJECTED", status: "INACTIVE" } as any).eq("id", job.id);
+        if (error) toast.error("Reject failed: " + error.message);
+        else { toast.info("Rejected."); setReviewJob(null); setJobs(prev => prev.filter(j => j.id !== job.id)); }
     };
 
     return (
@@ -283,7 +262,7 @@ export default function AdminDashboard() {
                                                 <a href={job.canonical_url} target="_blank" rel="noreferrer" className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors" title="View source">
                                                     <ExternalLink className="w-4 h-4" />
                                                 </a>
-                                                <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-600 hover:bg-gray-100" onClick={() => openEdit(job)}>Edit</Button>
+                                                <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-600 hover:bg-gray-100" onClick={() => setReviewJob(job)}>Review</Button>
                                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50" onClick={() => {
                                                     supabase.from("job_postings").update({ approval_status: "REJECTED", status: "INACTIVE" } as any).eq("id", job.id)
                                                         .then(({ error }) => {
@@ -316,55 +295,57 @@ export default function AdminDashboard() {
                 )}
             </div>
 
-            {/* Edit Modal */}
-            <Dialog open={!!editJob} onOpenChange={() => setEditJob(null)}>
+            {/* Review Modal */}
+            <Dialog open={!!reviewJob} onOpenChange={() => setReviewJob(null)}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Edit Job</DialogTitle>
+                        <DialogTitle>Review Job</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-2">
-                        <div>
-                            <Label htmlFor="title_en" className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Title (EN)</Label>
-                            <Input id="title_en" className="mt-1" value={editForm.title_en} onChange={e => setEditForm(f => ({ ...f, title_en: e.target.value }))} />
-                        </div>
-                        <div>
-                            <Label htmlFor="title_bg" className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Title (BG)</Label>
-                            <Input id="title_bg" className="mt-1" value={editForm.title_bg} onChange={e => setEditForm(f => ({ ...f, title_bg: e.target.value }))} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label htmlFor="loc" className="text-xs font-semibold text-gray-600 uppercase tracking-wider">City</Label>
-                                <Select value={editForm.location_slug} onValueChange={v => setEditForm(f => ({ ...f, location_slug: v }))}>
-                                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select city" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">Unknown</SelectItem>
-                                        {CANONICAL_CITIES.map(c => (
-                                            <SelectItem key={c.slug} value={c.slug}>{c.name_en} ({c.name_bg})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                    {reviewJob && (
+                        <div className="space-y-4 py-2">
+                            <div className="flex items-center gap-2 mb-2">
+                                {reviewJob.employers?.logo_url
+                                    ? <img src={reviewJob.employers.logo_url} className="w-8 h-8 rounded object-contain border border-gray-100" alt="" />
+                                    : <span className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold border border-gray-200">{reviewJob.employers?.name?.[0] || "?"}</span>
+                                }
+                                <span className="font-semibold text-gray-800">{reviewJob.employers?.name || "—"}</span>
                             </div>
                             <div>
-                                <Label htmlFor="wm" className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Work Mode</Label>
-                                <select id="wm" className="mt-1 w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={editForm.work_mode} onChange={e => setEditForm(f => ({ ...f, work_mode: e.target.value }))}>
-                                    <option value="">Unknown</option>
-                                    <option value="REMOTE">Remote</option>
-                                    <option value="HYBRID">Hybrid</option>
-                                    <option value="ONSITE">On-site</option>
-                                </select>
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title (EN)</Label>
+                                <p className="mt-1 text-sm text-gray-900">{reviewJob.title_en || reviewJob.title || "—"}</p>
                             </div>
-                        </div>
-                        {editJob && (
-                            <a href={editJob.canonical_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title (BG)</Label>
+                                <p className="mt-1 text-sm text-gray-900">{reviewJob.title_bg || "—"}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">City</Label>
+                                    <p className="mt-1 text-sm text-gray-900">
+                                        {reviewJob.location_city || (reviewJob.location_slug ? CANONICAL_CITIES.find(c => c.slug === reviewJob.location_slug)?.name_en : null) || "Unknown"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Work Mode</Label>
+                                    <p className="mt-1 text-sm text-gray-900">{reviewJob.work_mode || "Unknown"}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Crawled</Label>
+                                <p className="mt-1 text-sm text-gray-500">{new Date(reviewJob.first_seen_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                            </div>
+                            <a href={reviewJob.canonical_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
                                 <ExternalLink className="w-3 h-3" /> View original source
                             </a>
-                        )}
-                    </div>
+                        </div>
+                    )}
                     <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setEditJob(null)}>Cancel</Button>
-                        <Button variant="outline" onClick={() => saveEdit(false)} disabled={saving}>Save draft</Button>
-                        <Button onClick={() => saveEdit(true)} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
-                            <Check className="w-4 h-4" /> Save & Approve
+                        <Button variant="outline" onClick={() => setReviewJob(null)}>Cancel</Button>
+                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={() => reviewJob && reviewReject(reviewJob)}>
+                            <X className="w-4 h-4" /> Reject
+                        </Button>
+                        <Button onClick={() => reviewJob && reviewApprove(reviewJob)} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+                            <Check className="w-4 h-4" /> Approve
                         </Button>
                     </DialogFooter>
                 </DialogContent>
