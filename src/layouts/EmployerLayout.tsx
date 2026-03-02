@@ -91,7 +91,7 @@ export default function EmployerLayout() {
                 <div className="p-6 border-b border-slate-800/60 flex justify-between items-start">
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                            <img src={logo} alt="бачкам" className="h-7 w-7 filter brightness-0 invert opacity-90" />
+                            <img src={logo} alt="бачкам" className="h-7 w-auto" />
                             <span className="text-xl font-display font-bold text-white tracking-tight">бачкам</span>
                         </div>
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-1">Workspace</p>
