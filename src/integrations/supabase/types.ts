@@ -1265,6 +1265,7 @@ export type Database = {
         Args: { p_employer_id: string }
         Returns: Json
       }
+      cleanup_stale_data: { Args: never; Returns: Json }
       create_employer_invite: {
         Args: { p_email: string; p_employer_id: string; p_role?: string }
         Returns: Json
