@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ type Job = {
     category: string | null;
     department: string | null;
     employers: { name: string; logo_url: string | null } | null;
+    job_posting_content: { description_text: string | null; requirements_text: string | null; benefits_text: string | null } | null;
 };
 
 type EditForm = {
@@ -46,6 +48,9 @@ type EditForm = {
     employment_type: string;
     category: string;
     department: string;
+    description: string;
+    requirements: string;
+    benefits: string;
 };
 
 function jobToForm(job: Job): EditForm {
@@ -62,14 +67,19 @@ function jobToForm(job: Job): EditForm {
         employment_type: job.employment_type || "",
         category: job.category || "",
         department: job.department || "",
+        description: job.job_posting_content?.description_text || "",
+        requirements: job.job_posting_content?.requirements_text || "",
+        benefits: job.job_posting_content?.benefits_text || "",
     };
 }
 
 function formToUpdate(form: EditForm) {
+    const city = CANONICAL_CITIES.find(c => c.name_en === form.location_city);
     return {
         title_en: form.title_en || null,
         title_bg: form.title_bg || null,
         location_city: form.location_city || null,
+        location_slug: city?.slug || null,
         work_mode: form.work_mode || null,
         salary_min: form.salary_min ? Number(form.salary_min) : null,
         salary_max: form.salary_max ? Number(form.salary_max) : null,
@@ -80,6 +90,16 @@ function formToUpdate(form: EditForm) {
         category: form.category || null,
         department: form.department || null,
     };
+}
+
+async function upsertContent(jobId: string, form: EditForm) {
+    const { error } = await supabase.from("job_posting_content").upsert({
+        job_id: jobId,
+        description_text: form.description || null,
+        requirements_text: form.requirements || null,
+        benefits_text: form.benefits || null,
+    } as any, { onConflict: "job_id" });
+    return error;
 }
 
 function LangBadge({ exists, lang }: { exists: boolean; lang: string }) {
@@ -122,7 +142,7 @@ export default function AdminDashboard() {
         setLoading(true);
         const { data, error } = await supabase
             .from("job_postings")
-            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, employers(name, logo_url)")
+            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
             .eq("approval_status", "PENDING")
             .order(sortField, { ascending: sortDir === "asc" })
             .limit(200);
@@ -207,7 +227,9 @@ export default function AdminDashboard() {
         if (!reviewJob || !editForm) return;
         setSaving(true);
         const { error } = await supabase.from("job_postings").update(formToUpdate(editForm) as any).eq("id", reviewJob.id);
-        if (error) toast.error("Save failed: " + error.message);
+        if (error) { toast.error("Save failed: " + error.message); setSaving(false); return; }
+        const contentErr = await upsertContent(reviewJob.id, editForm);
+        if (contentErr) toast.error("Content save failed: " + contentErr.message);
         else toast.success("Draft saved.");
         setSaving(false);
     };
@@ -220,7 +242,9 @@ export default function AdminDashboard() {
             approval_status: "APPROVED",
             status: "ACTIVE",
         } as any).eq("id", reviewJob.id);
-        if (error) toast.error("Approve failed: " + error.message);
+        if (error) { toast.error("Approve failed: " + error.message); setSaving(false); return; }
+        const contentErr = await upsertContent(reviewJob.id, editForm);
+        if (contentErr) toast.error("Content save failed: " + contentErr.message);
         else {
             toast.success("Approved!");
             setJobs(prev => prev.filter(j => j.id !== reviewJob.id));
@@ -426,7 +450,12 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">City</Label>
-                                    <Input className="mt-1" value={editForm.location_city} onChange={e => updateField("location_city", e.target.value)} placeholder="e.g. Sofia" />
+                                    <select className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm" value={editForm.location_city} onChange={e => updateField("location_city", e.target.value)}>
+                                        <option value="">— Not set —</option>
+                                        {CANONICAL_CITIES.map(c => (
+                                            <option key={c.slug} value={c.name_en}>{c.name_en} ({c.name_bg})</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Work Mode</Label>
@@ -484,6 +513,24 @@ export default function AdminDashboard() {
                                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Department</Label>
                                     <Input className="mt-1" value={editForm.department} onChange={e => updateField("department", e.target.value)} placeholder="e.g. Product" />
                                 </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</Label>
+                                <Textarea className="mt-1 min-h-[120px]" value={editForm.description} onChange={e => updateField("description", e.target.value)} placeholder="Job description…" />
+                            </div>
+
+                            {/* Requirements */}
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Requirements</Label>
+                                <Textarea className="mt-1 min-h-[100px]" value={editForm.requirements} onChange={e => updateField("requirements", e.target.value)} placeholder="Job requirements…" />
+                            </div>
+
+                            {/* Benefits */}
+                            <div>
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Benefits</Label>
+                                <Textarea className="mt-1 min-h-[100px]" value={editForm.benefits} onChange={e => updateField("benefits", e.target.value)} placeholder="Job benefits…" />
                             </div>
 
                             <a href={reviewJob.canonical_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
