@@ -1,31 +1,36 @@
 
 
-## Add Job Description Editing + City Dropdown to Moderation Modal
+## Fix: Prefill moderation modal with crawled data
 
-Two issues to fix in `src/pages/admin/AdminDashboard.tsx`:
+**File**: `src/pages/admin/AdminDashboard.tsx`
 
-### 1. Add editable job description field
+### Changes
 
-- Expand the `Job` type to include `job_posting_content` (with `description_text`, `requirements_text`, `benefits_text`) in the fetch query via a join
-- Add `description`, `requirements`, `benefits` fields to `EditForm`
-- Add `Textarea` fields in the modal for description, requirements, and benefits
-- On save/approve, update `job_posting_content` separately (it's a different table linked by `job_id`)
+1. **Fix `jobToForm` title fallback** (lines 57-59): Prefill `title_en` from `job.title_en || job.title` and `title_bg` from `job.title_bg || ""` so the main crawled title always appears.
 
-### 2. Replace city text input with a dropdown from CANONICAL_CITIES
+2. **Fix `job_posting_content` array handling** (lines 70-72): The Supabase join returns an array. Change to:
+   ```typescript
+   const content = Array.isArray(job.job_posting_content) 
+     ? job.job_posting_content[0] 
+     : job.job_posting_content;
+   ```
+   Then read `content?.description_text`, etc.
 
-- Replace the free-text `<Input>` for city with a `<select>` populated from `CANONICAL_CITIES` (already imported)
-- Options: "— Not set —" + all 10 canonical cities showing `name_en (name_bg)` format
-- Store the `location_city` as the English name and also set `location_slug` in the update payload
+3. **Fix city matching** (line 60): Try matching crawled `location_city` against canonical names (case-insensitive, partial match). If no match, try `location_slug`. Fallback to raw value so it at least displays:
+   ```typescript
+   const cityMatch = CANONICAL_CITIES.find(c => 
+     c.name_en.toLowerCase() === (job.location_city || "").toLowerCase()
+     || c.slug === job.location_slug
+   );
+   location_city: cityMatch?.name_en || ""
+   ```
 
-### Changes (single file: `src/pages/admin/AdminDashboard.tsx`)
+4. **Update `formToUpdate` to write `title`** (line 78-93): Add `title: form.title_en || form.title_bg || null` so the main title field gets updated when the admin edits.
 
-1. Import `Textarea` from `@/components/ui/textarea`
-2. Add `description`, `requirements`, `benefits` to `EditForm` type
-3. Update fetch query to join `job_posting_content(description_text, requirements_text, benefits_text)`
-4. Update `Job` type to include content fields
-5. Update `jobToForm` to populate description/requirements/benefits
-6. Replace city `<Input>` with `<select>` using `CANONICAL_CITIES`
-7. Add three `Textarea` blocks in the modal body for description, requirements, benefits
-8. Update `formToUpdate` to include `location_slug` derived from selected city
-9. In `saveDraft` and `saveAndApprove`, after updating `job_postings`, also upsert `job_posting_content` with the text fields
+5. **Update `Job` type for `job_posting_content`** (line 35): Change to accept array or object:
+   ```typescript
+   job_posting_content: Array<{...}> | {...} | null;
+   ```
+
+These are all small fixes within `jobToForm`, `formToUpdate`, and the `Job` type — no new UI or database changes needed.
 
