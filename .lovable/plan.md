@@ -1,23 +1,31 @@
 
 
-## Make Crawled Jobs Editable in the Moderation Queue
+## Add Job Description Editing + City Dropdown to Moderation Modal
 
-Currently the "Review Job" modal shows static text for all fields. We'll convert it into an editable form so admins can fix crawled data before approving.
+Two issues to fix in `src/pages/admin/AdminDashboard.tsx`:
 
-### Changes to `src/pages/admin/AdminDashboard.tsx`
+### 1. Add editable job description field
 
-1. **Expand the `Job` type and query** to include editable fields: `salary_min`, `salary_max`, `salary_period`, `currency`, `employment_type`, `seniority`, `category`, `department`.
+- Expand the `Job` type to include `job_posting_content` (with `description_text`, `requirements_text`, `benefits_text`) in the fetch query via a join
+- Add `description`, `requirements`, `benefits` fields to `EditForm`
+- Add `Textarea` fields in the modal for description, requirements, and benefits
+- On save/approve, update `job_posting_content` separately (it's a different table linked by `job_id`)
 
-2. **Add `editForm` state** initialized from the selected job when the modal opens — covers `title_en`, `title_bg`, `location_city`, `work_mode`, `salary_min`, `salary_max`, `salary_period`, `currency`, `seniority`, `employment_type`.
+### 2. Replace city text input with a dropdown from CANONICAL_CITIES
 
-3. **Replace static text with Input fields** in the modal for all editable properties. Use a two-column grid for compact layout (city + work mode, salary min + max, seniority + employment type, etc.).
+- Replace the free-text `<Input>` for city with a `<select>` populated from `CANONICAL_CITIES` (already imported)
+- Options: "— Not set —" + all 10 canonical cities showing `name_en (name_bg)` format
+- Store the `location_city` as the English name and also set `location_slug` in the update payload
 
-4. **Add a `saveAndApprove` function** that patches the edited fields via `supabase.update()` along with `approval_status: APPROVED, status: ACTIVE` in one call. Keep a separate "Save Draft" button that saves edits without changing approval status.
+### Changes (single file: `src/pages/admin/AdminDashboard.tsx`)
 
-5. **Keep the existing Reject button** unchanged — it only sets status, no field edits needed.
-
-6. **Footer buttons**: Cancel | Reject | Save Draft | Save & Approve (primary green).
-
-### No database or backend changes needed
-All fields already exist on `job_postings` and are updatable by authenticated users via existing RLS policies.
+1. Import `Textarea` from `@/components/ui/textarea`
+2. Add `description`, `requirements`, `benefits` to `EditForm` type
+3. Update fetch query to join `job_posting_content(description_text, requirements_text, benefits_text)`
+4. Update `Job` type to include content fields
+5. Update `jobToForm` to populate description/requirements/benefits
+6. Replace city `<Input>` with `<select>` using `CANONICAL_CITIES`
+7. Add three `Textarea` blocks in the modal body for description, requirements, benefits
+8. Update `formToUpdate` to include `location_slug` derived from selected city
+9. In `saveDraft` and `saveAndApprove`, after updating `job_postings`, also upsert `job_posting_content` with the text fields
 
