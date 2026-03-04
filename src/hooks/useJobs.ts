@@ -30,7 +30,7 @@ async function fetchJobs(): Promise<DbJob[]> {
   const { data, error } = await (supabase as any)
     .from("job_postings")
     .select(`
-      id, title, canonical_url, apply_url, source_type,
+      id, title, canonical_url, apply_url, source_type, approval_status,
       location_city, location_slug, work_mode, employment_type, category,
       salary_min, salary_max, currency,
       first_seen_at, last_seen_at, posted_at, last_scraped_at,
@@ -45,10 +45,11 @@ async function fetchJobs(): Promise<DbJob[]> {
 
   const validJobs = (data ?? []).filter((row: any) => {
     const isDirect = row.source_type === 'DIRECT';
+    const isApproved = row.approval_status === 'APPROVED';
 
-    // ── EMPLOYER-POSTED JOBS (DIRECT source) bypass scraped-job heuristics ──
-    if (isDirect) {
-      // Only require a non-empty title for employer-posted jobs
+    // ── EMPLOYER-POSTED or ADMIN-APPROVED jobs bypass scraped-job heuristics ──
+    if (isDirect || isApproved) {
+      // Only require a non-empty title
       if (!row.title || row.title.trim().length === 0) return false;
       return true;
     }
