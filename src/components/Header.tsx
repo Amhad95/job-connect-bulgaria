@@ -33,18 +33,21 @@ export function Header() {
 
   const navLinks = [
     { to: "/jobs", label: t("nav.jobs", "Find Jobs") },
+    { to: "/blog", label: t("nav.blog", "Blog") },
     { to: "/employers", label: t("nav.forEmployers", "For Employers") },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-1.5 font-display font-bold tracking-tight">
-          <img src={logo} alt="бачкам" className="h-[46px] w-[46px]" />
-          <span className="text-2xl text-primary">бачкам</span>
-        </Link>
+        <div className="flex flex-1">
+          <Link to="/" className="flex items-center gap-1.5 font-display font-bold tracking-tight">
+            <img src={logo} alt="бачкам" className="h-[46px] w-[46px]" />
+            <span className="text-2xl text-primary md:inline hidden lg:inline">бачкам</span>
+          </Link>
+        </div>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center justify-center gap-1 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -56,7 +59,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-1 flex-shrink-0 items-center justify-end gap-2">
           {/* BG / EN flag toggle — hidden on mobile, shown in side menu instead */}
           <button
             onClick={toggleLang}

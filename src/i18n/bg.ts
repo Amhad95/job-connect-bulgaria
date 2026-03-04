@@ -29,6 +29,7 @@ export default {
     profile: "Профил",
     savedJobs: "Запазени обяви",
     dashboard: "Табло",
+    blog: "Блог",
   },
   hero: {
     tagline_prefix: "Всичко за вашето",

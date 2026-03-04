@@ -29,6 +29,7 @@ export default {
     profile: "Profile",
     savedJobs: "Saved Jobs",
     dashboard: "Dashboard",
+    blog: "Blog",
   },
   hero: {
     tagline_prefix: "All your",
