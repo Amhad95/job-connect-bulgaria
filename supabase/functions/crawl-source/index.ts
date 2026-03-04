@@ -344,16 +344,22 @@ Deno.serve(async (req) => {
       // ══════════════════════════════════════════════════════════════
       console.log(`Phase 2: Extracting details for jobs without metadata`);
 
+      // Fetch jobs needing extraction: never scraped OR scraped but missing content
       const { data: jobsNeedingExtraction } = await supabase
         .from("job_postings")
-        .select("id, canonical_url")
+        .select("id, canonical_url, last_scraped_at, job_posting_content ( id )")
         .eq("employer_id", employerId)
         .eq("status", "ACTIVE")
-        .is("last_scraped_at", null)
         .limit(30);
 
-      const toExtract = jobsNeedingExtraction || [];
-      console.log(`Found ${toExtract.length} jobs needing extraction`);
+      const toExtract = (jobsNeedingExtraction || []).filter((j: any) => {
+        // Never scraped
+        if (!j.last_scraped_at) return true;
+        // Scraped but no content row exists
+        const content = Array.isArray(j.job_posting_content) ? j.job_posting_content[0] : j.job_posting_content;
+        return !content?.id;
+      });
+      console.log(`Found ${toExtract.length} jobs needing extraction (of ${jobsNeedingExtraction?.length || 0} active)`);
 
       for (const job of toExtract) {
         try {
