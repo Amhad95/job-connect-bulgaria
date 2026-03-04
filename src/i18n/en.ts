@@ -31,8 +31,18 @@ export default {
     dashboard: "Dashboard",
   },
   hero: {
-    headline: "Faster job search. Cleaner listings. One place.",
-    subheadline: "We bring Bulgaria's top opportunities into one Comprehensive Job Hub. Every listing links to the employer's original posting. Save roles, build an Apply Kit, and move faster with privacy-first tools.",
+    tagline_prefix: "All your",
+    tagline_suffix: "in one place.",
+    rotating_items: [
+      "job search",
+      "applications",
+      "CVs",
+      "cover letters",
+      "matches",
+      "verified roles"
+    ],
+    subtitle: "Bachkam brings together curated external listings and direct posts from verified employers—plus tools to tailor your CV, generate cover letters, and track every application with clarity.",
+    supporting_line: "Clear source labels, a consistent apply flow, and privacy-first defaults.",
     primaryCta: "Search jobs",
     secondaryCta: "Upload CV for matches",
     roleTags: {

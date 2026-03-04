@@ -10,7 +10,7 @@ import {
 import { JobCard } from "@/components/JobCard";
 import { useJobs } from "@/hooks/useJobs";
 import heroIllustration from "@/assets/hero-illustration.svg";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 
 
@@ -42,12 +42,15 @@ export default function Index() {
         <div className="container grid items-center gap-8 py-10 md:grid-cols-2 md:py-16">
           <div className="flex flex-col gap-6 text-center md:text-left">
             <h1 className="max-w-3xl font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in drop-shadow-sm">
-              {isBg ? "Спрете да прескачате между кариерните страници." : "Stop jumping between career pages."}
+              {t("hero.tagline_prefix")}{" "}
+              <RotatingText items={t("hero.rotating_items", { returnObjects: true }) as string[]} />{" "}
+              {t("hero.tagline_suffix")}
             </h1>
             <p className="max-w-2xl text-lg md:text-xl text-muted-foreground animate-fade-in leading-relaxed font-medium">
-              {isBg
-                ? "Ние следим пазара вместо вас. Открийте хиляди обяви, събрани от целия уеб, и кандидатствайте мигновено при нашите Потвърдени работодатели – всичко от един централизиран хъб."
-                : "We track the market so you don't have to. Discover thousands of roles curated from across the web, and apply instantly to our Verified Employers—all from one centralized hub."}
+              {t("hero.subtitle")}
+            </p>
+            <p className="text-sm font-medium text-blue-600/80 uppercase tracking-widest animate-fade-in">
+              {t("hero.supporting_line")}
             </p>
 
             {/* Search bar */}
@@ -468,6 +471,39 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+
+
+function RotatingText({ items, intervalMs = 2800 }: { items: string[], intervalMs?: number }) {
+  const [index, setIndex] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  useEffect(() => {
+    // Respect user's motion preferences
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion || !items || items.length === 0) return;
+
+    const intervalId = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setIndex((current) => (current + 1) % items.length);
+        setFade(true);
+      }, 300); // 300ms fade transition time
+    }, intervalMs);
+
+    return () => clearInterval(intervalId);
+  }, [items, intervalMs]);
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <span
+      className={`text-blue-600 font-bold inline-block min-w-max transition-opacity duration-300 ease-in-out ${fade ? "opacity-100" : "opacity-0"}`}
+    >
+      {items[index]}
+    </span>
   );
 }
 
