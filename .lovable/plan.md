@@ -1,57 +1,53 @@
 
-Goal: ensure every job opened in Moderation Queue is prefilled with crawled metadata/content, and prevent “empty approve” cases.
 
-What I found
-- The modal prefill mapper in `AdminDashboard.tsx` is mostly correct now.
-- The queue API response itself currently returns null for most fields (`location_city`, `work_mode`, `job_posting_content`, etc.) on pending jobs.
-- Those rows are mostly created with `extraction_method = firecrawl_extract_stale`, where the crawler currently marks stale and exits before saving extracted metadata/content.
-- Result: modal looks empty because DB rows are empty, not because of form binding.
+## Clean Up Stale Job Data + Harden Retention Policy
 
-Implementation plan
+### What the data shows
 
-1) Fix crawler to always persist extracted fields before stale/not-live decision
-- File: `supabase/functions/crawl-source/index.ts`
-- Refactor extraction flow:
-  - After `extracted` is parsed, build normalized metadata + content payload immediately.
-  - Upsert into `job_postings` + `job_posting_content` first.
-  - Then apply staleness decision (`posted_at < 1 month`) as a status/approval outcome, not as an early return before saving fields.
-- This guarantees prefill data is present for reviewed jobs.
+Your 873 job_postings break down as:
+- **284** `firecrawl_extract_stale` / INACTIVE — old jobs the crawler correctly marked stale
+- **165** `firecrawl_extract` / INACTIVE — extracted then deactivated
+- **134** `map_discovery` / INACTIVE — URL-only records from an old discovery method, never extracted
+- **123** `firecrawl_extract_not_a_job` / INACTIVE — pages that weren't real jobs
+- **67** `firecrawl_extract` / ACTIVE — legitimate active jobs
+- Rest: small counts of various states
 
-2) Keep stale/non-job items out of moderation queue
-- In crawler stale path and “not a real job” path:
-  - set `status = 'INACTIVE'`
-  - set `approval_status = 'REJECTED'` (or equivalent non-pending terminal state already used in app)
-- This prevents empty/invalid jobs from showing in queue and being accidentally approved.
+Only ~67-80 rows are actually useful. The other ~800 are dead weight that will never be shown to users.
 
-3) Backfill existing bad pending rows (one-time data fix)
-- Add a migration to clean current queue data:
-  - For `approval_status='PENDING'` rows with `extraction_method in ('firecrawl_extract_stale','firecrawl_extract_not_a_job')`, set `approval_status='REJECTED'` and `status='INACTIVE'`.
-- This immediately removes already-empty queue entries without waiting for future crawls.
+Similarly, 370 crawl runs (264 COMPLETED, 106 FAILED) are pure audit logs with no UI and no value after a few days.
 
-4) Harden moderation queue filtering and approve safety
-- File: `src/pages/admin/AdminDashboard.tsx`
-- Query filter improvements:
-  - keep `approval_status='PENDING'`
-  - add quality gate (at minimum `last_scraped_at IS NOT NULL` and `extraction_method='firecrawl_extract'`)
-- Approve safety:
-  - disable quick approve buttons when job lacks minimum publishable fields (title + description length threshold), with tooltip/toast reason.
-- Prevents another “approved but not visible” case.
+### Plan
 
-5) Small prefill resiliency improvements (UI-side)
-- In `jobToForm`:
-  - city fallback should be `cityMatch?.name_en || job.location_city || ""` so non-canonical scraped city still shows.
-  - keep array/object-safe handling for `job_posting_content`.
-- This ensures UI never hides available raw values.
+**1. One-time data purge (migration with data statements)**
 
-Technical details
-- Why it happens now:
-  - current crawler stale branch returns before metadata/content write.
-  - moderation queue currently includes all PENDING rows, including stale rows with null extracted fields.
-- Why this fix is safe:
-  - no schema change required.
-  - uses existing approval/status semantics already used by admin actions.
-  - one-time migration only updates state of already-invalid queue rows.
-- Expected outcome:
-  - Moderation modal opens with real crawled data for valid jobs.
-  - Stale/non-job records no longer pollute queue.
-  - Approving without edits won’t create “empty live” listings.
+Delete job_postings (and their cascading job_posting_content) that are clearly garbage:
+- `status = 'INACTIVE'` AND `approval_status NOT IN ('APPROVED')` — never approved, inactive = delete
+- `extraction_method IN ('firecrawl_extract_not_a_job', 'map_discovery', 'link_discovery', 'firecrawl_extract_empty')` — known junk methods, delete regardless
+- Delete crawl_runs older than 7 days (audit logs, no UI)
+
+**2. Update `cleanup_stale_data()` function to be aggressive**
+
+Add to the existing nightly cleanup function:
+- Hard-delete INACTIVE + never-approved jobs older than 7 days (not 90)
+- Hard-delete `extraction_method` in (`not_a_job`, `map_discovery`, `link_discovery`, `firecrawl_extract_empty`) immediately
+- Hard-delete crawl_runs older than 14 days
+- Hard-delete REJECTED jobs older than 7 days
+
+**3. Prevent future junk accumulation in crawler**
+
+In `supabase/functions/crawl-source/index.ts`:
+- For "not a job" results: don't insert into `job_postings` at all (currently it saves them with `firecrawl_extract_not_a_job`)
+- For stale jobs (>1 month old): mark as `INACTIVE` + `REJECTED` immediately so cleanup catches them fast
+
+### Files changed
+
+1. **Migration SQL** — one-time purge + updated `cleanup_stale_data()` function
+2. **`supabase/functions/crawl-source/index.ts`** — skip inserting non-job results entirely
+
+### Expected outcome
+
+- Immediate drop from ~873 to ~80 job_postings
+- Crawl runs trimmed to recent ones only
+- Nightly cleanup keeps the database lean going forward
+- No impact on published/approved jobs
+
