@@ -384,17 +384,7 @@ Deno.serve(async (req) => {
 
           const extracted = scrapeData.data?.extract || scrapeData.extract || {};
 
-          if (!extracted.title) {
-            console.log(`No job data extracted from ${job.canonical_url}, marking INACTIVE`);
-            await supabase.from("job_postings").update({
-              status: "INACTIVE",
-              last_scraped_at: new Date().toISOString(),
-              extraction_method: "firecrawl_extract_not_a_job",
-            }).eq("id", job.id);
-            continue;
-          }
-
-          // Parse posted_date
+          // Parse posted_date early so we can persist it regardless of staleness
           let postedAt: string | null = null;
           if (extracted.posted_date) {
             try {
@@ -403,29 +393,31 @@ Deno.serve(async (req) => {
             } catch {}
           }
 
-          // Skip jobs older than 1 month
-          if (postedAt) {
+          // Determine if this is a real job and whether it's stale
+          const isNotAJob = !extracted.title;
+          let isStale = false;
+          if (!isNotAJob && postedAt) {
             const postedDate = new Date(postedAt);
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            if (postedDate < oneMonthAgo) {
-              console.log(`Marking stale job: ${extracted.title} (posted ${postedAt})`);
-              await supabase.from("job_postings").update({
-                status: "INACTIVE",
-                posted_at: postedAt,
-                last_scraped_at: new Date().toISOString(),
-                extraction_method: "firecrawl_extract_stale",
-              }).eq("id", job.id);
-              continue;
-            }
+            isStale = postedDate < oneMonthAgo;
           }
 
           // Normalize city to slug
           const citySlug = normalizeCitySlug(extracted.location_city);
 
-          // Update job_postings metadata
+          // ── ALWAYS persist extracted metadata + content first ──
+          const extractionMethod = isNotAJob
+            ? "firecrawl_extract_not_a_job"
+            : isStale
+              ? "firecrawl_extract_stale"
+              : "firecrawl_extract";
+
+          const jobStatus = (isNotAJob || isStale) ? "INACTIVE" : "ACTIVE";
+          const approvalStatus = (isNotAJob || isStale) ? "REJECTED" : "PENDING";
+
           await supabase.from("job_postings").update({
-            title: extracted.title,
+            title: extracted.title || job.title || "Untitled Position",
             location_city: extracted.location_city || null,
             location_slug: citySlug,
             work_mode: extracted.work_mode || null,
@@ -437,10 +429,12 @@ Deno.serve(async (req) => {
             seniority: extracted.seniority || null,
             posted_at: postedAt,
             last_scraped_at: new Date().toISOString(),
-            extraction_method: "firecrawl_extract",
+            extraction_method: extractionMethod,
+            status: jobStatus,
+            approval_status: approvalStatus,
           }).eq("id", job.id);
 
-          // Upsert job_posting_content
+          // Upsert job_posting_content (even for stale/not-a-job so data is preserved)
           const contentData = {
             job_id: job.id,
             description_text: extracted.description || null,
@@ -459,6 +453,15 @@ Deno.serve(async (req) => {
             await supabase.from("job_posting_content").update(contentData).eq("id", existingContent.id);
           } else {
             await supabase.from("job_posting_content").insert(contentData);
+          }
+
+          if (isNotAJob) {
+            console.log(`Not a job: ${job.canonical_url}, saved data + rejected`);
+            continue;
+          }
+          if (isStale) {
+            console.log(`Stale job: ${extracted.title} (posted ${postedAt}), saved data + rejected`);
+            continue;
           }
 
           jobsExtracted++;
