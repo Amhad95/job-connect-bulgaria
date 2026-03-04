@@ -64,7 +64,7 @@ function jobToForm(job: Job): EditForm {
     return {
         title_en: job.title_en || job.title || "",
         title_bg: job.title_bg || "",
-        location_city: cityMatch?.name_en || "",
+        location_city: cityMatch?.name_en || job.location_city || "",
         work_mode: job.work_mode || "",
         salary_min: job.salary_min?.toString() || "",
         salary_max: job.salary_max?.toString() || "",
@@ -150,8 +150,9 @@ export default function AdminDashboard() {
         setLoading(true);
         const { data, error } = await supabase
             .from("job_postings")
-            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
+            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, extraction_method, last_scraped_at, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
             .eq("approval_status", "PENDING")
+            .not("last_scraped_at", "is", null)
             .order(sortField, { ascending: sortDir === "asc" })
             .limit(200);
         if (error) toast.error("Failed to fetch queue: " + error.message);
@@ -197,10 +198,22 @@ export default function AdminDashboard() {
             return matchSearch && matchCompany;
         });
 
+    const jobHasMinimumData = (job: Job): boolean => {
+        const content = Array.isArray(job.job_posting_content) ? job.job_posting_content[0] : job.job_posting_content;
+        const title = job.title_en || job.title || "";
+        const desc = content?.description_text || "";
+        return title.length >= 5 && desc.length >= 50;
+    };
+
     const bulkApprove = async () => {
         if (!selected.size) return;
-        setBulkWorking(true);
         const ids = Array.from(selected);
+        const emptyJobs = ids.filter(id => { const j = jobs.find(j => j.id === id); return j && !jobHasMinimumData(j); });
+        if (emptyJobs.length > 0) {
+            toast.error(`${emptyJobs.length} selected job(s) lack title or description. Review & edit them first, or deselect.`);
+            return;
+        }
+        setBulkWorking(true);
         const { error } = await supabase
             .from("job_postings")
             .update({ approval_status: "APPROVED", status: "ACTIVE" } as any)
@@ -244,6 +257,14 @@ export default function AdminDashboard() {
 
     const saveAndApprove = async () => {
         if (!reviewJob || !editForm) return;
+        if (!editForm.title_en || editForm.title_en.length < 5) {
+            toast.error("Title (EN) must be at least 5 characters to approve.");
+            return;
+        }
+        if (!editForm.description || editForm.description.length < 50) {
+            toast.error("Description must be at least 50 characters to approve.");
+            return;
+        }
         setSaving(true);
         const { error } = await supabase.from("job_postings").update({
             ...formToUpdate(editForm),
