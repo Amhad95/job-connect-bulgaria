@@ -395,8 +395,17 @@ Deno.serve(async (req) => {
 
           // Determine if this is a real job and whether it's stale
           const isNotAJob = !extracted.title;
+
+          // ── Skip non-job pages entirely — don't pollute DB ──
+          if (isNotAJob) {
+            // Delete the placeholder row created during discovery
+            await supabase.from("job_postings").delete().eq("id", job.id);
+            console.log(`Not a job: ${job.canonical_url}, deleted placeholder`);
+            continue;
+          }
+
           let isStale = false;
-          if (!isNotAJob && postedAt) {
+          if (postedAt) {
             const postedDate = new Date(postedAt);
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -406,18 +415,13 @@ Deno.serve(async (req) => {
           // Normalize city to slug
           const citySlug = normalizeCitySlug(extracted.location_city);
 
-          // ── ALWAYS persist extracted metadata + content first ──
-          const extractionMethod = isNotAJob
-            ? "firecrawl_extract_not_a_job"
-            : isStale
-              ? "firecrawl_extract_stale"
-              : "firecrawl_extract";
-
-          const jobStatus = (isNotAJob || isStale) ? "INACTIVE" : "ACTIVE";
-          const approvalStatus = (isNotAJob || isStale) ? "REJECTED" : "PENDING";
+          // ── Persist extracted metadata + content ──
+          const extractionMethod = isStale ? "firecrawl_extract_stale" : "firecrawl_extract";
+          const jobStatus = isStale ? "INACTIVE" : "ACTIVE";
+          const approvalStatus = isStale ? "REJECTED" : "PENDING";
 
           await supabase.from("job_postings").update({
-            title: extracted.title || job.title || "Untitled Position",
+            title: extracted.title || "Untitled Position",
             location_city: extracted.location_city || null,
             location_slug: citySlug,
             work_mode: extracted.work_mode || null,
@@ -434,7 +438,7 @@ Deno.serve(async (req) => {
             approval_status: approvalStatus,
           }).eq("id", job.id);
 
-          // Upsert job_posting_content (even for stale/not-a-job so data is preserved)
+          // Upsert job_posting_content
           const contentData = {
             job_id: job.id,
             description_text: extracted.description || null,
@@ -455,12 +459,8 @@ Deno.serve(async (req) => {
             await supabase.from("job_posting_content").insert(contentData);
           }
 
-          if (isNotAJob) {
-            console.log(`Not a job: ${job.canonical_url}, saved data + rejected`);
-            continue;
-          }
           if (isStale) {
-            console.log(`Stale job: ${extracted.title} (posted ${postedAt}), saved data + rejected`);
+            console.log(`Stale job: ${extracted.title} (posted ${postedAt}), saved + rejected`);
             continue;
           }
 
