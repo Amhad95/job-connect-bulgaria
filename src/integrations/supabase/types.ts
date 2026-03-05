@@ -99,6 +99,209 @@ export type Database = {
           },
         ]
       }
+      apply_kit_documents: {
+        Row: {
+          approved_markdown: string | null
+          approved_structured_json: Json | null
+          base_document_id: string | null
+          created_at: string
+          custom_prompt: string | null
+          doc_type: string
+          file_name: string
+          file_size_bytes: number | null
+          id: string
+          is_primary: boolean
+          linked_job_id: string | null
+          mime_type: string | null
+          privacy_mode: string
+          source: string
+          storage_path: string
+          target_company: string | null
+          target_job_title: string | null
+          target_job_url: string | null
+          template_version: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_markdown?: string | null
+          approved_structured_json?: Json | null
+          base_document_id?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          doc_type: string
+          file_name: string
+          file_size_bytes?: number | null
+          id?: string
+          is_primary?: boolean
+          linked_job_id?: string | null
+          mime_type?: string | null
+          privacy_mode?: string
+          source: string
+          storage_path: string
+          target_company?: string | null
+          target_job_title?: string | null
+          target_job_url?: string | null
+          template_version?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_markdown?: string | null
+          approved_structured_json?: Json | null
+          base_document_id?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          doc_type?: string
+          file_name?: string
+          file_size_bytes?: number | null
+          id?: string
+          is_primary?: boolean
+          linked_job_id?: string | null
+          mime_type?: string | null
+          privacy_mode?: string
+          source?: string
+          storage_path?: string
+          target_company?: string | null
+          target_job_title?: string | null
+          target_job_url?: string | null
+          template_version?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apply_kit_documents_base_document_id_fkey"
+            columns: ["base_document_id"]
+            isOneToOne: false
+            referencedRelation: "apply_kit_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apply_kit_documents_linked_job_id_fkey"
+            columns: ["linked_job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apply_kit_generation_messages: {
+        Row: {
+          content: string
+          created_at: string
+          generation_id: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          generation_id: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          generation_id?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apply_kit_generation_messages_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "apply_kit_generations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apply_kit_generations: {
+        Row: {
+          base_document_extracted_text: string | null
+          base_document_id: string | null
+          base_document_storage_path: string | null
+          created_at: string
+          custom_prompt: string | null
+          doc_type: string
+          error_message: string | null
+          id: string
+          latest_preview_markdown: string | null
+          latest_preview_structured_json: Json | null
+          linked_job_id: string | null
+          mode: string
+          privacy_mode: string
+          retry_count: number
+          status: string
+          target_company: string | null
+          target_job_description: string | null
+          target_job_title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_document_extracted_text?: string | null
+          base_document_id?: string | null
+          base_document_storage_path?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          doc_type: string
+          error_message?: string | null
+          id?: string
+          latest_preview_markdown?: string | null
+          latest_preview_structured_json?: Json | null
+          linked_job_id?: string | null
+          mode: string
+          privacy_mode?: string
+          retry_count?: number
+          status?: string
+          target_company?: string | null
+          target_job_description?: string | null
+          target_job_title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_document_extracted_text?: string | null
+          base_document_id?: string | null
+          base_document_storage_path?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          doc_type?: string
+          error_message?: string | null
+          id?: string
+          latest_preview_markdown?: string | null
+          latest_preview_structured_json?: Json | null
+          linked_job_id?: string | null
+          mode?: string
+          privacy_mode?: string
+          retry_count?: number
+          status?: string
+          target_company?: string | null
+          target_job_description?: string | null
+          target_job_title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apply_kit_generations_base_document_id_fkey"
+            columns: ["base_document_id"]
+            isOneToOne: false
+            referencedRelation: "apply_kit_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apply_kit_generations_linked_job_id_fkey"
+            columns: ["linked_job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocked_urls: {
         Row: {
           created_at: string
@@ -1344,6 +1547,10 @@ export type Database = {
       revoke_employer_invite: { Args: { p_invite_id: string }; Returns: Json }
       set_application_ai_score: {
         Args: { p_application_id: string; p_reasoning: string; p_score: number }
+        Returns: undefined
+      }
+      set_apply_kit_document_primary: {
+        Args: { p_doc_type: string; p_document_id: string; p_user_id: string }
         Returns: undefined
       }
     }
