@@ -332,14 +332,29 @@ export default function DashboardApplyKit() {
     const handleDownloadDoc = async (doc: ApplyKitDocument | null = null, format: "pdf" | "docx" = "pdf") => {
         try {
             let path: string | undefined;
+            let fileName: string | undefined;
             if (doc) {
                 path = doc.storage_path;
+                fileName = doc.file_name;
             } else if (finalizedDoc) {
                 path = format === "docx" ? finalizedDoc.docx_storage_path : finalizedDoc.storage_path;
+                fileName = finalizedDoc.file_name;
             }
             if (!path) return;
             const url = await getSignedDownloadUrl(path);
-            window.open(url, "_blank");
+
+            // Use fetch + blob to bypass ad-blocker domain blocking
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Download failed");
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = `${fileName || "document"}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
         } catch (err: any) {
             toast({
                 title: t("applyKit.errorTitle", "Error"),

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, RefreshCw, Check, Loader2 } from "lucide-react";
@@ -10,6 +10,40 @@ interface PreviewRefineViewProps {
     onRefine: (feedback: string) => void;
     onApprove: () => void;
     onBack: () => void;
+}
+
+/** Parse inline **bold** and *italic* markdown into React nodes */
+function renderInlineMarkdown(text: string): ReactNode[] {
+    const nodes: ReactNode[] = [];
+    // Match **bold** and *italic* patterns
+    const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let key = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+        // Add text before this match
+        if (match.index > lastIndex) {
+            nodes.push(text.slice(lastIndex, match.index));
+        }
+
+        if (match[2]) {
+            // **bold**
+            nodes.push(<strong key={key++} className="font-semibold">{match[2]}</strong>);
+        } else if (match[3]) {
+            // *italic*
+            nodes.push(<em key={key++}>{match[3]}</em>);
+        }
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+        nodes.push(text.slice(lastIndex));
+    }
+
+    return nodes.length > 0 ? nodes : [text];
 }
 
 export function PreviewRefineView({
@@ -41,33 +75,32 @@ export function PreviewRefineView({
                     </span>
                 </div>
                 <div className="p-6 prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-ul:text-gray-700 prose-li:text-gray-700">
-                    {/* Simple markdown rendering */}
                     {previewMarkdown.split("\n").map((line, i) => {
                         if (line.startsWith("## ")) {
                             return (
                                 <h2 key={i} className="text-lg font-bold text-gray-900 mt-4 mb-2">
-                                    {line.replace("## ", "")}
+                                    {renderInlineMarkdown(line.replace("## ", ""))}
                                 </h2>
                             );
                         }
                         if (line.startsWith("### ")) {
                             return (
                                 <h3 key={i} className="text-base font-semibold text-gray-800 mt-3 mb-1">
-                                    {line.replace("### ", "")}
+                                    {renderInlineMarkdown(line.replace("### ", ""))}
                                 </h3>
                             );
                         }
                         if (line.startsWith("# ")) {
                             return (
                                 <h1 key={i} className="text-xl font-bold text-gray-900 mt-4 mb-2">
-                                    {line.replace("# ", "")}
+                                    {renderInlineMarkdown(line.replace("# ", ""))}
                                 </h1>
                             );
                         }
                         if (line.startsWith("- ") || line.startsWith("* ")) {
                             return (
                                 <li key={i} className="ml-4 text-gray-700">
-                                    {line.replace(/^[-*]\s/, "")}
+                                    {renderInlineMarkdown(line.replace(/^[-*]\s/, ""))}
                                 </li>
                             );
                         }
@@ -76,7 +109,7 @@ export function PreviewRefineView({
                         }
                         return (
                             <p key={i} className="text-gray-700 leading-relaxed">
-                                {line}
+                                {renderInlineMarkdown(line)}
                             </p>
                         );
                     })}
