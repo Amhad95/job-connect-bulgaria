@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
     Briefcase, LayoutGrid, Settings, Menu, ChevronRight,
@@ -65,6 +66,7 @@ function TrialBanner({ trialEndsAt, subStatus }: { trialEndsAt: string | null; s
 
 // ── EmployerLayout ──────────────────────────────────────────────────────────
 export default function EmployerLayout() {
+    useNoIndex();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false); // Default closed on mobile
     const { employerName, role, approvalStatus, subStatus, trialEndsAt } = useEmployer();

@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { UserCircle, Bookmark, Trello, Sparkles, Menu } from "lucide-react";
 
 
 export default function DashboardLayout() {
+    useNoIndex();
     const { t } = useTranslation();
     const location = useLocation();
     const [isSidebarOpen, setSidebarOpen] = useState(false);

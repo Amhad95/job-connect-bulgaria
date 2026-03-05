@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Building2, LayoutDashboard, Settings, Menu, Handshake, ChevronRight } from "lucide-react";
 
@@ -36,6 +37,7 @@ const NAV = [
 ];
 
 export default function AdminLayout() {
+    useNoIndex();
     const location = useLocation();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
