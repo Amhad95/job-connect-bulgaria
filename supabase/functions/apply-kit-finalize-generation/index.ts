@@ -15,9 +15,8 @@ import {
     AlignmentType,
     Packer,
     BorderStyle,
-    SectionType,
-    TabStopPosition,
-    TabStopType,
+    LevelFormat,
+    convertInchesToTwip,
 } from "https://esm.sh/docx@9.5.0";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
@@ -52,7 +51,6 @@ function parseMarkdownToStructured(markdown: string): {
     let contactLine: string | null = null;
 
     for (const line of lines) {
-        // Top-level heading = candidate name
         const h1Match = line.match(/^#\s+(.+)/);
         if (h1Match && !nameHeading) {
             nameHeading = h1Match[1].trim();
@@ -70,7 +68,6 @@ function parseMarkdownToStructured(markdown: string): {
         } else if (line.trim() && currentSection) {
             currentSection.items.push(line.trim());
         } else if (line.trim() && !currentSection && !contactLine) {
-            // First non-heading non-empty line before any section = contact info
             contactLine = line.trim();
         }
     }
@@ -84,6 +81,34 @@ function parseMarkdownToStructured(markdown: string): {
         .join("\n\n");
 
     return { sections, rawText, contactLine, nameHeading };
+}
+
+// ── Inline bold parser helper ────────────────────────────────────────────────
+
+interface TextSegment {
+    text: string;
+    bold: boolean;
+}
+
+function parseInlineBold(text: string): TextSegment[] {
+    const segments: TextSegment[] = [];
+    const regex = /\*\*(.+?)\*\*/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            segments.push({ text: text.slice(lastIndex, match.index), bold: false });
+        }
+        segments.push({ text: match[1], bold: true });
+        lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+        segments.push({ text: text.slice(lastIndex), bold: false });
+    }
+
+    return segments.length > 0 ? segments : [{ text, bold: false }];
 }
 
 // ── Generate DOCX ────────────────────────────────────────────────────────────
@@ -103,13 +128,13 @@ async function generateDocx(
                     new TextRun({
                         text: nameHeading,
                         bold: true,
-                        size: 36, // 18pt
+                        size: 40, // 20pt
                         font: "Calibri",
-                        color: "1a1a1a",
+                        color: "1a1a2e",
                     }),
                 ],
                 alignment: AlignmentType.CENTER,
-                spacing: { after: 80 },
+                spacing: { after: 60 },
             })
         );
     }
@@ -121,13 +146,13 @@ async function generateDocx(
                 children: [
                     new TextRun({
                         text: contactLine,
-                        size: 18, // 9pt
+                        size: 19, // 9.5pt
                         font: "Calibri",
-                        color: "555555",
+                        color: "4a4a4a",
                     }),
                 ],
                 alignment: AlignmentType.CENTER,
-                spacing: { after: 200 },
+                spacing: { after: 160 },
             })
         );
     }
@@ -138,11 +163,11 @@ async function generateDocx(
             border: {
                 bottom: {
                     style: BorderStyle.SINGLE,
-                    size: 6,
-                    color: "cccccc",
+                    size: 8,
+                    color: "b0b0b0",
                 },
             },
-            spacing: { after: 200 },
+            spacing: { after: 280 },
         })
     );
 
@@ -157,16 +182,17 @@ async function generateDocx(
                         bold: true,
                         size: 22, // 11pt
                         font: "Calibri",
-                        color: "2b2b2b",
+                        color: "1a1a2e",
+                        characterSpacing: 40,
                     }),
                 ],
                 heading: HeadingLevel.HEADING_2,
-                spacing: { before: 240, after: 80 },
+                spacing: { before: 320, after: 100 },
                 border: {
                     bottom: {
                         style: BorderStyle.SINGLE,
-                        size: 2,
-                        color: "dddddd",
+                        size: 4,
+                        color: "d0d0d0",
                     },
                 },
             })
@@ -174,39 +200,44 @@ async function generateDocx(
 
         // Section items
         for (const item of section.items) {
-            // Detect bold prefix patterns like "Company Name | Role"
-            const boldMatch = item.match(/^\*\*(.+?)\*\*(.*)$/);
-            if (boldMatch) {
+            const segments = parseInlineBold(item);
+            const hasBold = segments.some((s) => s.bold);
+            const isTopLevel = segments.length > 0 && segments[0].bold;
+
+            if (isTopLevel) {
+                // Bold-leading line (e.g. job title/company) — no bullet
                 children.push(
                     new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: boldMatch[1],
-                                bold: true,
-                                size: 20,
-                                font: "Calibri",
-                            }),
-                            new TextRun({
-                                text: boldMatch[2],
-                                size: 20,
-                                font: "Calibri",
-                            }),
-                        ],
-                        spacing: { after: 40 },
+                        children: segments.map(
+                            (seg) =>
+                                new TextRun({
+                                    text: seg.text,
+                                    bold: seg.bold,
+                                    size: 20,
+                                    font: "Calibri",
+                                    color: seg.bold ? "1a1a2e" : "333333",
+                                })
+                        ),
+                        spacing: { before: 80, after: 40 },
                     })
                 );
             } else {
+                // Bullet item
                 children.push(
                     new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: `• ${item}`,
-                                size: 20, // 10pt
-                                font: "Calibri",
-                            }),
-                        ],
-                        spacing: { after: 40 },
-                        indent: { left: 360 }, // 0.25 inch
+                        children: segments.map(
+                            (seg) =>
+                                new TextRun({
+                                    text: seg.text,
+                                    bold: seg.bold,
+                                    size: 20,
+                                    font: "Calibri",
+                                    color: "333333",
+                                })
+                        ),
+                        bullet: { level: 0 },
+                        spacing: { after: 50 },
+                        indent: { left: convertInchesToTwip(0.3), hanging: convertInchesToTwip(0.2) },
                     })
                 );
             }
@@ -214,15 +245,35 @@ async function generateDocx(
     }
 
     const doc = new Document({
+        numbering: {
+            config: [
+                {
+                    reference: "default-bullet",
+                    levels: [
+                        {
+                            level: 0,
+                            format: LevelFormat.BULLET,
+                            text: "\u2022",
+                            alignment: AlignmentType.LEFT,
+                            style: {
+                                paragraph: {
+                                    indent: { left: convertInchesToTwip(0.3), hanging: convertInchesToTwip(0.2) },
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
         sections: [
             {
                 properties: {
                     page: {
                         margin: {
-                            top: 720,    // 0.5 inch
-                            bottom: 720,
-                            left: 1080,  // 0.75 inch
-                            right: 1080,
+                            top: 900,    // ~0.63 inch
+                            bottom: 900,
+                            left: 1200,  // ~0.83 inch
+                            right: 1200,
                         },
                     },
                 },
@@ -248,16 +299,17 @@ async function generatePdf(
 
     const PAGE_WIDTH = 595.28; // A4
     const PAGE_HEIGHT = 841.89;
-    const MARGIN_LEFT = 54;
-    const MARGIN_RIGHT = 54;
-    const MARGIN_TOP = 50;
-    const MARGIN_BOTTOM = 50;
+    const MARGIN_LEFT = 58;
+    const MARGIN_RIGHT = 58;
+    const MARGIN_TOP = 54;
+    const MARGIN_BOTTOM = 54;
     const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 
-    const COLOR_BLACK = rgb(0.1, 0.1, 0.1);
-    const COLOR_GRAY = rgb(0.33, 0.33, 0.33);
-    const COLOR_LIGHT = rgb(0.75, 0.75, 0.75);
-    const COLOR_HEADING = rgb(0.17, 0.17, 0.17);
+    const COLOR_DARK = rgb(0.1, 0.1, 0.18);    // Dark navy
+    const COLOR_BODY = rgb(0.2, 0.2, 0.2);      // Body text
+    const COLOR_GRAY = rgb(0.33, 0.33, 0.33);   // Contact info
+    const COLOR_RULE = rgb(0.7, 0.7, 0.7);      // Horizontal rules
+    const COLOR_HEADING = rgb(0.1, 0.1, 0.22);  // Section headings — dark navy accent
 
     let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     let y = PAGE_HEIGHT - MARGIN_TOP;
@@ -294,9 +346,45 @@ async function generatePdf(
         return lines;
     }
 
+    // Draw text with inline bold support
+    function drawInlineBoldLine(
+        text: string,
+        x: number,
+        yPos: number,
+        fontSize: number,
+        maxWidth: number
+    ) {
+        const segments = parseInlineBold(text);
+        // If all plain, just draw normally
+        if (segments.length === 1 && !segments[0].bold) {
+            page.drawText(segments[0].text, {
+                x,
+                y: yPos,
+                size: fontSize,
+                font: helvetica,
+                color: COLOR_BODY,
+            });
+            return;
+        }
+
+        let cursorX = x;
+        for (const seg of segments) {
+            const f = seg.bold ? helveticaBold : helvetica;
+            const c = seg.bold ? COLOR_DARK : COLOR_BODY;
+            page.drawText(seg.text, {
+                x: cursorX,
+                y: yPos,
+                size: fontSize,
+                font: f,
+                color: c,
+            });
+            cursorX += f.widthOfTextAtSize(seg.text, fontSize);
+        }
+    }
+
     // Name
     if (nameHeading) {
-        const nameSize = 18;
+        const nameSize = 20;
         const nameWidth = helveticaBold.widthOfTextAtSize(nameHeading, nameSize);
         const nameX = MARGIN_LEFT + (CONTENT_WIDTH - nameWidth) / 2;
         page.drawText(nameHeading, {
@@ -304,14 +392,14 @@ async function generatePdf(
             y,
             size: nameSize,
             font: helveticaBold,
-            color: COLOR_BLACK,
+            color: COLOR_DARK,
         });
-        y -= 24;
+        y -= 28;
     }
 
     // Contact
     if (contactLine) {
-        const contactSize = 8.5;
+        const contactSize = 9;
         const contactWidth = helvetica.widthOfTextAtSize(contactLine, contactSize);
         const contactX = MARGIN_LEFT + (CONTENT_WIDTH - contactWidth) / 2;
         page.drawText(contactLine, {
@@ -321,7 +409,7 @@ async function generatePdf(
             font: helvetica,
             color: COLOR_GRAY,
         });
-        y -= 18;
+        y -= 22;
     }
 
     // Horizontal rule
@@ -329,18 +417,18 @@ async function generatePdf(
     page.drawLine({
         start: { x: MARGIN_LEFT, y },
         end: { x: PAGE_WIDTH - MARGIN_RIGHT, y },
-        thickness: 0.75,
-        color: COLOR_LIGHT,
+        thickness: 0.8,
+        color: COLOR_RULE,
     });
-    y -= 16;
+    y -= 20;
 
     // Sections
     for (const section of sections) {
-        ensureSpace(40);
+        ensureSpace(50);
 
         // Section heading
         const headingText = section.heading.toUpperCase();
-        const headingSize = 10;
+        const headingSize = 10.5;
         page.drawText(headingText, {
             x: MARGIN_LEFT,
             y,
@@ -348,51 +436,73 @@ async function generatePdf(
             font: helveticaBold,
             color: COLOR_HEADING,
         });
-        y -= 3;
+        y -= 4;
 
         // Thin line under heading
         page.drawLine({
             start: { x: MARGIN_LEFT, y },
             end: { x: PAGE_WIDTH - MARGIN_RIGHT, y },
             thickness: 0.5,
-            color: rgb(0.85, 0.85, 0.85),
+            color: rgb(0.82, 0.82, 0.82),
         });
-        y -= 12;
+        y -= 14;
 
         // Items
         for (const item of section.items) {
-            // Strip markdown bold
+            const segments = parseInlineBold(item);
+            const isTopLevel = segments.length > 0 && segments[0].bold;
             const cleanItem = item.replace(/\*\*/g, "");
-            const isBoldLine = item.startsWith("**");
 
-            const itemFont = isBoldLine ? helveticaBold : helvetica;
-            const itemSize = 9.5;
-            const bulletPrefix = isBoldLine ? "" : "•  ";
-            const indent = isBoldLine ? 0 : 12;
-            const itemMaxWidth = CONTENT_WIDTH - indent;
+            if (isTopLevel) {
+                // Bold-leading entry (job title, company, etc.) — no bullet
+                const itemSize = 10;
+                const wrappedLines = wrapText(cleanItem, helveticaBold, itemSize, CONTENT_WIDTH);
+                for (const wl of wrappedLines) {
+                    ensureSpace(16);
+                    drawInlineBoldLine(
+                        // Re-inject bold markers for first line
+                        wl === wrappedLines[0] ? item : wl,
+                        MARGIN_LEFT,
+                        y,
+                        itemSize,
+                        CONTENT_WIDTH
+                    );
+                    y -= 15;
+                }
+                y -= 2;
+            } else {
+                // Bullet item
+                const itemSize = 9.5;
+                const bulletIndent = 14;
+                const itemMaxWidth = CONTENT_WIDTH - bulletIndent;
+                const wrappedLines = wrapText(cleanItem, helvetica, itemSize, itemMaxWidth);
 
-            const wrappedLines = wrapText(
-                bulletPrefix + cleanItem,
-                itemFont,
-                itemSize,
-                itemMaxWidth
-            );
-
-            for (let li = 0; li < wrappedLines.length; li++) {
-                ensureSpace(14);
-                page.drawText(wrappedLines[li], {
-                    x: MARGIN_LEFT + indent,
-                    y,
-                    size: itemSize,
-                    font: itemFont,
-                    color: COLOR_BLACK,
-                });
-                y -= 13;
+                for (let li = 0; li < wrappedLines.length; li++) {
+                    ensureSpace(15);
+                    if (li === 0) {
+                        // Draw bullet character
+                        page.drawText("•", {
+                            x: MARGIN_LEFT + 2,
+                            y,
+                            size: itemSize,
+                            font: helvetica,
+                            color: COLOR_BODY,
+                        });
+                    }
+                    page.drawText(wrappedLines[li], {
+                        x: MARGIN_LEFT + bulletIndent,
+                        y,
+                        size: itemSize,
+                        font: helvetica,
+                        color: COLOR_BODY,
+                    });
+                    y -= 14;
+                }
+                y -= 2;
             }
-            y -= 2; // small gap between items
         }
 
-        y -= 8; // gap between sections
+        y -= 12; // gap between sections
     }
 
     return pdfDoc.save();
