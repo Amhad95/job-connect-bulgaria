@@ -67,7 +67,7 @@ export function DocumentSelectModal({
 
     return (
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-            <DialogContent className="max-w-xl">
+            <DialogContent className="max-w-xl overflow-hidden">
                 <DialogHeader>
                     <DialogTitle>
                         {t("applyKit.selectDocument", "Select base document")}
@@ -97,12 +97,12 @@ export function DocumentSelectModal({
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-2 max-h-64 overflow-auto">
+                            <div className="space-y-2 max-h-52 overflow-y-auto overscroll-contain">
                                 {existingDocs.map((doc) => (
                                     <button
                                         key={doc.id}
                                         onClick={() => onSelectExisting(doc)}
-                                        className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-blue-300 hover:bg-blue-50/50 transition-colors flex items-center gap-3"
+                                        className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-blue-300 hover:bg-blue-50/50 transition-colors flex items-center gap-3 overflow-hidden"
                                     >
                                         <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
                                             <FileText className="h-4 w-4" />
@@ -138,8 +138,8 @@ export function DocumentSelectModal({
                             onDragLeave={() => setDragActive(false)}
                             onDrop={handleDrop}
                             className={`rounded-xl border-2 border-dashed p-8 text-center transition-colors ${dragActive
-                                    ? "border-blue-400 bg-blue-50"
-                                    : "border-gray-200 bg-gray-50/50"
+                                ? "border-blue-400 bg-blue-50"
+                                : "border-gray-200 bg-gray-50/50"
                                 }`}
                         >
                             <Upload className="mx-auto mb-3 h-10 w-10 text-gray-300" />
