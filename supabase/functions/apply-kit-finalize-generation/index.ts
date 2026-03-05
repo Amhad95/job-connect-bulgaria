@@ -199,7 +199,7 @@ Deno.serve(async (req: Request) => {
         const { error: uploadError } = await supabase.storage
             .from("apply-kit")
             .upload(storagePath, new TextEncoder().encode(finalMarkdown), {
-                contentType: "text/markdown",
+                contentType: "text/plain",
                 upsert: true,
             });
 
