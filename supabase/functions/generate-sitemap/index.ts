@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const BASE_URL = "https://bachkam-jobs.lovable.app";
+const BASE_URL = "https://www.bachkam.com";
 
 const STATIC_ROUTES = [
   { path: "/", changefreq: "daily", priority: "1.0" },
