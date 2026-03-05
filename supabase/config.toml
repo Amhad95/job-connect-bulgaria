@@ -13,3 +13,9 @@ project_id = "aqspxvcgmvflbvpionnj"
     verify_jwt = false
   [functions.generate-sitemap]
     verify_jwt = false
+  [functions.apply-kit-start-generation]
+    verify_jwt = true
+  [functions.apply-kit-refine-generation]
+    verify_jwt = true
+  [functions.apply-kit-finalize-generation]
+    verify_jwt = true
