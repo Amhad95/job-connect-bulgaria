@@ -1,30 +1,54 @@
 
 
-## Serve Sitemap at `www.bachkam.com/sitemap.xml`
+## Fix: Switch Apply Kit AI to Lovable AI Gateway
 
 ### Problem
-The dynamic sitemap lives at a backend function URL, not on the domain itself. Google Search Console expects a URL on your own domain.
+The `callAI` function in `apply-kit-start-generation` and `apply-kit-refine-generation` tries Supabase built-in AI (mistral model, not supported) then falls back to OpenAI (no key configured). Both fail.
 
 ### Solution
-Create a **sitemap index file** at `public/sitemap.xml` that references the edge function as a sub-sitemap. Google fully supports this pattern — it reads the index, follows the link, and processes the dynamic sitemap.
+Replace the `callAI` function in both edge functions to use the Lovable AI Gateway (`https://ai.gateway.lovable.dev/v1/chat/completions`) with the pre-configured `LOVABLE_API_KEY` secret and `google/gemini-3-flash-preview` model.
+
+The `apply-kit-finalize-generation` function does NOT call AI, so no changes needed there.
 
 ### Changes
 
-**1. Create `public/sitemap.xml`** — Static sitemap index file:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap>
-    <loc>https://aqspxvcgmvflbvpionnj.supabase.co/functions/v1/generate-sitemap</loc>
-  </sitemap>
-</sitemapindex>
+**1. `supabase/functions/apply-kit-start-generation/index.ts`** — Replace `callAI` (lines 114-164):
+```typescript
+async function callAI(
+    messages: Array<{ role: string; content: string }>
+): Promise<string> {
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages,
+            temperature: 0.2,
+            max_tokens: 4000,
+        }),
+    });
+
+    if (res.status === 429) throw new Error("Rate limited. Please try again later.");
+    if (res.status === 402) throw new Error("AI credits exhausted. Please add credits.");
+    if (!res.ok) {
+        const t = await res.text();
+        throw new Error("AI gateway error: " + t);
+    }
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error("AI returned no content");
+    return content;
+}
 ```
 
-**2. Update `public/robots.txt`** — Point sitemap directive to the domain path:
-```
-Sitemap: https://www.bachkam.com/sitemap.xml
-```
+**2. `supabase/functions/apply-kit-refine-generation/index.ts`** — Same replacement for its `callAI` function (lines 27-63).
 
-### Result
-Submit `https://www.bachkam.com/sitemap.xml` to Google Search Console. Google reads the index → follows the link to the dynamic function → indexes all your jobs and blog posts.
+No other files need changes.
 
