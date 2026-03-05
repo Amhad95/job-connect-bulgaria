@@ -50,4 +50,4 @@ Disallow: /employer/settings
 Disallow: /employer/team
 Disallow: /employer/notifications
 
-Sitemap: https://aqspxvcgmvflbvpionnj.supabase.co/functions/v1/generate-sitemap
+Sitemap: https://www.bachkam.com/sitemap.xml
