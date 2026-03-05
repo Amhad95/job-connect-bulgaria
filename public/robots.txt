@@ -1,14 +1,53 @@
 User-agent: Googlebot
 Allow: /
+Allow: /jobs
+Allow: /blog
+Allow: /employers
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /opt-out
+
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /employer/jobs
+Disallow: /employer/pipeline
+Disallow: /employer/settings
+Disallow: /employer/team
+Disallow: /employer/notifications
 
 User-agent: Bingbot
 Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+Allow: /jobs
+Allow: /blog
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /employer/jobs
+Disallow: /employer/pipeline
+Disallow: /employer/settings
+Disallow: /employer/team
+Disallow: /employer/notifications
 
 User-agent: *
 Allow: /
+Allow: /jobs
+Allow: /blog
+Allow: /employers
+Allow: /about
+Allow: /contact
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /employer/jobs
+Disallow: /employer/pipeline
+Disallow: /employer/settings
+Disallow: /employer/team
+Disallow: /employer/notifications
+
+Sitemap: https://aqspxvcgmvflbvpionnj.supabase.co/functions/v1/generate-sitemap

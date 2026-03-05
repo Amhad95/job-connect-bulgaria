@@ -11,3 +11,5 @@ project_id = "aqspxvcgmvflbvpionnj"
     verify_jwt = false
   [functions.seed-employers]
     verify_jwt = false
+  [functions.generate-sitemap]
+    verify_jwt = false
