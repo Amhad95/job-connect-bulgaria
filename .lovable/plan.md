@@ -1,17 +1,30 @@
 
 
-## Update Sitemap Base URL to Production Domain
+## Serve Sitemap at `www.bachkam.com/sitemap.xml`
 
-The sitemap function currently generates all URLs with `https://bachkam-jobs.lovable.app`. Since the production domain is `www.bachkam.com`, the base URL needs updating.
+### Problem
+The dynamic sitemap lives at a backend function URL, not on the domain itself. Google Search Console expects a URL on your own domain.
+
+### Solution
+Create a **sitemap index file** at `public/sitemap.xml` that references the edge function as a sub-sitemap. Google fully supports this pattern — it reads the index, follows the link, and processes the dynamic sitemap.
 
 ### Changes
 
-**1. Update `supabase/functions/generate-sitemap/index.ts`**
-- Change `BASE_URL` from `https://bachkam-jobs.lovable.app` to `https://www.bachkam.com`
+**1. Create `public/sitemap.xml`** — Static sitemap index file:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://aqspxvcgmvflbvpionnj.supabase.co/functions/v1/generate-sitemap</loc>
+  </sitemap>
+</sitemapindex>
+```
 
-**2. Update `public/robots.txt`**  
-- Optionally update the `Sitemap:` directive — though the current absolute URL to the backend function works fine across domains.
+**2. Update `public/robots.txt`** — Point sitemap directive to the domain path:
+```
+Sitemap: https://www.bachkam.com/sitemap.xml
+```
 
-### Files changed
-1. `supabase/functions/generate-sitemap/index.ts` — update `BASE_URL` constant
+### Result
+Submit `https://www.bachkam.com/sitemap.xml` to Google Search Console. Google reads the index → follows the link to the dynamic function → indexes all your jobs and blog posts.
 
