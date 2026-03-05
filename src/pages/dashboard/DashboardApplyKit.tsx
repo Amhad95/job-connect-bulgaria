@@ -83,6 +83,7 @@ export default function DashboardApplyKit() {
         id: string;
         file_name: string;
         storage_path: string;
+        docx_storage_path: string;
     } | null>(null);
 
     // Data hooks
@@ -311,6 +312,7 @@ export default function DashboardApplyKit() {
                     id: result.document.id,
                     file_name: result.document.file_name,
                     storage_path: result.document.storage_path,
+                    docx_storage_path: result.document.docx_storage_path,
                 });
                 setFlowState("success");
                 invalidateApplyKit();
@@ -327,9 +329,14 @@ export default function DashboardApplyKit() {
         }
     };
 
-    const handleDownloadDoc = async (doc: ApplyKitDocument | null = null) => {
+    const handleDownloadDoc = async (doc: ApplyKitDocument | null = null, format: "pdf" | "docx" = "pdf") => {
         try {
-            const path = doc?.storage_path || finalizedDoc?.storage_path;
+            let path: string | undefined;
+            if (doc) {
+                path = doc.storage_path;
+            } else if (finalizedDoc) {
+                path = format === "docx" ? finalizedDoc.docx_storage_path : finalizedDoc.storage_path;
+            }
             if (!path) return;
             const url = await getSignedDownloadUrl(path);
             window.open(url, "_blank");
@@ -379,7 +386,8 @@ export default function DashboardApplyKit() {
                 return finalizedDoc ? (
                     <FinalizationSuccess
                         fileName={finalizedDoc.file_name}
-                        onDownload={() => handleDownloadDoc()}
+                        onDownloadPdf={() => handleDownloadDoc(null, "pdf")}
+                        onDownloadDocx={() => handleDownloadDoc(null, "docx")}
                         onUseAsBase={() => {
                             handleReset();
                             handleStartTailoring();
