@@ -88,6 +88,7 @@ export interface FinalizeResult {
         id: string;
         file_name: string;
         storage_path: string;
+        docx_storage_path: string;
         created_at: string;
         structured_json: any;
         raw_text: string;
