@@ -23,49 +23,34 @@ const corsHeaders = {
 async function callAI(
     messages: Array<{ role: string; content: string }>
 ): Promise<string> {
-    try {
-        // @ts-ignore — Supabase.ai is available in the Supabase/Lovable edge runtime
-        const session = new Supabase.ai.Session("mistral");
-        const prompt = messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
-        // @ts-ignore
-        const response = await session.run(prompt, {
-            mode: "text",
-            stream: false,
-        });
-        const text: string =
-            typeof response === "string"
-                ? response
-                : response?.choices?.[0]?.message?.content ??
-                response?.output ??
-                JSON.stringify(response);
-        if (text && text.length > 50) return text;
-    } catch (e) {
-        console.warn("Supabase built-in AI failed, trying OpenAI fallback:", e);
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages,
+            temperature: 0.2,
+            max_tokens: 4000,
+        }),
+    });
+
+    if (res.status === 429) throw new Error("Rate limited. Please try again later.");
+    if (res.status === 402) throw new Error("AI credits exhausted. Please add credits.");
+    if (!res.ok) {
+        const t = await res.text();
+        throw new Error("AI gateway error: " + t);
     }
 
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (openaiKey) {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${openaiKey}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: messages.map((m) => ({ role: m.role, content: m.content })),
-                temperature: 0.2,
-                max_tokens: 4000,
-            }),
-        });
-        const data = await res.json();
-        if (data.choices?.[0]?.message?.content) {
-            return data.choices[0].message.content;
-        }
-        throw new Error("OpenAI returned no content: " + JSON.stringify(data));
-    }
-
-    throw new Error("No AI provider available.");
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error("AI returned no content");
+    return content;
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
