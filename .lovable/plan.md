@@ -1,54 +1,44 @@
 
 
-## Fix: Switch Apply Kit AI to Lovable AI Gateway
+## Fix Three Apply Kit Issues
 
-### Problem
-The `callAI` function in `apply-kit-start-generation` and `apply-kit-refine-generation` tries Supabase built-in AI (mistral model, not supported) then falls back to OpenAI (no key configured). Both fail.
+### Issue 1: PDF download blocked by browser (`ERR_BLOCKED_BY_CLIENT`)
 
-### Solution
-Replace the `callAI` function in both edge functions to use the Lovable AI Gateway (`https://ai.gateway.lovable.dev/v1/chat/completions`) with the pre-configured `LOVABLE_API_KEY` secret and `google/gemini-3-flash-preview` model.
+The current download uses `window.open(url, "_blank")` which opens a Supabase signed URL directly. Ad blockers and Chrome's built-in protection block navigations to unfamiliar domains. The fix is to use a programmatic fetch + blob download instead.
 
-The `apply-kit-finalize-generation` function does NOT call AI, so no changes needed there.
+**Change in `src/pages/dashboard/DashboardApplyKit.tsx`** (handleDownloadDoc):
+- Replace `window.open(url, "_blank")` with `fetch(url)` → create blob → `URL.createObjectURL` → trigger download via hidden `<a>` tag with `download` attribute
+- This bypasses ad-blocker domain blocking entirely
 
-### Changes
+### Issue 2: PDF/DOCX template aesthetic improvements
 
-**1. `supabase/functions/apply-kit-start-generation/index.ts`** — Replace `callAI` (lines 114-164):
-```typescript
-async function callAI(
-    messages: Array<{ role: string; content: string }>
-): Promise<string> {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+The current `generatePdf` and `generateDocx` in the finalize edge function produce a basic layout. Improvements:
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages,
-            temperature: 0.2,
-            max_tokens: 4000,
-        }),
-    });
+**PDF (`supabase/functions/apply-kit-finalize-generation/index.ts`)**:
+- Increase name font size slightly, add more vertical spacing after name/contact
+- Add consistent section spacing with proper line-height
+- Improve bullet point indentation and spacing
+- Add subtle color accent to section headings (dark navy instead of near-black)
+- Handle inline bold (`**text**`) within lines by splitting and drawing bold/regular segments
+- Better page break logic with more breathing room
 
-    if (res.status === 429) throw new Error("Rate limited. Please try again later.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Please add credits.");
-    if (!res.ok) {
-        const t = await res.text();
-        throw new Error("AI gateway error: " + t);
-    }
+**DOCX (same file)**:
+- Better paragraph spacing between sections
+- Use proper bullet list formatting instead of text bullets
+- Handle inline bold markers within item text (not just prefix bold)
+- Add slightly more generous margins
 
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error("AI returned no content");
-    return content;
-}
-```
+### Issue 3: Preview markdown rendering — bold text shows as `**text**`
 
-**2. `supabase/functions/apply-kit-refine-generation/index.ts`** — Same replacement for its `callAI` function (lines 27-63).
+The `PreviewRefineView` component renders lines as plain text without parsing inline markdown like `**bold**`. 
 
-No other files need changes.
+**Change in `src/components/apply-kit/PreviewRefineView.tsx`**:
+- Add a `renderInlineMarkdown(text)` helper function that splits text on `**...**` patterns and wraps matched segments in `<strong>` tags
+- Also handle `*italic*` with `<em>` tags
+- Apply this helper to all text content (headings, list items, paragraphs)
+
+### Files to modify
+1. `src/pages/dashboard/DashboardApplyKit.tsx` — blob-based download
+2. `src/components/apply-kit/PreviewRefineView.tsx` — inline markdown rendering
+3. `supabase/functions/apply-kit-finalize-generation/index.ts` — template polish
 
