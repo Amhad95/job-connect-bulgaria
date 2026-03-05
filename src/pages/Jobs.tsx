@@ -106,7 +106,7 @@ export default function Jobs() {
   const removeFilter = (f: string) => {
     if (f === "Has salary") { setShowWithSalary(false); return; }
     // Check if it's a city name
-    const citySlug = CANONICAL_CITIES.find(c => 
+    const citySlug = CANONICAL_CITIES.find(c =>
       c.name_en === f || c.name_bg === f
     )?.slug;
     if (citySlug) { setSelectedCitySlugs(c => c.filter(x => x !== citySlug)); return; }
@@ -130,15 +130,15 @@ export default function Jobs() {
         <h4 className="mb-2 text-sm font-semibold text-foreground">{t("jobs.city")}</h4>
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
           {CANONICAL_CITIES.map((c) => (
-              <label key={c.slug} className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={selectedCitySlugs.includes(c.slug)} onCheckedChange={() => toggle(selectedCitySlugs, c.slug, setSelectedCitySlugs)} />
-                <span className="text-muted-foreground truncate">
-                  {i18n.language === "bg" ? c.name_bg : c.name_en}
-                </span>
-              </label>
-            ))}
-          </div>
+            <label key={c.slug} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={selectedCitySlugs.includes(c.slug)} onCheckedChange={() => toggle(selectedCitySlugs, c.slug, setSelectedCitySlugs)} />
+              <span className="text-muted-foreground truncate">
+                {i18n.language === "bg" ? c.name_bg : c.name_en}
+              </span>
+            </label>
+          ))}
         </div>
+      </div>
       {/* Work Mode */}
       {workModes.length > 0 && (
         <div>
@@ -340,10 +340,10 @@ function JobPreviewContent({ job, jobDetail, t, lang, avatarUrl }: {
           <Button variant="outline" className="w-full gap-2 mt-1"><ArrowRight className="h-4 w-4" />{t("jobDetail.viewFull")}</Button>
         </Link>
         <div className="flex gap-2 mt-1">
-          <Link to={`/apply-kit?tab=cover&jobId=${job.id}`} className="flex-1">
+          <Link to={`/dashboard/apply-kit?tab=cover&jobId=${job.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><PenLine className="h-3.5 w-3.5" />{t("jobDetail.generateCoverLetter")}</Button>
           </Link>
-          <Link to={`/apply-kit?tab=cv&jobId=${job.id}`} className="flex-1">
+          <Link to={`/dashboard/apply-kit?tab=cv&jobId=${job.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full gap-1 text-xs"><FileText className="h-3.5 w-3.5" />{t("jobDetail.tailorCV")}</Button>
           </Link>
         </div>
