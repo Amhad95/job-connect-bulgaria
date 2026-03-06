@@ -38,6 +38,9 @@ import EmployerSettings from "./pages/employer/EmployerSettings";
 import TeamSettings from "./pages/employer/TeamSettings";
 import JoinInvite from "./pages/employer/JoinInvite";
 import NotificationSettings from "./pages/employer/NotificationSettings";
+import EmployerApplicants from "./pages/employer/EmployerApplicants";
+import EmployerAnalytics from "./pages/employer/EmployerAnalytics";
+import EmployerAccount from "./pages/employer/EmployerAccount";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
@@ -121,6 +124,9 @@ const App = () => (
                 <Route index element={<EmployerJobs />} />
                 <Route path="jobs" element={<EmployerJobs />} />
                 <Route path="jobs/:id/pipeline" element={<EmployerPipeline />} />
+                <Route path="applicants" element={<EmployerApplicants />} />
+                <Route path="analytics" element={<EmployerAnalytics />} />
+                <Route path="account" element={<EmployerAccount />} />
                 <Route path="settings" element={<EmployerSettings />} />
                 <Route path="settings/team" element={<TeamSettings />} />
                 <Route path="settings/notifications" element={<NotificationSettings />} />

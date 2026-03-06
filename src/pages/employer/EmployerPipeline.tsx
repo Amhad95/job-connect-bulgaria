@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useEmployer } from "@/contexts/EmployerContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -17,9 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
     ArrowLeft, User, ExternalLink, ChevronDown, Loader2,
-    RefreshCw, AlertCircle, Sparkles, TrendingUp, Calendar, FileText
+    RefreshCw, AlertCircle, Sparkles, TrendingUp, Calendar, FileText,
+    Search, StickyNote, Send, X, Filter, Clock,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type AppStatus = "new" | "reviewing" | "interviewing" | "offered" | "rejected";
@@ -37,6 +41,14 @@ interface Applicant {
     ai_match_reasoning: string | null;
     ai_status: AiStatus;
     ai_error: string | null;
+    profile_strength_score: number | null;
+}
+
+interface Note {
+    id: string;
+    note: string;
+    created_at: string;
+    created_by: string;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -63,11 +75,16 @@ const COLUMN_HEADER_COLORS: Record<AppStatus, string> = {
     rejected: "text-slate-600 bg-slate-200",
 };
 
+// ── Composite score ────────────────────────────────────────────────────────
+function compositeScore(ai: number | null, profile: number | null): number | null {
+    if (ai === null) return profile;
+    if (profile === null) return ai;
+    return Math.round(0.75 * ai + 0.25 * profile);
+}
+
 // ── ScoreBadge ─────────────────────────────────────────────────────────────
 function ScoreBadge({ score, aiStatus }: { score: number | null; aiStatus: AiStatus }) {
-    if (aiStatus === "unscored") {
-        return null; // starter plan — no badge shown
-    }
+    if (aiStatus === "unscored") return null;
     if (aiStatus === "failed") {
         return (
             <Badge variant="outline" className="text-[10px] font-semibold bg-red-50 text-red-600 border-red-200 gap-1 px-1.5 py-0.5 rounded-md">
@@ -88,11 +105,9 @@ function ScoreBadge({ score, aiStatus }: { score: number | null; aiStatus: AiSta
             ? "bg-amber-50 text-amber-700 border-amber-200"
             : "bg-red-50 text-red-600 border-red-200";
 
-    const iconCls = score >= 80 ? "text-emerald-500" : score >= 50 ? "text-amber-500" : "text-red-500";
-
     return (
         <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md gap-1 ${cls}`}>
-            <TrendingUp className={`w-3 h-3 ${iconCls}`} />
+            <TrendingUp className={`w-3 h-3`} />
             {score}%
         </Badge>
     );
@@ -107,8 +122,8 @@ function CandidateCard({
     onSelect: (checked: boolean) => void;
     onClick: () => void;
 }) {
-    // Generate initials for avatar
     const initials = `${app.first_name?.[0] || ""}${app.last_name?.[0] || ""}`.toUpperCase();
+    const comp = compositeScore(app.ai_match_score, app.profile_strength_score);
 
     return (
         <div
@@ -140,7 +155,14 @@ function CandidateCard({
                     <Calendar className="w-3 h-3" />
                     {formatDistanceToNow(new Date(app.applied_at), { addSuffix: true })}
                 </div>
-                <ScoreBadge score={app.ai_match_score} aiStatus={app.ai_status} />
+                <div className="flex items-center gap-1.5">
+                    {comp !== null && comp !== app.ai_match_score && (
+                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                            C:{comp}%
+                        </span>
+                    )}
+                    <ScoreBadge score={app.ai_match_score} aiStatus={app.ai_status} />
+                </div>
             </div>
         </div>
     );
@@ -156,10 +178,20 @@ export default function EmployerPipeline() {
     const [loading, setLoading] = useState(true);
     const [plan, setPlan] = useState<string>("starter");
 
+    // Filters
+    const [searchQuery, setSearchQuery] = useState("");
+    const [minScore, setMinScore] = useState(0);
+    const [showFilters, setShowFilters] = useState(false);
+
     // Drawer
     const [drawer, setDrawer] = useState<Applicant | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [retrying, setRetrying] = useState(false);
+
+    // Notes
+    const [notes, setNotes] = useState<Note[]>([]);
+    const [newNote, setNewNote] = useState("");
+    const [savingNote, setSavingNote] = useState(false);
 
     // Bulk selection
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -168,20 +200,17 @@ export default function EmployerPipeline() {
         if (!jobId) return;
         setLoading(true);
 
-        // Job title
         const { data: jobData } = await (supabase as any)
             .from("job_postings").select("title").eq("id", jobId).single();
         if (jobData) setJob({ title: jobData.title });
 
-        // Employer plan
         const { data: subData } = await (supabase as any)
             .from("employer_subscriptions").select("plan_id").eq("employer_id", employerId).single();
         if (subData?.plan_id) setPlan(subData.plan_id);
 
-        // Applications — include ai_status + ai_error
         const { data: appData } = await (supabase as any)
             .from("applications")
-            .select("id, first_name, last_name, email, resume_url, status, applied_at, ai_match_score, ai_match_reasoning, ai_status, ai_error")
+            .select("id, first_name, last_name, email, resume_url, status, applied_at, ai_match_score, ai_match_reasoning, ai_status, ai_error, profile_strength_score")
             .eq("job_id", jobId)
             .order("ai_match_score", { ascending: false, nullsFirst: false })
             .order("applied_at", { ascending: false });
@@ -191,6 +220,44 @@ export default function EmployerPipeline() {
     }, [jobId, employerId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    // ── Notes fetching ──
+    const fetchNotes = useCallback(async (appId: string) => {
+        const { data } = await (supabase as any)
+            .from("application_notes")
+            .select("id, note, created_at, created_by")
+            .eq("application_id", appId)
+            .order("created_at", { ascending: false });
+        setNotes(data ?? []);
+    }, []);
+
+    useEffect(() => {
+        if (drawer) {
+            fetchNotes(drawer.id);
+            setNewNote("");
+        }
+    }, [drawer?.id]);
+
+    const saveNote = async () => {
+        if (!drawer || !newNote.trim()) return;
+        setSavingNote(true);
+        const { error } = await (supabase as any)
+            .from("application_notes")
+            .insert({
+                application_id: drawer.id,
+                employer_id: employerId,
+                created_by: (await supabase.auth.getUser()).data.user?.id,
+                note: newNote.trim(),
+            });
+        if (!error) {
+            fetchNotes(drawer.id);
+            setNewNote("");
+            toast.success("Note added");
+        } else {
+            toast.error("Failed to save note");
+        }
+        setSavingNote(false);
+    };
 
     // ── Status update ──
     const updateStatus = async (appId: string, newStatus: AppStatus) => {
@@ -209,7 +276,6 @@ export default function EmployerPipeline() {
             .rpc("retry_application_scoring", { p_application_id: appId });
 
         if (!error) {
-            // Optimistically show scoring
             const newAiStatus: AiStatus = (data === "queued") ? "scoring"
                 : (data === "unscored") ? "unscored"
                     : "failed";
@@ -239,12 +305,36 @@ export default function EmployerPipeline() {
         });
     };
 
-    const byStatus = (s: AppStatus) => {
-        const col = apps.filter(a => a.status === s);
-        if (s !== "new") {
-            return col.sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime());
+    // ── Filtered apps ──
+    const filteredApps = useMemo(() => {
+        let result = [...apps];
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(a =>
+                `${a.first_name} ${a.last_name}`.toLowerCase().includes(q) ||
+                a.email.toLowerCase().includes(q)
+            );
         }
-        return col; // already sorted by ai_match_score desc from query
+        if (minScore > 0) {
+            result = result.filter(a => {
+                const c = compositeScore(a.ai_match_score, a.profile_strength_score);
+                return (c || 0) >= minScore;
+            });
+        }
+        return result;
+    }, [apps, searchQuery, minScore]);
+
+    const byStatus = (s: AppStatus) => {
+        const col = filteredApps.filter(a => a.status === s);
+        if (s === "new") {
+            // Sort by composite score desc
+            return col.sort((a, b) => {
+                const ca = compositeScore(a.ai_match_score, a.profile_strength_score) || 0;
+                const cb = compositeScore(b.ai_match_score, b.profile_strength_score) || 0;
+                return cb - ca;
+            });
+        }
+        return col.sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime());
     };
 
     const isStarter = plan === "starter";
@@ -252,7 +342,7 @@ export default function EmployerPipeline() {
     return (
         <div className="flex flex-col min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-8rem)]">
             {/* Header */}
-            <div className="mb-6 shrink-0">
+            <div className="mb-4 shrink-0">
                 <Link to="/employer/jobs" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-4 transition-colors bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg">
                     <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
                 </Link>
@@ -262,7 +352,7 @@ export default function EmployerPipeline() {
                             {loading ? <Skeleton className="w-48 h-7 inline-block" /> : job?.title ?? "Pipeline"}
                             {!loading && (
                                 <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
-                                    {apps.length} Applicant{apps.length !== 1 ? "s" : ""}
+                                    {filteredApps.length}{filteredApps.length !== apps.length ? `/${apps.length}` : ""} Applicant{apps.length !== 1 ? "s" : ""}
                                 </Badge>
                             )}
                         </h1>
@@ -295,9 +385,44 @@ export default function EmployerPipeline() {
                 </div>
             </div>
 
+            {/* ── Filter bar ── */}
+            <div className="mb-4 shrink-0 flex items-center gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                        placeholder="Search candidates..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="pl-9 rounded-lg bg-white border-slate-200 h-9 text-sm shadow-sm"
+                    />
+                </div>
+
+                <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 h-9 shadow-sm">
+                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Min Score</span>
+                    <input
+                        type="range"
+                        min={0} max={100} step={5}
+                        value={minScore}
+                        onChange={e => setMinScore(Number(e.target.value))}
+                        className="w-20 accent-blue-600"
+                    />
+                    <span className="text-xs font-bold text-slate-700 w-8 text-right">{minScore}%</span>
+                </div>
+
+                {(searchQuery || minScore > 0) && (
+                    <Button
+                        variant="ghost" size="sm"
+                        className="h-8 text-xs text-slate-500 hover:text-slate-700 gap-1"
+                        onClick={() => { setSearchQuery(""); setMinScore(0); }}
+                    >
+                        <X className="w-3.5 h-3.5" /> Clear
+                    </Button>
+                )}
+            </div>
+
             {/* Starter plan upgrade banner */}
             {isStarter && !loading && (
-                <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 shadow-sm shrink-0">
+                <div className="mb-4 flex items-start gap-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 shadow-sm shrink-0">
                     <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                         <Sparkles className="w-4 h-4 text-amber-600" />
                     </div>
@@ -345,7 +470,9 @@ export default function EmployerPipeline() {
                                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-2">
                                                 <User className="w-5 h-5 text-slate-300" />
                                             </div>
-                                            <p className="text-xs font-semibold text-slate-400">Drag applicants here</p>
+                                            <p className="text-xs font-semibold text-slate-400">
+                                                {searchQuery || minScore > 0 ? "No matches" : "Drag applicants here"}
+                                            </p>
                                         </div>
                                     ) : (
                                         colApps.map(app => (
@@ -365,7 +492,7 @@ export default function EmployerPipeline() {
                 )}
             </div>
 
-            {/* Candidate drawer */}
+            {/* ── Candidate Drawer ── */}
             <Sheet open={!!drawer} onOpenChange={v => !v && setDrawer(null)}>
                 <SheetContent className="w-full sm:max-w-md overflow-hidden p-0 border-l border-slate-200 shadow-2xl flex flex-col">
                     {drawer && (
@@ -408,7 +535,7 @@ export default function EmployerPipeline() {
                             {/* Drawer Body - Scrollable */}
                             <div className="p-6 flex-1 overflow-y-auto">
                                 {/* AI Match section */}
-                                <div className="mb-8 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                <div className="mb-6 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
                                     <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center">
@@ -416,12 +543,9 @@ export default function EmployerPipeline() {
                                             </div>
                                             <h3 className="text-sm font-bold text-slate-800">AI Match Analysis</h3>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <ScoreBadge score={drawer.ai_match_score} aiStatus={drawer.ai_status} />
-                                        </div>
+                                        <ScoreBadge score={drawer.ai_match_score} aiStatus={drawer.ai_status} />
                                     </div>
 
-                                    {/* Reasoning or error */}
                                     {drawer.ai_status === "failed" && drawer.ai_error ? (
                                         <div className="rounded-xl bg-red-50 border border-red-100 p-3">
                                             <div className="flex items-center gap-2 mb-1">
@@ -429,7 +553,6 @@ export default function EmployerPipeline() {
                                                 <p className="text-sm text-red-700 font-bold">Analysis Failed</p>
                                             </div>
                                             <p className="text-xs text-red-600 font-mono mt-1 bg-red-100/50 p-2 rounded-lg break-words">{drawer.ai_error}</p>
-
                                             {!isStarter && (
                                                 <Button size="sm" variant="outline" className="w-full mt-3 bg-white hover:bg-red-50 text-red-600 border-red-200 rounded-xl" disabled={retrying} onClick={() => retryScoring(drawer.id)}>
                                                     {retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <RefreshCw className="w-3.5 h-3.5 mr-2" />} Retry Analysis
@@ -438,17 +561,13 @@ export default function EmployerPipeline() {
                                         </div>
                                     ) : drawer.ai_status === "unscored" ? (
                                         <div className="text-center py-2">
-                                            <p className="text-sm text-slate-600 mb-3">
-                                                AI scoring is not available on the Starter plan.
-                                            </p>
+                                            <p className="text-sm text-slate-600 mb-3">AI scoring is not available on the Starter plan.</p>
                                             <Button size="sm" asChild variant="outline" className="w-full rounded-xl">
                                                 <Link to="/employers#pricing">Upgrade to enable ranking</Link>
                                             </Button>
                                         </div>
                                     ) : drawer.ai_match_reasoning ? (
-                                        <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
-                                            {drawer.ai_match_reasoning}
-                                        </p>
+                                        <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{drawer.ai_match_reasoning}</p>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-6 text-center">
                                             <Loader2 className="w-6 h-6 text-slate-300 animate-spin mb-3" />
@@ -461,10 +580,30 @@ export default function EmployerPipeline() {
                                     )}
                                 </div>
 
+                                {/* Score Breakdown */}
+                                {(drawer.ai_match_score !== null || drawer.profile_strength_score !== null) && (
+                                    <div className="mb-6 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Score Breakdown</h3>
+                                        <div className="grid grid-cols-3 gap-3 text-center">
+                                            <div>
+                                                <p className="text-2xl font-bold text-slate-900">{drawer.ai_match_score ?? "—"}<span className="text-sm text-slate-400">%</span></p>
+                                                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mt-1">AI Match</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-2xl font-bold text-slate-900">{drawer.profile_strength_score ?? "—"}<span className="text-sm text-slate-400">%</span></p>
+                                                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mt-1">Profile</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-2xl font-bold text-blue-700">{compositeScore(drawer.ai_match_score, drawer.profile_strength_score) ?? "—"}<span className="text-sm text-blue-400">%</span></p>
+                                                <p className="text-[10px] uppercase font-bold tracking-wider text-blue-500 mt-1">Composite</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Application Data */}
                                 <div className="mb-6">
                                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Application Materials</h3>
-
                                     <a
                                         href={drawer.resume_url}
                                         target="_blank"
@@ -479,6 +618,64 @@ export default function EmployerPipeline() {
                                         </div>
                                         <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
                                     </a>
+                                </div>
+
+                                {/* ── Internal Notes ── */}
+                                <div className="mb-6">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-1.5">
+                                        <StickyNote className="w-3.5 h-3.5" /> Internal Notes
+                                    </h3>
+
+                                    {/* Add note form */}
+                                    <div className="bg-white rounded-xl border border-slate-200 p-3 mb-3 shadow-sm">
+                                        <Textarea
+                                            placeholder="Add a private note about this candidate..."
+                                            value={newNote}
+                                            onChange={e => setNewNote(e.target.value)}
+                                            rows={2}
+                                            className="resize-none bg-slate-50 border-slate-200 text-sm rounded-lg mb-2"
+                                        />
+                                        <div className="flex justify-end">
+                                            <Button
+                                                size="sm"
+                                                className="h-8 text-xs gap-1.5 rounded-lg"
+                                                disabled={!newNote.trim() || savingNote}
+                                                onClick={saveNote}
+                                            >
+                                                {savingNote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                                Save Note
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Existing notes */}
+                                    {notes.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {notes.map(n => (
+                                                <div key={n.id} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
+                                                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{n.note}</p>
+                                                    <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-slate-400 text-center py-3">No notes yet</p>
+                                    )}
+                                </div>
+
+                                {/* Interview Scheduling placeholder */}
+                                <div className="mb-6 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="w-4 h-4 text-slate-400" />
+                                            <h3 className="text-sm font-bold text-slate-800">Interview Scheduling</h3>
+                                        </div>
+                                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wider font-bold">Coming Soon</Badge>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2">Schedule and manage interviews with candidates directly from here.</p>
                                 </div>
                             </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useEmployer } from "@/contexts/EmployerContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,38 @@ import {
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CANONICAL_CITIES, normalizeCityToSlug } from "@/lib/cities";
+import {
+    Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { CANONICAL_CITIES } from "@/lib/cities";
+import { Check, ChevronsUpDown } from "lucide-react";
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const PROFESSIONAL_FIELDS = [
+    "Engineering", "Marketing", "Sales", "Finance", "HR",
+    "Operations", "Customer Support", "Design", "Product",
+    "Data", "Legal", "DevOps", "QA", "Management",
+];
+
+const INDUSTRIES = [
+    "Software", "FinTech", "Banking", "Telecom", "Healthcare",
+    "Retail", "Logistics", "Manufacturing", "Consulting",
+    "Public Sector", "Education", "Media", "Real Estate", "Energy",
+];
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 export interface JobFormData {
     title: string;
     city: string;
     work_mode: string;
     employment_type: string;
-    category: string;
+    professional_field: string;
+    industry: string;
     salary_min: string;
     salary_max: string;
     currency: string;
@@ -29,9 +53,99 @@ export interface JobFormData {
 
 const EMPTY_FORM: JobFormData = {
     title: "", city: "", work_mode: "hybrid", employment_type: "full-time",
-    category: "", salary_min: "", salary_max: "", currency: "BGN",
+    professional_field: "", industry: "", salary_min: "", salary_max: "", currency: "BGN",
     description_text: "", requirements_text: "", benefits_text: "",
 };
+
+// ── SearchableCombobox ─────────────────────────────────────────────────────
+
+function SearchableCombobox({
+    value, onChange, options, placeholder, label,
+}: {
+    value: string;
+    onChange: (v: string) => void;
+    options: string[];
+    placeholder: string;
+    label: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
+
+    const filtered = useMemo(() => {
+        if (!search.trim()) return options;
+        const q = search.toLowerCase();
+        return options.filter(o => o.toLowerCase().includes(q));
+    }, [options, search]);
+
+    const showCustom = search.trim().length > 0
+        && !options.some(o => o.toLowerCase() === search.trim().toLowerCase());
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-label={label}
+                    className="w-full justify-between font-normal h-10 text-sm"
+                >
+                    <span className={value ? "text-slate-900" : "text-slate-500"}>
+                        {value || placeholder}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command shouldFilter={false}>
+                    <CommandInput
+                        placeholder={`Search ${label.toLowerCase()}...`}
+                        value={search}
+                        onValueChange={setSearch}
+                    />
+                    <CommandList>
+                        <CommandEmpty>
+                            {search.trim() ? "No results found." : "Type to search..."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                            {filtered.map(opt => (
+                                <CommandItem
+                                    key={opt}
+                                    value={opt}
+                                    onSelect={() => {
+                                        onChange(opt);
+                                        setOpen(false);
+                                        setSearch("");
+                                    }}
+                                >
+                                    <Check className={`mr-2 h-4 w-4 ${value === opt ? "opacity-100" : "opacity-0"}`} />
+                                    {opt}
+                                </CommandItem>
+                            ))}
+                            {showCustom && (
+                                <CommandItem
+                                    value={`custom:${search.trim()}`}
+                                    onSelect={() => {
+                                        onChange(search.trim());
+                                        setOpen(false);
+                                        setSearch("");
+                                    }}
+                                    className="border-t border-slate-100"
+                                >
+                                    <span className="text-blue-600 font-medium">
+                                        Use "{search.trim()}"
+                                    </span>
+                                </CommandItem>
+                            )}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+// ── JobEditorDialog ────────────────────────────────────────────────────────
 
 interface JobEditorDialogProps {
     open: boolean;
@@ -65,7 +179,8 @@ export function JobEditorDialog({ open, initial, onClose, onSaved }: JobEditorDi
                 location_slug: citySlug,
                 work_mode: form.work_mode || null,
                 employment_type: form.employment_type || null,
-                category: form.category || null,
+                professional_field: form.professional_field || null,
+                industry: form.industry || null,
                 salary_min: form.salary_min ? parseInt(form.salary_min) : null,
                 salary_max: form.salary_max ? parseInt(form.salary_max) : null,
                 currency: form.currency || "BGN",
@@ -162,7 +277,7 @@ export function JobEditorDialog({ open, initial, onClose, onSaved }: JobEditorDi
                         </div>
                     </div>
 
-                    {/* Employment type + category */}
+                    {/* Employment type + Professional field */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label>Employment Type</Label>
@@ -177,9 +292,30 @@ export function JobEditorDialog({ open, initial, onClose, onSaved }: JobEditorDi
                             </Select>
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="category">Category</Label>
-                            <Input id="category" placeholder="Engineering" value={form.category} onChange={e => set("category", e.target.value)} />
+                            <Label>Professional Field</Label>
+                            <SearchableCombobox
+                                value={form.professional_field}
+                                onChange={v => set("professional_field", v)}
+                                options={PROFESSIONAL_FIELDS}
+                                placeholder="Select or type..."
+                                label="Professional Field"
+                            />
                         </div>
+                    </div>
+
+                    {/* Industry */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label>Industry</Label>
+                            <SearchableCombobox
+                                value={form.industry}
+                                onChange={v => set("industry", v)}
+                                options={INDUSTRIES}
+                                placeholder="Select or type..."
+                                label="Industry"
+                            />
+                        </div>
+                        <div /> {/* empty cell for alignment */}
                     </div>
 
                     {/* Salary */}

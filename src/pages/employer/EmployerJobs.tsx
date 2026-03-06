@@ -6,21 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-    DropdownMenuSeparator, DropdownMenuTrigger,
+    DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobEditorDialog } from "@/components/employer/JobEditorDialog";
 import {
     Plus, MoreHorizontal, KanbanSquare, Pencil, Eye, EyeOff,
     XCircle, Briefcase, Users, TrendingUp, Clock, MapPin, Search,
-    LayoutGrid, List, CheckSquare, AlertTriangle
+    LayoutGrid, List, AlertTriangle, Filter, X, Trash2, Pause, Play,
+    ChevronDown, CheckSquare,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type JobStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "CLOSED";
 
@@ -30,6 +35,8 @@ interface EmployerJob {
     status: JobStatus;
     city: string | null;
     work_mode: string | null;
+    professional_field: string | null;
+    industry: string | null;
     posted_at: string | null;
     applicant_count: number;
     avg_score: number | null;
@@ -42,6 +49,8 @@ const STATUS_BADGE: Record<JobStatus, { label: string; cls: string; dot: string 
     CLOSED: { label: "Closed", cls: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500" },
 };
 
+type SortKey = "newest" | "oldest" | "title_az" | "title_za" | "applicants";
+
 export default function EmployerJobs() {
     const { employerId, approvalStatus } = useEmployer();
     const [jobs, setJobs] = useState<EmployerJob[]>([]);
@@ -50,10 +59,17 @@ export default function EmployerJobs() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
 
+    // Filters
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [sortKey, setSortKey] = useState<SortKey>("newest");
+
     // Dialog / Modal states
     const [editorOpen, setEditorOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<any>(null);
-    const [closeTarget, setCloseTarget] = useState<EmployerJob | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{
+        type: "close" | "delete";
+        jobs: EmployerJob[];
+    } | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
     const fetchJobs = useCallback(async () => {
@@ -61,9 +77,10 @@ export default function EmployerJobs() {
         const { data, error } = await (supabase as any)
             .from("job_postings")
             .select(`
-        id, title, status, location_city, work_mode, posted_at,
-        applications ( id, ai_match_score )
-      `)
+                id, title, status, location_city, work_mode, posted_at,
+                professional_field, industry,
+                applications ( id, ai_match_score )
+            `)
             .eq("employer_id", employerId)
             .order("posted_at", { ascending: false, nullsFirst: false });
 
@@ -78,6 +95,8 @@ export default function EmployerJobs() {
                         status: row.status as JobStatus,
                         city: row.location_city,
                         work_mode: row.work_mode,
+                        professional_field: row.professional_field,
+                        industry: row.industry,
                         posted_at: row.posted_at,
                         applicant_count: apps.length,
                         avg_score: scores.length > 0
@@ -92,14 +111,12 @@ export default function EmployerJobs() {
 
     useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
+    // ── Actions ──
     const changeStatus = async (job: EmployerJob, newStatus: JobStatus) => {
         setActionError(null);
-
-        // Publish gate: check approval + cap
         if (newStatus === "ACTIVE") {
             const { data: cap } = await (supabase as any)
                 .rpc("check_job_publish_allowed", { p_employer_id: employerId });
-
             if (!cap?.allowed) {
                 setActionError(
                     cap?.reason === "pending_approval"
@@ -109,22 +126,43 @@ export default function EmployerJobs() {
                 return;
             }
         }
-
         const update: any = { status: newStatus };
         if (newStatus === "ACTIVE" && !job.posted_at) update.posted_at = new Date().toISOString();
-
         await (supabase as any).from("job_postings").update(update).eq("id", job.id);
         fetchJobs();
     };
 
+    const deleteJobs = async (jobIds: string[]) => {
+        await Promise.all(jobIds.map(id =>
+            (supabase as any).from("job_postings").delete().eq("id", id)
+        ));
+        setSelectedJobs(new Set());
+        fetchJobs();
+    };
+
+    const bulkChangeStatus = async (newStatus: JobStatus) => {
+        const ids = Array.from(selectedJobs);
+        const targetJobs = jobs.filter(j => ids.includes(j.id));
+        for (const job of targetJobs) {
+            await changeStatus(job, newStatus);
+        }
+        setSelectedJobs(new Set());
+    };
+
     const openEditor = (job?: EmployerJob) => {
-        setEditTarget(job ?? null);
+        setEditTarget(job ? {
+            id: job.id,
+            title: job.title,
+            city: "", // will be refetched
+            professional_field: job.professional_field || "",
+            industry: job.industry || "",
+        } : null);
         setEditorOpen(true);
     };
 
     const isPending = approvalStatus !== "approved";
 
-    // Dashboard metrics
+    // ── Metrics ──
     const metrics = useMemo(() => {
         const active = jobs.filter(j => j.status === "ACTIVE").length;
         const drafts = jobs.filter(j => j.status === "DRAFT").length;
@@ -132,10 +170,68 @@ export default function EmployerJobs() {
         return { active, drafts, applicants, total: jobs.length };
     }, [jobs]);
 
+    // ── Filtering + sorting ──
     const filteredJobs = useMemo(() => {
-        if (!searchQuery.trim()) return jobs;
-        return jobs.filter(j => j.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [jobs, searchQuery]);
+        let result = [...jobs];
+
+        // Status filter
+        if (statusFilter !== "all") {
+            result = result.filter(j => j.status === statusFilter);
+        }
+
+        // Search
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(j =>
+                j.title.toLowerCase().includes(q)
+                || (j.city && j.city.toLowerCase().includes(q))
+                || (j.professional_field && j.professional_field.toLowerCase().includes(q))
+                || (j.industry && j.industry.toLowerCase().includes(q))
+            );
+        }
+
+        // Sort
+        switch (sortKey) {
+            case "newest":
+                result.sort((a, b) => new Date(b.posted_at || 0).getTime() - new Date(a.posted_at || 0).getTime());
+                break;
+            case "oldest":
+                result.sort((a, b) => new Date(a.posted_at || 0).getTime() - new Date(b.posted_at || 0).getTime());
+                break;
+            case "title_az":
+                result.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            case "title_za":
+                result.sort((a, b) => b.title.localeCompare(a.title));
+                break;
+            case "applicants":
+                result.sort((a, b) => b.applicant_count - a.applicant_count);
+                break;
+        }
+
+        return result;
+    }, [jobs, statusFilter, searchQuery, sortKey]);
+
+    // ── Selection helpers ──
+    const toggleJob = (id: string) => {
+        setSelectedJobs(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    const selectAll = () => {
+        if (selectedJobs.size === filteredJobs.length) {
+            setSelectedJobs(new Set());
+        } else {
+            setSelectedJobs(new Set(filteredJobs.map(j => j.id)));
+        }
+    };
+
+    const clearSelection = () => setSelectedJobs(new Set());
+
+    const selectedJobsList = jobs.filter(j => selectedJobs.has(j.id));
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -156,25 +252,14 @@ export default function EmployerJobs() {
                     <h1 className="font-display text-2xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h1>
                     <p className="text-sm text-slate-500 mt-1">Manage open roles and review your applicant pipelines.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <Input
-                            placeholder="Find a job..."
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full md:w-64 pl-9 rounded-full bg-white border-slate-200 focus-visible:ring-blue-500/20 shadow-sm"
-                        />
-                    </div>
-                    <Button
-                        onClick={() => openEditor()}
-                        className="gap-2 rounded-full shadow-md bg-blue-600 hover:bg-blue-700 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                        title={isPending ? "Workspace pending approval — you can still create drafts" : undefined}
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="hidden sm:inline">Create Job</span>
-                    </Button>
-                </div>
+                <Button
+                    onClick={() => openEditor()}
+                    className="gap-2 rounded-full shadow-md bg-blue-600 hover:bg-blue-700 text-white transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                    title={isPending ? "Workspace pending approval — you can still create drafts" : undefined}
+                >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Create Job</span>
+                </Button>
             </div>
 
             {/* Metric Cards */}
@@ -197,37 +282,116 @@ export default function EmployerJobs() {
                 ))}
             </div>
 
-            {/* Job Postings Section Header */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
-                <div className="flex flex-col">
+            {/* ── Toolbar ── */}
+            <div className="flex flex-col gap-3 mb-6 pb-4 border-b border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <h2 className="text-xl font-bold text-slate-800">Your Job Postings</h2>
-                    <p className="text-sm text-slate-500 mt-1">Manage all your active and draft roles here.</p>
-                </div>
 
-                <div className="flex items-center gap-3">
-                    {selectedJobs.size > 0 && (
-                        <div className="flex items-center gap-2 mr-2">
-                            <span className="text-sm font-medium text-blue-600">{selectedJobs.size} selected</span>
-                            <Button variant="outline" size="sm" className="h-8 text-xs border-slate-300">Bulk Actions</Button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Input
+                                placeholder="Search jobs..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="w-full sm:w-52 pl-9 rounded-lg bg-white border-slate-200 h-9 text-sm"
+                            />
                         </div>
-                    )}
-                    <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60 shrink-0">
-                        <button
-                            onClick={() => setViewMode("grid")}
-                            className={`p-1.5 rounded-md flex items-center gap-1.5 text-sm font-medium transition-all ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
-                        >
-                            <LayoutGrid className="w-4 h-4" />
-                            <span className="hidden sm:inline px-1">Grid</span>
-                        </button>
-                        <button
-                            onClick={() => setViewMode("list")}
-                            className={`p-1.5 rounded-md flex items-center gap-1.5 text-sm font-medium transition-all ${viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
-                        >
-                            <List className="w-4 h-4" />
-                            <span className="hidden sm:inline px-1">List</span>
-                        </button>
+
+                        {/* Status filter */}
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-[130px] h-9 text-sm rounded-lg">
+                                <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Status</SelectItem>
+                                <SelectItem value="ACTIVE">Active</SelectItem>
+                                <SelectItem value="DRAFT">Draft</SelectItem>
+                                <SelectItem value="PAUSED">Paused</SelectItem>
+                                <SelectItem value="CLOSED">Closed</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Sort */}
+                        <Select value={sortKey} onValueChange={v => setSortKey(v as SortKey)}>
+                            <SelectTrigger className="w-[140px] h-9 text-sm rounded-lg">
+                                <SelectValue placeholder="Sort by" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="newest">Newest first</SelectItem>
+                                <SelectItem value="oldest">Oldest first</SelectItem>
+                                <SelectItem value="title_az">Title A–Z</SelectItem>
+                                <SelectItem value="title_za">Title Z–A</SelectItem>
+                                <SelectItem value="applicants">Most applicants</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* View toggle */}
+                        <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60 shrink-0">
+                            <button
+                                onClick={() => setViewMode("grid")}
+                                className={`p-1.5 rounded-md flex items-center gap-1.5 text-sm font-medium transition-all ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode("list")}
+                                className={`p-1.5 rounded-md flex items-center gap-1.5 text-sm font-medium transition-all ${viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                            >
+                                <List className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                {/* ── Bulk Action Bar ── */}
+                {selectedJobs.size > 0 && (
+                    <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <Checkbox
+                            checked={selectedJobs.size === filteredJobs.length && filteredJobs.length > 0}
+                            onCheckedChange={selectAll}
+                            className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                        />
+                        <span className="text-sm font-bold text-blue-700">{selectedJobs.size} selected</span>
+                        <div className="h-5 w-px bg-blue-200" />
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-blue-300 bg-white hover:bg-blue-100">
+                                    Bulk Actions <ChevronDown className="w-3.5 h-3.5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-48">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Change Status</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => bulkChangeStatus("ACTIVE")} className="gap-2">
+                                    <Play className="w-4 h-4 text-emerald-500" /> Publish Selected
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => bulkChangeStatus("PAUSED")} className="gap-2">
+                                    <Pause className="w-4 h-4 text-amber-500" /> Pause Selected
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setConfirmAction({ type: "close", jobs: selectedJobsList })}
+                                    className="gap-2"
+                                >
+                                    <XCircle className="w-4 h-4 text-slate-500" /> Close Selected
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => setConfirmAction({ type: "delete", jobs: selectedJobsList })}
+                                    className="text-red-600 gap-2 focus:bg-red-50 focus:text-red-700"
+                                >
+                                    <Trash2 className="w-4 h-4" /> Delete Selected
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button variant="ghost" size="sm" className="h-8 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100 ml-auto gap-1.5" onClick={clearSelection}>
+                            <X className="w-3.5 h-3.5" /> Clear
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Job Cards Layout */}
@@ -253,7 +417,7 @@ export default function EmployerJobs() {
                 </div>
             ) : filteredJobs.length === 0 ? (
                 <div className="py-12 text-center text-slate-500">
-                    No jobs found matching "{searchQuery}"
+                    No jobs found matching your filters.
                 </div>
             ) : (
                 <div className={`grid gap-5 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 flex flex-col"}`}>
@@ -262,16 +426,13 @@ export default function EmployerJobs() {
                         const isSelected = selectedJobs.has(job.id);
 
                         return (
-                            <div key={job.id} className={`group bg-white rounded-2xl border ${isSelected ? "border-blue-400 ring-1 ring-blue-400/20 bg-blue-50/10" : "border-slate-200/70 hover:border-slate-300"} p-5 shadow-sm hover:shadow-md transition-all duration-300 flex ${viewMode === "grid" ? "flex-col" : "flex-row items-center gap-4"}`}>
+                            <div key={job.id} className={`group relative bg-white rounded-2xl border ${isSelected ? "border-blue-400 ring-1 ring-blue-400/20 bg-blue-50/10" : "border-slate-200/70 hover:border-slate-300"} p-5 shadow-sm hover:shadow-md transition-all duration-300 flex ${viewMode === "grid" ? "flex-col" : "flex-row items-center gap-4"}`}>
 
-                                {/* Item Checkbox */}
-                                <div className={`shrink-0 ${viewMode === "grid" ? "absolute top-4 right-4 z-10" : ""}`} onClick={(e) => {
-                                    e.stopPropagation();
-                                    const next = new Set(selectedJobs);
-                                    if (next.has(job.id)) next.delete(job.id);
-                                    else next.add(job.id);
-                                    setSelectedJobs(next);
-                                }}>
+                                {/* Checkbox — inside the card, positioned correctly */}
+                                <div
+                                    className={`shrink-0 ${viewMode === "grid" ? "absolute top-4 left-4 z-10" : ""}`}
+                                    onClick={e => { e.stopPropagation(); toggleJob(job.id); }}
+                                >
                                     <div className={`w-5 h-5 rounded border ${isSelected ? "bg-blue-600 border-blue-600" : "bg-white border-slate-300 group-hover:border-slate-400"} flex items-center justify-center cursor-pointer transition-colors shadow-sm`}>
                                         {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                     </div>
@@ -310,7 +471,7 @@ export default function EmployerJobs() {
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem
                                                                 className="text-red-600 gap-2 focus:bg-red-50 focus:text-red-700"
-                                                                onClick={() => setCloseTarget(job)}
+                                                                onClick={() => setConfirmAction({ type: "close", jobs: [job] })}
                                                             >
                                                                 <XCircle className="w-4 h-4" /> Close Posting
                                                             </DropdownMenuItem>
@@ -321,7 +482,7 @@ export default function EmployerJobs() {
                                         </div>
 
                                         {/* Grid Mode Title & Location */}
-                                        <div className="mb-6 flex-1">
+                                        <div className="mb-4 flex-1 pl-2">
                                             <h3 className="font-bold text-lg text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
                                                 <Link to={`/employer/jobs/${job.id}/pipeline`}>{job.title}</Link>
                                             </h3>
@@ -339,11 +500,25 @@ export default function EmployerJobs() {
                                                     </div>
                                                 )}
                                             </div>
+                                            {(job.professional_field || job.industry) && (
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {job.professional_field && (
+                                                        <span className="text-[10px] font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
+                                                            {job.professional_field}
+                                                        </span>
+                                                    )}
+                                                    {job.industry && (
+                                                        <span className="text-[10px] font-medium bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-100">
+                                                            {job.industry}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="h-px w-full bg-slate-100 mb-4" />
 
-                                        {/* Grid Mode Footer Metrics & Action */}
+                                        {/* Grid Mode Footer */}
                                         <div className="flex items-center justify-between mt-auto">
                                             <div className="flex items-center gap-4">
                                                 <div className="flex flex-col">
@@ -368,7 +543,7 @@ export default function EmployerJobs() {
                                             <Button asChild size="sm" className="gap-2 rounded-xl bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white transition-all">
                                                 <Link to={`/employer/jobs/${job.id}/pipeline`}>
                                                     <KanbanSquare className="w-4 h-4" />
-                                                    <span className="hidden sm:inline">View Pipeline</span>
+                                                    <span className="hidden sm:inline">Pipeline</span>
                                                 </Link>
                                             </Button>
                                         </div>
@@ -400,6 +575,16 @@ export default function EmployerJobs() {
                                                             <span>{formatDistanceToNow(new Date(job.posted_at), { addSuffix: true })}</span>
                                                         </div>
                                                     )}
+                                                    {job.professional_field && (
+                                                        <span className="text-[10px] font-medium bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full border border-blue-100">
+                                                            {job.professional_field}
+                                                        </span>
+                                                    )}
+                                                    {job.industry && (
+                                                        <span className="text-[10px] font-medium bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded-full border border-purple-100">
+                                                            {job.industry}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -430,7 +615,7 @@ export default function EmployerJobs() {
                                                 <Button asChild size="sm" className="gap-2 rounded-xl bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white transition-all h-9 hidden sm:flex">
                                                     <Link to={`/employer/jobs/${job.id}/pipeline`}>
                                                         <KanbanSquare className="w-4 h-4" />
-                                                        View Pipeline
+                                                        Pipeline
                                                     </Link>
                                                 </Button>
                                                 <DropdownMenu>
@@ -457,7 +642,7 @@ export default function EmployerJobs() {
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem
                                                                     className="text-red-600 gap-2 focus:bg-red-50 focus:text-red-700"
-                                                                    onClick={() => setCloseTarget(job)}
+                                                                    onClick={() => setConfirmAction({ type: "close", jobs: [job] })}
                                                                 >
                                                                     <XCircle className="w-4 h-4" /> Close Posting
                                                                 </DropdownMenuItem>
@@ -485,22 +670,36 @@ export default function EmployerJobs() {
                 />
             )}
 
-            {/* Close confirmation */}
-            <AlertDialog open={!!closeTarget} onOpenChange={v => !v && setCloseTarget(null)}>
+            {/* Confirm action dialog (close / delete) */}
+            <AlertDialog open={!!confirmAction} onOpenChange={v => !v && setConfirmAction(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Close job posting?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            {confirmAction?.type === "delete" ? "Delete job posting(s)?" : "Close job posting(s)?"}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                            "{closeTarget?.title}" will be removed from the public listing. This cannot be undone automatically.
+                            {confirmAction?.type === "delete"
+                                ? `${confirmAction.jobs.length} job(s) will be permanently deleted along with their applications and data. This cannot be undone.`
+                                : `${confirmAction?.jobs.length} job(s) will be removed from the public listing. This cannot be undone automatically.`
+                            }
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() => { closeTarget && changeStatus(closeTarget, "CLOSED"); setCloseTarget(null); }}
+                            className={confirmAction?.type === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-slate-800 hover:bg-slate-900"}
+                            onClick={() => {
+                                if (!confirmAction) return;
+                                if (confirmAction.type === "delete") {
+                                    deleteJobs(confirmAction.jobs.map(j => j.id));
+                                } else {
+                                    confirmAction.jobs.forEach(j => changeStatus(j, "CLOSED"));
+                                    setSelectedJobs(new Set());
+                                }
+                                setConfirmAction(null);
+                            }}
                         >
-                            Close posting
+                            {confirmAction?.type === "delete" ? "Delete permanently" : "Close posting(s)"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

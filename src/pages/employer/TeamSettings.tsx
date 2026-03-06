@@ -17,7 +17,7 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UserPlus, Mail, ShieldCheck, Eye, User, MoreHorizontal, Trash2 } from "lucide-react";
+import { UserPlus, Mail, ShieldCheck, Eye, User, MoreHorizontal, Trash2, ArrowLeft } from "lucide-react";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -198,6 +198,11 @@ export default function TeamSettings() {
 
     return (
         <div className="max-w-4xl animate-in fade-in duration-500">
+            {/* Breadcrumb */}
+            <Link to="/employer/settings" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-4 transition-colors bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg">
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Settings
+            </Link>
+
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>

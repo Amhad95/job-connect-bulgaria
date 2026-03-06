@@ -1,18 +1,26 @@
 import { useState } from "react";
 import { useNoIndex } from "@/hooks/useNoIndex";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
     Briefcase, LayoutGrid, Settings, Menu, ChevronRight,
-    Users, Clock, AlertTriangle, ArrowLeft, Building2
+    Users, Clock, AlertTriangle, ArrowLeft, Building2,
+    BarChart3, UserCircle, LogOut,
 } from "lucide-react";
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { useEmployer } from "@/contexts/EmployerContext";
 import { PendingApprovalBanner } from "@/components/EmployerRoute";
 import { NotificationBell } from "@/components/NotificationBell";
 import { differenceInDays } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/bachkam-logo.svg";
 
 const NAV_BASE = [
     { label: "Job Postings", path: "/employer/jobs", icon: <Briefcase className="w-5 h-5" />, exact: false },
+    { label: "Applicants", path: "/employer/applicants", icon: <Users className="w-5 h-5" />, exact: true },
+    { label: "Analytics", path: "/employer/analytics", icon: <BarChart3 className="w-5 h-5" />, exact: true },
     { label: "Settings", path: "/employer/settings", icon: <Settings className="w-5 h-5" />, exact: true },
 ];
 
@@ -68,7 +76,8 @@ function TrialBanner({ trialEndsAt, subStatus }: { trialEndsAt: string | null; s
 export default function EmployerLayout() {
     useNoIndex();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(false); // Default closed on mobile
+    const navigate = useNavigate();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const { employerName, role, approvalStatus, subStatus, trialEndsAt } = useEmployer();
 
     const canSeeTeam = role === "owner" || role === "admin";
@@ -76,6 +85,11 @@ export default function EmployerLayout() {
 
     const isActive = (path: string, exact = false) =>
         exact ? location.pathname === path : location.pathname.startsWith(path);
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        navigate("/employer/login");
+    };
 
     return (
         <div className="h-screen w-full overflow-hidden bg-slate-50 flex font-sans">
@@ -167,16 +181,46 @@ export default function EmployerLayout() {
                     <div className="ml-auto flex items-center gap-4">
                         <NotificationBell />
                         <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                                {employerName.substring(0, 2).toUpperCase()}
-                            </div>
-                            <div className="hidden sm:flex flex-col items-start leading-none">
-                                <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full capitalize">
-                                    {role}
-                                </span>
-                            </div>
-                        </div>
+
+                        {/* User dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="flex items-center gap-2.5 hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                        {employerName.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="hidden sm:flex flex-col items-start leading-none">
+                                        <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full capitalize">
+                                            {role}
+                                        </span>
+                                    </div>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                                <DropdownMenuLabel className="font-normal">
+                                    <p className="text-sm font-semibold text-slate-900">{employerName}</p>
+                                    <p className="text-[11px] text-slate-400 capitalize">{role}</p>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+                                    <Link to="/employer/account">
+                                        <UserCircle className="w-4 h-4 text-slate-400" /> My Account
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+                                    <Link to="/employer/settings">
+                                        <Settings className="w-4 h-4 text-slate-400" /> Workspace Settings
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={handleSignOut}
+                                    className="gap-2 text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer"
+                                >
+                                    <LogOut className="w-4 h-4" /> Sign Out
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
 

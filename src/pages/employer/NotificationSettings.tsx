@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Mail, Loader2 } from "lucide-react";
+import { Bell, Mail, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 interface Prefs {
@@ -78,6 +78,11 @@ export default function NotificationSettings() {
 
     return (
         <div className="max-w-4xl animate-in fade-in duration-500">
+            {/* Breadcrumb */}
+            <Link to="/employer/settings" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-4 transition-colors bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg">
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Settings
+            </Link>
+
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="font-display text-2xl font-bold text-gray-900">Notification settings</h1>
