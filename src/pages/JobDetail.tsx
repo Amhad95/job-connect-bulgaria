@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { useJob } from "@/hooks/useJobs";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,9 @@ import {
   Clock, MapPin, Building, Briefcase, Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSavedJobIds, useToggleSaveJob, useRecordJobView } from "@/hooks/useSavedJobs";
+import { useCreateExternalItem } from "@/hooks/useTracker";
 
 const avatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128&bold=true`;
@@ -22,8 +26,23 @@ export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { data: job, isLoading, error } = useJob(id);
+  const { user } = useAuth();
   const [applyOpen, setApplyOpen] = useState(false);
   const isDirect = job?.sourceType === 'DIRECT';
+
+  // Save/unsave
+  const { data: savedIds = new Set() } = useSavedJobIds();
+  const toggleSave = useToggleSaveJob();
+  const isSaved = id ? savedIds.has(id) : false;
+
+  // View history
+  const recordView = useRecordJobView();
+  useEffect(() => {
+    if (id && user) recordView.mutate(id);
+  }, [id, user]);
+
+  // Tracker
+  const createTracker = useCreateExternalItem();
 
   if (isLoading) {
     return (
@@ -64,107 +83,143 @@ export default function JobDetail() {
   return (
     <>
       <div className="container max-w-4xl py-8">
-          <Link to="/jobs" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            {t("jobDetail.backToResults")}
-          </Link>
+        <Link to="/jobs" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          {t("jobDetail.backToResults")}
+        </Link>
 
-          {/* Header */}
-          <div className="mt-4 flex items-start gap-4">
-            <Avatar className="h-14 w-14 shrink-0 rounded-lg">
-              <AvatarImage src={job.companyLogo || avatarUrl(job.company)} alt={job.company} />
-              <AvatarFallback className="rounded-lg text-sm font-bold">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">{job.title}</h1>
-              <p className="mt-1 text-lg text-muted-foreground">{job.company}</p>
-              <div className="mt-3 flex flex-wrap gap-2 items-center">
-                {/* Source badge — purely data-driven, no hardcoded strings */}
-                <SourceBadge sourceType={job.sourceType} />
-                {job.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{job.city}</Badge>}
-                {job.workMode && <Badge variant="secondary">{t(`jobs.${job.workMode}`)}</Badge>}
-                {job.employmentType && <Badge variant="secondary">{t(`jobs.${job.employmentType}`)}</Badge>}
-                {salaryLabel && (
-                  <Badge variant="outline" className="border-success/30 text-success font-semibold">
-                    {salaryLabel}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex flex-wrap gap-3">
-            {isDirect ? (
-              <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setApplyOpen(true)}>
-                <Zap className="h-4 w-4" />
-                {t("jobs.easyApply")}
-              </Button>
-            ) : (
-              <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
-                <Button size="lg" className="gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  {t("jobs.applyOn", { employer: job.company })}
-                </Button>
-              </a>
-            )}
-            <Button variant="outline" size="lg" className="gap-2">
-              <Bookmark className="h-4 w-4" />
-              {t("common.save")}
-            </Button>
-            <Button variant="outline" size="lg" className="gap-2">
-              <KanbanSquare className="h-4 w-4" />
-              {t("jobDetail.addToTracker")}
-            </Button>
-            <Link to={`/dashboard/apply-kit?tab=cover&jobId=${id}`}>
-              <Button variant="outline" size="lg" className="gap-2">
-                <PenLine className="h-4 w-4" />
-                {t("jobDetail.generateCoverLetter")}
-              </Button>
-            </Link>
-            <Link to={`/dashboard/apply-kit?tab=cv&jobId=${id}`}>
-              <Button variant="outline" size="lg" className="gap-2">
-                <FileText className="h-4 w-4" />
-                {t("jobDetail.tailorCV")}
-              </Button>
-            </Link>
-          </div>
-
-          {/* Content */}
-          <div className="mt-8 space-y-8">
-            {job.description && (
-              <section>
-                <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.description")}</h2>
-                <p className="text-foreground leading-relaxed whitespace-pre-line">{job.description}</p>
-              </section>
-            )}
-            {job.requirements && (
-              <section>
-                <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.requirements")}</h2>
-                <p className="text-foreground leading-relaxed whitespace-pre-line">{job.requirements}</p>
-              </section>
-            )}
-            {job.benefits && (
-              <section>
-                <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.benefits")}</h2>
-                <p className="text-foreground leading-relaxed whitespace-pre-line">{job.benefits}</p>
-              </section>
-            )}
-          </div>
-
-          <p className="mt-4 text-center text-xs text-muted-foreground">{t("jobs.redirectNote")}</p>
-
-          <div className="mt-4 rounded-lg border bg-surface p-4 flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              <span>{t("jobs.employer")}: {job.company}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{t("jobs.lastChecked")}: {formatDistanceToNow(new Date(job.lastSeenAt), { addSuffix: true })}</span>
+        {/* Header */}
+        <div className="mt-4 flex items-start gap-4">
+          <Avatar className="h-14 w-14 shrink-0 rounded-lg">
+            <AvatarImage src={job.companyLogo || avatarUrl(job.company)} alt={job.company} />
+            <AvatarFallback className="rounded-lg text-sm font-bold">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">{job.title}</h1>
+            <p className="mt-1 text-lg text-muted-foreground">{job.company}</p>
+            <div className="mt-3 flex flex-wrap gap-2 items-center">
+              {/* Source badge — purely data-driven, no hardcoded strings */}
+              <SourceBadge sourceType={job.sourceType} />
+              {job.city && <Badge variant="secondary"><MapPin className="mr-1 h-3 w-3" />{job.city}</Badge>}
+              {job.workMode && <Badge variant="secondary">{t(`jobs.${job.workMode}`)}</Badge>}
+              {job.employmentType && <Badge variant="secondary">{t(`jobs.${job.employmentType}`)}</Badge>}
+              {salaryLabel && (
+                <Badge variant="outline" className="border-success/30 text-success font-semibold">
+                  {salaryLabel}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Actions */}
+        <div className="mt-6 flex flex-wrap gap-3">
+          {isDirect ? (
+            <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setApplyOpen(true)}>
+              <Zap className="h-4 w-4" />
+              {t("jobs.easyApply")}
+            </Button>
+          ) : (
+            <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
+              <Button size="lg" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                {t("jobs.applyOn", { employer: job.company })}
+              </Button>
+            </a>
+          )}
+          <Button
+            variant="outline"
+            size="lg"
+            className={`gap-2 ${isSaved ? 'text-primary border-primary' : ''}`}
+            onClick={() => {
+              if (user && id) {
+                toggleSave.mutate({ jobId: id, isSaved });
+              } else {
+                toast.info(t("common.loginRequired", "Please log in first."));
+              }
+            }}
+          >
+            <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+            {isSaved ? t("common.saved", "Saved") : t("common.save", "Save")}
+          </Button>
+          {!isDirect && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="gap-2"
+              onClick={() => {
+                if (!user || !job) {
+                  toast.info(t("common.loginRequired", "Please log in first."));
+                  return;
+                }
+                createTracker.mutate(
+                  {
+                    job_title: job.title,
+                    company_name: job.company,
+                    job_url: job.applyUrl || undefined,
+                    location: job.city || undefined,
+                    stage: "saved" as const,
+                  },
+                  {
+                    onSuccess: () => toast.success(t("tracker.addedToTracker", "Added to tracker!")),
+                    onError: (err: any) => toast.error(err.message),
+                  }
+                );
+              }}
+            >
+              <KanbanSquare className="h-4 w-4" />
+              {t("jobDetail.addToTracker", "Add to tracker")}
+            </Button>
+          )}
+          <Link to={`/dashboard/apply-kit?tab=cover&jobId=${id}`}>
+            <Button variant="outline" size="lg" className="gap-2">
+              <PenLine className="h-4 w-4" />
+              {t("jobDetail.generateCoverLetter")}
+            </Button>
+          </Link>
+          <Link to={`/dashboard/apply-kit?tab=cv&jobId=${id}`}>
+            <Button variant="outline" size="lg" className="gap-2">
+              <FileText className="h-4 w-4" />
+              {t("jobDetail.tailorCV")}
+            </Button>
+          </Link>
+        </div>
+
+        {/* Content */}
+        <div className="mt-8 space-y-8">
+          {job.description && (
+            <section>
+              <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.description")}</h2>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{job.description}</p>
+            </section>
+          )}
+          {job.requirements && (
+            <section>
+              <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.requirements")}</h2>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{job.requirements}</p>
+            </section>
+          )}
+          {job.benefits && (
+            <section>
+              <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.benefits")}</h2>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{job.benefits}</p>
+            </section>
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">{t("jobs.redirectNote")}</p>
+
+        <div className="mt-4 rounded-lg border bg-surface p-4 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            <span>{t("jobs.employer")}: {job.company}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{t("jobs.lastChecked")}: {formatDistanceToNow(new Date(job.lastSeenAt), { addSuffix: true })}</span>
+          </div>
+        </div>
+      </div>
 
       {/* Easy Apply modal — only rendered for DIRECT jobs */}
       {

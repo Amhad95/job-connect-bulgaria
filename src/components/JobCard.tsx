@@ -13,6 +13,9 @@ interface JobCardProps {
   selected?: boolean;
   onClick?: () => void;
   compact?: boolean;
+  isSaved?: boolean;
+  onSave?: (e: React.MouseEvent) => void;
+  onView?: () => void;
 }
 
 const getInitials = (name: string) =>
@@ -21,7 +24,7 @@ const getInitials = (name: string) =>
 const avatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128&bold=true`;
 
-export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
+export function JobCard({ job, selected, onClick, compact, isSaved, onSave, onView }: JobCardProps) {
   const { t, i18n } = useTranslation();
 
   const salaryLabel = job.salaryMin && job.salaryMax
@@ -64,9 +67,16 @@ export function JobCard({ job, selected, onClick, compact }: JobCardProps) {
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{job.company}</p>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary">
-          <Bookmark className="h-4 w-4" />
-        </Button>
+        {onSave && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 shrink-0 ${isSaved ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            onClick={(e) => { e.stopPropagation(); onSave(e); }}
+          >
+            <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+          </Button>
+        )}
       </div>
 
       {badges.length > 0 && (
