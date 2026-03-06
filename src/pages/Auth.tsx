@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +29,9 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -76,7 +83,7 @@ export default function Auth() {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { first_name: firstName, last_name: lastName, birth_date: birthDate ? format(birthDate, "yyyy-MM-dd") : undefined, full_name: `${firstName} ${lastName}`.trim() },
         emailRedirectTo: window.location.origin,
       },
     });
@@ -167,9 +174,43 @@ export default function Auth() {
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>{t("auth.firstName", "First Name")}</Label>
+                  <Input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("auth.lastName", "Last Name")}</Label>
+                  <Input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label>{t("auth.fullName")}</Label>
-                <Input type="text" value={fullName} onChange={e => setFullName(e.target.value)} />
+                <Label>{t("auth.birthDate", "Date of Birth")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal", !birthDate && "text-muted-foreground")}
+                      type="button"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {birthDate ? format(birthDate, "PPP") : t("auth.pickDate", "Pick a date")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={birthDate}
+                      onSelect={setBirthDate}
+                      disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      captionLayout="dropdown-buttons"
+                      fromYear={1920}
+                      toYear={new Date().getFullYear()}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>{t("auth.email")}</Label>
