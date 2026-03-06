@@ -7,7 +7,7 @@ export interface SavedJob {
     id: string;
     user_id: string;
     job_id: string;
-    saved_at: string;
+    saved_at: string;  // maps to created_at column in DB
 }
 
 export interface ViewHistoryEntry {
@@ -28,11 +28,11 @@ export interface InterestTag {
 export async function getSavedJobs(userId: string): Promise<SavedJob[]> {
     const { data, error } = await (supabase as any)
         .from("saved_jobs")
-        .select("*")
+        .select("id, user_id, job_id, created_at")
         .eq("user_id", userId)
-        .order("saved_at", { ascending: false });
+        .order("created_at", { ascending: false });
     if (error) throw error;
-    return data || [];
+    return (data || []).map((r: any) => ({ ...r, saved_at: r.created_at }));
 }
 
 export async function getSavedJobIds(userId: string): Promise<Set<string>> {
