@@ -26,6 +26,7 @@ import DashboardProfile from "./pages/dashboard/DashboardProfile";
 import DashboardSavedJobs from "./pages/dashboard/DashboardSavedJobs";
 import DashboardTracker from "./pages/dashboard/DashboardTracker";
 import DashboardApplyKit from "./pages/dashboard/DashboardApplyKit";
+import CompleteProfile from "./pages/CompleteProfile";
 import { AdminRoute } from "./components/AdminRoute";
 import { EmployerRoute } from "./components/EmployerRoute";
 import EmployerLayout from "./layouts/EmployerLayout";
@@ -90,6 +91,7 @@ const App = () => (
                 <Route path="/employer/login" element={<EmployerLogin />} />
                 <Route path="/employer/signup" element={<EmployerSignup />} />
                 <Route path="/employer/join" element={<JoinInvite />} />
+                <Route path="/complete-profile" element={<CompleteProfile />} />
 
                 {/* APPLICANT DASHBOARD ROUTES */}
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
