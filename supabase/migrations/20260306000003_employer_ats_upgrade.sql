@@ -171,7 +171,7 @@ alter table employer_ai_reviews          enable row level security;
 alter table employer_audit_events        enable row level security;
 
 -- =============================================================================
--- I) RLS POLICIES — employer member scoped via employer_members
+-- I) RLS POLICIES — employer member scoped via employer_profiles
 -- =============================================================================
 
 -- Helper: check if user is a member of the employer that owns a job
@@ -182,7 +182,7 @@ do $$ begin
     using (
       exists (
         select 1 from job_postings jp
-        join employer_members em on em.employer_id = jp.employer_id
+        join employer_profiles em on em.employer_id = jp.employer_id
         where jp.id = job_screening_questions.job_id
           and em.user_id = auth.uid()
       )
@@ -196,7 +196,7 @@ do $$ begin
     with check (
       exists (
         select 1 from job_postings jp
-        join employer_members em on em.employer_id = jp.employer_id
+        join employer_profiles em on em.employer_id = jp.employer_id
         where jp.id = job_screening_questions.job_id
           and em.user_id = auth.uid()
           and em.role in ('owner', 'admin', 'member')
@@ -211,7 +211,7 @@ do $$ begin
     using (
       exists (
         select 1 from job_postings jp
-        join employer_members em on em.employer_id = jp.employer_id
+        join employer_profiles em on em.employer_id = jp.employer_id
         where jp.id = job_screening_questions.job_id
           and em.user_id = auth.uid()
           and em.role in ('owner', 'admin', 'member')
@@ -226,7 +226,7 @@ do $$ begin
     using (
       exists (
         select 1 from job_postings jp
-        join employer_members em on em.employer_id = jp.employer_id
+        join employer_profiles em on em.employer_id = jp.employer_id
         where jp.id = job_screening_questions.job_id
           and em.user_id = auth.uid()
           and em.role in ('owner', 'admin')
@@ -243,7 +243,7 @@ do $$ begin
       exists (
         select 1 from applications a
         join job_postings jp on jp.id = a.job_id
-        join employer_members em on em.employer_id = jp.employer_id
+        join employer_profiles em on em.employer_id = jp.employer_id
         where a.id = application_screening_answers.application_id
           and em.user_id = auth.uid()
       )
@@ -257,7 +257,7 @@ do $$ begin
     for select to authenticated
     using (
       exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = application_notes.employer_id
           and em.user_id = auth.uid()
       )
@@ -270,7 +270,7 @@ do $$ begin
     for insert to authenticated
     with check (
       exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = application_notes.employer_id
           and em.user_id = auth.uid()
           and em.role in ('owner', 'admin', 'member')
@@ -292,7 +292,7 @@ do $$ begin
     for select to authenticated
     using (
       exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = employer_ai_reviews.employer_id
           and em.user_id = auth.uid()
       )
@@ -305,7 +305,7 @@ do $$ begin
     for insert to authenticated
     with check (
       exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = employer_ai_reviews.employer_id
           and em.user_id = auth.uid()
           and em.role in ('owner', 'admin', 'member')
@@ -320,7 +320,7 @@ do $$ begin
     using (
       created_by = auth.uid()
       or exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = employer_ai_reviews.employer_id
           and em.user_id = auth.uid()
           and em.role in ('owner', 'admin')
@@ -335,7 +335,7 @@ do $$ begin
     for select to authenticated
     using (
       exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = employer_audit_events.employer_id
           and em.user_id = auth.uid()
       )
@@ -348,7 +348,7 @@ do $$ begin
     for insert to authenticated
     with check (
       exists (
-        select 1 from employer_members em
+        select 1 from employer_profiles em
         where em.employer_id = employer_audit_events.employer_id
           and em.user_id = auth.uid()
       )
