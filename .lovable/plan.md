@@ -1,44 +1,48 @@
 
 
-## Fix Three Apply Kit Issues
+## Capture First Name, Last Name, and Birthdate During Signup
 
-### Issue 1: PDF download blocked by browser (`ERR_BLOCKED_BY_CLIENT`)
+### Overview
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-The current download uses `window.open(url, "_blank")` which opens a Supabase signed URL directly. Ad blockers and Chrome's built-in protection block navigations to unfamiliar domains. The fix is to use a programmatic fetch + blob download instead.
+### Database Changes
 
-**Change in `src/pages/dashboard/DashboardApplyKit.tsx`** (handleDownloadDoc):
-- Replace `window.open(url, "_blank")` with `fetch(url)` → create blob → `URL.createObjectURL` → trigger download via hidden `<a>` tag with `download` attribute
-- This bypasses ad-blocker domain blocking entirely
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-### Issue 2: PDF/DOCX template aesthetic improvements
+### Email Signup Form Changes
 
-The current `generatePdf` and `generateDocx` in the finalize edge function produce a basic layout. Improvements:
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
-**PDF (`supabase/functions/apply-kit-finalize-generation/index.ts`)**:
-- Increase name font size slightly, add more vertical spacing after name/contact
-- Add consistent section spacing with proper line-height
-- Improve bullet point indentation and spacing
-- Add subtle color accent to section headings (dark navy instead of near-black)
-- Handle inline bold (`**text**`) within lines by splitting and drawing bold/regular segments
-- Better page break logic with more breathing room
+### OAuth Post-Signup: Complete Profile Page
 
-**DOCX (same file)**:
-- Better paragraph spacing between sections
-- Use proper bullet list formatting instead of text bullets
-- Handle inline bold markers within item text (not just prefix bold)
-- Add slightly more generous margins
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
 
-### Issue 3: Preview markdown rendering — bold text shows as `**text**`
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
 
-The `PreviewRefineView` component renders lines as plain text without parsing inline markdown like `**bold**`. 
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
 
-**Change in `src/components/apply-kit/PreviewRefineView.tsx`**:
-- Add a `renderInlineMarkdown(text)` helper function that splits text on `**...**` patterns and wraps matched segments in `<strong>` tags
-- Also handle `*italic*` with `<em>` tags
-- Apply this helper to all text content (headings, list items, paragraphs)
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
 
-### Files to modify
-1. `src/pages/dashboard/DashboardApplyKit.tsx` — blob-based download
-2. `src/components/apply-kit/PreviewRefineView.tsx` — inline markdown rendering
-3. `supabase/functions/apply-kit-finalize-generation/index.ts` — template polish
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 
