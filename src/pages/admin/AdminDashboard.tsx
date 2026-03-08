@@ -155,19 +155,22 @@ export default function AdminDashboard() {
 
     const fetchJobs = async () => {
         setLoading(true);
-        const { data, error } = await supabase
+        let query = supabase
             .from("job_postings")
-            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, extraction_method, last_scraped_at, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
-            .eq("approval_status", "PENDING")
-            .not("last_scraped_at", "is", null)
+            .select("id, title, title_en, title_bg, first_seen_at, posted_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, extraction_method, last_scraped_at, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
+            .eq("approval_status", activeTab)
             .order(sortField, { ascending: sortDir === "asc" })
             .limit(200);
+        if (activeTab === "PENDING") {
+            query = query.not("last_scraped_at", "is", null);
+        }
+        const { data, error } = await query;
         if (error) toast.error("Failed to fetch queue: " + error.message);
         else setJobs((data || []) as unknown as Job[]);
         setLoading(false);
     };
 
-    useEffect(() => { fetchJobs(); }, [sortField, sortDir]);
+    useEffect(() => { fetchJobs(); }, [sortField, sortDir, activeTab]);
 
     const openReview = (job: Job) => {
         setReviewJob(job);
