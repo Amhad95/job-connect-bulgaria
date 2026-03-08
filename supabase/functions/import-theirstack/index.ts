@@ -237,10 +237,11 @@ Deno.serve(async (req) => {
                                 recordsSkippedDuplicate++;
                             } else {
                                 // Insert new
-                                let postedAt = null;
-                                if (job.date_posted) {
-                                    try { postedAt = new Date(job.date_posted).toISOString(); } catch (e) { }
-                                }
+                            let postedAt = null;
+                            const rawDate = job.date_posted || job.discovered_at;
+                            if (rawDate) {
+                                try { postedAt = new Date(rawDate).toISOString(); } catch (e) { }
+                            }
 
                                 const { data: newPost, error: ipErr } = await supabase.from('job_postings').insert({
                                     employer_id: empId,

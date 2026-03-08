@@ -18,6 +18,7 @@ type Job = {
     title_en: string | null;
     title_bg: string | null;
     first_seen_at: string;
+    posted_at: string | null;
     location_city: string | null;
     location_slug: string | null;
     work_mode: string | null;
