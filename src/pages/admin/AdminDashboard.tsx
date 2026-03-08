@@ -459,7 +459,7 @@ export default function AdminDashboard() {
                 </div>
                 {!loading && visible.length > 0 && (
                     <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-400 flex items-center justify-between">
-                        <span>{visible.length} pending job{visible.length !== 1 ? "s" : ""}</span>
+                        <span>{visible.length} {activeTab.toLowerCase()} job{visible.length !== 1 ? "s" : ""}</span>
                         {search || companyFilter !== "all" ? <span>Filtered from {jobs.length} total</span> : null}
                     </div>
                 )}
