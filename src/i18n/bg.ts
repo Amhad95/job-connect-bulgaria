@@ -551,7 +551,13 @@ export default {
       },
       errors: {
         title: "Неуспешни елементи"
-      }
+      },
+      linkedinProvider: "LinkedIn обяви (RapidAPI)",
+      credentialsConfigured: "Конфигурирано",
+      credentialsMissing: "Липсва",
+      duplicateSkipped: "Пропуснат дубликат",
+      viewRawPayload: "Виж суровите данни",
+      retryRun: "Повтори импорт",
     }
   },
 

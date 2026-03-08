@@ -21,3 +21,5 @@ project_id = "aqspxvcgmvflbvpionnj"
     verify_jwt = false
   [functions.import-theirstack]
     verify_jwt = false
+  [functions.import-linkedin-rapidapi]
+    verify_jwt = false
