@@ -39,6 +39,7 @@ type Job = {
 type EditForm = {
     title_en: string;
     title_bg: string;
+    posted_at: string;
     location_city: string;
     work_mode: string;
     salary_min: string;
@@ -65,6 +66,7 @@ function jobToForm(job: Job): EditForm {
     return {
         title_en: job.title_en || job.title || "",
         title_bg: job.title_bg || "",
+        posted_at: job.posted_at ? job.posted_at.slice(0, 10) : "",
         location_city: cityMatch?.name_en || job.location_city || "",
         work_mode: job.work_mode || "",
         salary_min: job.salary_min?.toString() || "",
@@ -87,6 +89,7 @@ function formToUpdate(form: EditForm) {
         title: form.title_en || form.title_bg || null,
         title_en: form.title_en || null,
         title_bg: form.title_bg || null,
+        posted_at: form.posted_at ? new Date(form.posted_at + "T00:00:00Z").toISOString() : null,
         location_city: form.location_city || null,
         location_slug: city?.slug || null,
         work_mode: form.work_mode || null,
