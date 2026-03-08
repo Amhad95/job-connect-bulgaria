@@ -66,13 +66,26 @@ export default function AdminApiSources() {
     });
 
     const triggerImport = useMutation({
-        mutationFn: async (sourceId?: string) => {
-            const payload = sourceId ? { source_id: sourceId } : {};
-            const { data, error } = await supabase.functions.invoke('import-theirstack', {
-                body: payload
-            });
-            if (error) throw error;
-            return data;
+        mutationFn: async (args?: { sourceId?: string; provider?: string }) => {
+            const provider = args?.provider;
+            const sourceId = args?.sourceId;
+
+            if (sourceId && provider) {
+                // Run single source with correct function
+                const fnName = provider === 'linkedin_rapidapi' ? 'import-linkedin-rapidapi' : 'import-theirstack';
+                const { data, error } = await supabase.functions.invoke(fnName, { body: { source_id: sourceId } });
+                if (error) throw error;
+                return data;
+            }
+
+            // Run all active — invoke both functions in parallel
+            const [ts, li] = await Promise.allSettled([
+                supabase.functions.invoke('import-theirstack', { body: {} }),
+                supabase.functions.invoke('import-linkedin-rapidapi', { body: {} }),
+            ]);
+            const errors = [ts, li].filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason?.message);
+            if (errors.length === 2) throw new Error(errors.join('; '));
+            return { ts: ts.status === 'fulfilled' ? ts.value : null, li: li.status === 'fulfilled' ? li.value : null };
         },
         onSuccess: (data) => {
             toast.success(t("admin.apiSources.importStarted", "Import run completed"));
@@ -142,10 +155,16 @@ export default function AdminApiSources() {
                                     <TableRow>
                                         <TableCell className="font-medium">TheirStack</TableCell>
                                         <TableCell>
-                                            {/* We don't verify API key live, we just assume it's set if configs exist and are active */}
-                                            <Badge variant="default" className="bg-green-100 text-green-800">Ready</Badge>
+                                            <Badge variant="default" className="bg-green-100 text-green-800">{t("admin.apiSources.credentialsConfigured", "Configured")}</Badge>
                                         </TableCell>
                                         <TableCell>{(sources as any[])?.filter(s => s.provider === 'theirstack' && s.status === 'active').length || 0}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-medium">{t("admin.apiSources.linkedinProvider", "LinkedIn Jobs (RapidAPI)")}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="default" className="bg-green-100 text-green-800">{t("admin.apiSources.credentialsConfigured", "Configured")}</Badge>
+                                        </TableCell>
+                                        <TableCell>{(sources as any[])?.filter(s => s.provider === 'linkedin_rapidapi' && s.status === 'active').length || 0}</TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
@@ -187,7 +206,7 @@ export default function AdminApiSources() {
                                                         variant="outline"
                                                         size="sm"
                                                         disabled={triggerImport.isPending}
-                                                        onClick={() => triggerImport.mutate(source.id)}
+                                                        onClick={() => triggerImport.mutate({ sourceId: source.id, provider: source.provider })}
                                                         className="h-8 group"
                                                     >
                                                         <Play className="h-4 w-4 mr-1 text-gray-500 group-hover:text-amber-500" />

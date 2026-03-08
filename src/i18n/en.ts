@@ -552,7 +552,13 @@ export default {
       },
       errors: {
         title: "Failed Items"
-      }
+      },
+      linkedinProvider: "LinkedIn Jobs (RapidAPI)",
+      credentialsConfigured: "Configured",
+      credentialsMissing: "Missing",
+      duplicateSkipped: "Duplicate skipped",
+      viewRawPayload: "View raw payload",
+      retryRun: "Retry run",
     }
   },
 
