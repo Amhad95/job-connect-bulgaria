@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
             try {
                 let page = source.config_json?.page || 0;
-                const limit = source.config_json?.limit || 100;
+                const limit = source.config_json?.limit || 25;
                 let hasMore = true;
 
                 while (hasMore && pagesFetched < 10) { // Safety cap: max 10 pages per invocation
