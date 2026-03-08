@@ -15,6 +15,7 @@ import {
   Clock, MapPin, Building, Briefcase, Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { renderInlineMarkdown } from "@/lib/renderInlineMarkdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedJobIds, useToggleSaveJob, useRecordJobView } from "@/hooks/useSavedJobs";
 import { useCreateExternalItem } from "@/hooks/useTracker";
@@ -190,19 +191,19 @@ export default function JobDetail() {
           {job.description && (
             <section>
               <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.description")}</h2>
-              <p className="text-foreground leading-relaxed whitespace-pre-line">{job.description}</p>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{renderInlineMarkdown(job.description)}</p>
             </section>
           )}
           {job.requirements && (
             <section>
               <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.requirements")}</h2>
-              <p className="text-foreground leading-relaxed whitespace-pre-line">{job.requirements}</p>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{renderInlineMarkdown(job.requirements)}</p>
             </section>
           )}
           {job.benefits && (
             <section>
               <h2 className="mb-3 font-display text-lg font-semibold">{t("jobDetail.benefits")}</h2>
-              <p className="text-foreground leading-relaxed whitespace-pre-line">{job.benefits}</p>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{renderInlineMarkdown(job.benefits)}</p>
             </section>
           )}
         </div>
