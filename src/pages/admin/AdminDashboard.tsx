@@ -310,12 +310,25 @@ export default function AdminDashboard() {
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Moderation Queue</h1>
-                    <p className="text-gray-500 text-sm mt-0.5">Review scraped jobs before they go live. Only PENDING jobs appear here.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Job Management</h1>
+                    <p className="text-gray-500 text-sm mt-0.5">Review, edit, and manage all job postings.</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={fetchJobs} className="gap-2">
                     <RefreshCw className="w-4 h-4" /> Refresh
                 </Button>
+            </div>
+
+            {/* Status Tabs */}
+            <div className="flex gap-1 border-b border-gray-200">
+                {(["PENDING", "APPROVED", "REJECTED"] as ApprovalTab[]).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => { setActiveTab(tab); setSelected(new Set()); }}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"}`}
+                    >
+                        {tab === "PENDING" ? "Pending" : tab === "APPROVED" ? "Approved" : "Rejected"}
+                    </button>
+                ))}
             </div>
 
             {/* Filters + Bulk Actions */}
