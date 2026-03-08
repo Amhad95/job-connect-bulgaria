@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -17,19 +18,10 @@ import { differenceInDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/bachkam-logo.svg";
 
-const NAV_BASE = [
-    { label: "Job Postings", path: "/employer/jobs", icon: <Briefcase className="w-5 h-5" />, exact: false },
-    { label: "Applicants", path: "/employer/applicants", icon: <Users className="w-5 h-5" />, exact: true },
-    { label: "Analytics", path: "/employer/analytics", icon: <BarChart3 className="w-5 h-5" />, exact: true },
-    { label: "Settings", path: "/employer/settings", icon: <Settings className="w-5 h-5" />, exact: true },
-];
-
-const NAV_OWNER_ADMIN = [
-    { label: "Team", path: "/employer/settings/team", icon: <Users className="w-5 h-5" />, exact: true },
-];
-
 // ── TrialBanner ─────────────────────────────────────────────────────────────
 function TrialBanner({ trialEndsAt, subStatus }: { trialEndsAt: string | null; subStatus: string }) {
+    const { t } = useTranslation();
+
     if (subStatus === "active") return null;
     if (!trialEndsAt && subStatus !== "trial_expired" && subStatus !== "past_due") return null;
 
@@ -39,11 +31,13 @@ function TrialBanner({ trialEndsAt, subStatus }: { trialEndsAt: string | null; s
                 <div className="flex items-center gap-1.5 mb-1">
                     <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                     <p className="text-[11px] font-semibold text-red-200">
-                        {subStatus === "trial_expired" ? "Trial ended" : "Payment past due"}
+                        {subStatus === "trial_expired"
+                            ? t("employerAts.trialEnded", "Trial ended")
+                            : t("employerAts.paymentPastDue", "Payment past due")}
                     </p>
                 </div>
                 <Link to="/employers#pricing" className="text-[11px] font-medium text-red-300 hover:text-red-200 underline underline-offset-2 transition-colors">
-                    Upgrade to restore access →
+                    {t("employerAts.upgradeRestore", "Upgrade to restore access →")}
                 </Link>
             </div>
         );
@@ -54,16 +48,20 @@ function TrialBanner({ trialEndsAt, subStatus }: { trialEndsAt: string | null; s
         const daysLeft = differenceInDays(new Date(trialEndsAt), new Date());
         const urgent = daysLeft <= 3;
 
+        const daysLabel = daysLeft > 0
+            ? t("employerAts.trialDaysLeft", { count: daysLeft, defaultValue: `Trial: ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left` })
+            : t("employerAts.trialExpiresToday", "Trial: expires today");
+
         return (
             <div className={`mx-3 mt-auto mb-3 rounded-xl border px-3 py-2.5 backdrop-blur-sm transition-colors ${urgent ? "border-amber-500/30 bg-amber-500/10" : "border-blue-500/20 bg-blue-500/10"}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
                     <Clock className={`w-3.5 h-3.5 shrink-0 ${urgent ? "text-amber-400" : "text-blue-400"}`} />
                     <p className={`text-[11px] font-semibold ${urgent ? "text-amber-200" : "text-blue-100"}`}>
-                        Trial: {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left` : "expires today"}
+                        {daysLabel}
                     </p>
                 </div>
                 <Link to="/employers#pricing" className={`text-[11px] font-medium underline underline-offset-2 transition-colors ${urgent ? "text-amber-300 hover:text-amber-200" : "text-blue-300 hover:text-blue-200"}`}>
-                    Upgrade now →
+                    {t("employerAts.upgradeNow", "Upgrade now →")}
                 </Link>
             </div>
         );
@@ -72,13 +70,48 @@ function TrialBanner({ trialEndsAt, subStatus }: { trialEndsAt: string | null; s
     return null;
 }
 
+// ── LanguageToggle ──────────────────────────────────────────────────────────
+function SidebarLanguageToggle() {
+    const { i18n } = useTranslation();
+    const isBg = i18n.language === "bg";
+
+    return (
+        <div className="px-3 mb-2">
+            <button
+                onClick={() => i18n.changeLanguage(isBg ? "en" : "bg")}
+                aria-label="Toggle language"
+                className="inline-flex rounded-full border border-slate-700 bg-slate-900 p-0.5"
+            >
+                <span className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${isBg ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}>
+                    🇧🇬 BG
+                </span>
+                <span className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${!isBg ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}>
+                    🇬🇧 EN
+                </span>
+            </button>
+        </div>
+    );
+}
+
 // ── EmployerLayout ──────────────────────────────────────────────────────────
 export default function EmployerLayout() {
     useNoIndex();
+    const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { employerName, role, approvalStatus, subStatus, trialEndsAt } = useEmployer();
+
+    const NAV_BASE = [
+        { label: t("employerAts.sidebarJobPostings", "Job Postings"), path: "/employer/jobs", icon: <Briefcase className="w-5 h-5" />, exact: false },
+        { label: t("employerAts.sidebarApplicants", "Applicants"), path: "/employer/applicants", icon: <Users className="w-5 h-5" />, exact: true },
+        { label: t("employerAts.sidebarAnalytics", "Analytics"), path: "/employer/analytics", icon: <BarChart3 className="w-5 h-5" />, exact: true },
+        { label: t("employerAts.sidebarSettings", "Settings"), path: "/employer/settings", icon: <Settings className="w-5 h-5" />, exact: true },
+    ];
+
+    const NAV_OWNER_ADMIN = [
+        { label: t("employerAts.sidebarTeam", "Team"), path: "/employer/settings/team", icon: <Users className="w-5 h-5" />, exact: true },
+    ];
 
     const canSeeTeam = role === "owner" || role === "admin";
     const NAV = canSeeTeam ? [...NAV_BASE, ...NAV_OWNER_ADMIN] : NAV_BASE;
@@ -110,7 +143,7 @@ export default function EmployerLayout() {
                             <img src={logo} alt="бачкам" className="h-7 w-auto" />
                             <span className="text-xl font-display font-bold text-white tracking-tight">бачкам</span>
                         </div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-1">Workspace</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-1">{t("nav.workspace", "Workspace")}</p>
                         <h2 className="text-sm font-medium text-slate-200 truncate">{employerName}</h2>
                     </div>
                     <button className="md:hidden text-slate-500 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-800 rounded-md p-1.5" onClick={() => setSidebarOpen(false)}>
@@ -148,13 +181,15 @@ export default function EmployerLayout() {
                 <div className="flex flex-col mt-auto pb-4">
                     <TrialBanner trialEndsAt={trialEndsAt} subStatus={subStatus} />
 
+                    <SidebarLanguageToggle />
+
                     <div className="px-3">
                         <Link
                             to="/"
                             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition-all duration-200 group"
                         >
                             <ArrowLeft className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
-                            Back to website
+                            {t("employerAts.backToWebsite", "Back to website")}
                         </Link>
                     </div>
                 </div>
@@ -204,12 +239,12 @@ export default function EmployerLayout() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild className="gap-2 cursor-pointer">
                                     <Link to="/employer/account">
-                                        <UserCircle className="w-4 h-4 text-slate-400" /> My Account
+                                        <UserCircle className="w-4 h-4 text-slate-400" /> {t("employerAts.myAccount", "My Account")}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild className="gap-2 cursor-pointer">
                                     <Link to="/employer/settings">
-                                        <Settings className="w-4 h-4 text-slate-400" /> Workspace Settings
+                                        <Settings className="w-4 h-4 text-slate-400" /> {t("employerAts.workspaceSettings", "Workspace Settings")}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -217,7 +252,7 @@ export default function EmployerLayout() {
                                     onClick={handleSignOut}
                                     className="gap-2 text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer"
                                 >
-                                    <LogOut className="w-4 h-4" /> Sign Out
+                                    <LogOut className="w-4 h-4" /> {t("employerAts.signOut", "Sign Out")}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

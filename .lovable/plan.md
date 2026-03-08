@@ -1,47 +1,48 @@
 
 
-## Plan: Employer Mode — Translation + Language Toggle + Remove Dashboard Link
+## Capture First Name, Last Name, and Birthdate During Signup
 
-### Issues
+### Overview
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-1. **Header "Workspace" button is hardcoded English** (line 90 of `Header.tsx`) — not using `t()`.
-2. **EmployerLayout has no language toggle** — all sidebar labels are hardcoded English strings.
-3. **Header shows "Dashboard" link to employer users** — employers shouldn't access the applicant dashboard.
+### Database Changes
 
-### Changes
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-#### 1. `src/i18n/en.ts` & `src/i18n/bg.ts` — Add translation keys
+### Email Signup Form Changes
 
-Add keys for employer workspace button, sidebar nav labels, and other hardcoded strings:
-- `nav.workspace` — "Workspace" / "Работно място"
-- `employer.jobPostings` — "Job Postings" / "Обяви за работа"
-- `employer.applicants` — "Applicants" / "Кандидати"
-- `employer.analytics` — "Analytics" / "Анализи"
-- `employer.settings` — "Settings" / "Настройки"
-- `employer.team` — "Team" / "Екип"
-- `employer.backToWebsite` — "Back to website" / "Обратно към сайта"
-- `employer.myAccount` — "My Account" / "Моят акаунт"
-- `employer.workspaceSettings` — "Workspace Settings" / "Настройки на работното място"
-- `employer.signOut` — "Sign Out" / "Излизане"
-- Trial/status strings as needed
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
-#### 2. `src/components/Header.tsx`
+### OAuth Post-Signup: Complete Profile Page
 
-- Line 90: Replace hardcoded `Workspace` with `t("nav.workspace", "Workspace")`
-- Lines 94-98: When `isEmployer` is true, **hide** the Dashboard button entirely (employer users shouldn't access the applicant dashboard)
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
 
-#### 3. `src/layouts/EmployerLayout.tsx`
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
 
-- Import `useTranslation` and use `t()` for all sidebar labels (`NAV_BASE`, `NAV_OWNER_ADMIN`, "Back to website", dropdown items)
-- Add a **language toggle** in the sidebar bottom area (above "Back to website"), matching the compact style used in the main Header's mobile menu
-- Since `NAV_BASE` uses hardcoded labels, convert them to use translation keys (either make NAV items use keys resolved inside the component, or move NAV definition inside the component)
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
 
-### Files Changed
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
 
-| File | Change |
-|------|--------|
-| `src/i18n/en.ts` | Add employer namespace translation keys |
-| `src/i18n/bg.ts` | Add Bulgarian translations for employer namespace |
-| `src/components/Header.tsx` | Translate "Workspace" button; hide Dashboard link for employer users |
-| `src/layouts/EmployerLayout.tsx` | Import `useTranslation`; translate all labels; add language toggle to sidebar |
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 

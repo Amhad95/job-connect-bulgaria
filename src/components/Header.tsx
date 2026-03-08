@@ -83,19 +83,20 @@ export function Header() {
           {user ? (
             <div className="hidden items-center gap-2 md:flex">
               {/* Employer workspace shortcut — only for employer users */}
-              {isEmployer && (
+              {isEmployer ? (
                 <Link to="/employer">
                   <Button variant="ghost" size="sm" className="gap-1.5 text-blue-600 hover:bg-blue-50">
                     <Building2 className="h-3.5 w-3.5" />
-                    Workspace
+                    {t("nav.workspace", "Workspace")}
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/dashboard">
+                  <Button variant="outline" size="sm" className="font-medium text-blue-600 border-blue-600 hover:bg-blue-50">
+                    {t("nav.dashboard") || "Dashboard"}
                   </Button>
                 </Link>
               )}
-              <Link to="/dashboard">
-                <Button variant="outline" size="sm" className="font-medium text-blue-600 border-blue-600 hover:bg-blue-50">
-                  {t("nav.dashboard") || "Dashboard"}
-                </Button>
-              </Link>
               <Button variant="ghost" size="sm" onClick={signOut} className="gap-2 text-gray-500">
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -151,11 +152,20 @@ export function Header() {
 
             {user ? (
               <div className="flex flex-col gap-2 mt-2">
-                <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button variant="outline" size="sm" className="w-full text-blue-600 border-blue-600">
-                    {t("nav.dashboard") || "Dashboard"}
-                  </Button>
-                </Link>
+                {isEmployer ? (
+                  <Link to="/employer" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 text-blue-600 border-blue-600">
+                      <Building2 className="h-3.5 w-3.5" />
+                      {t("nav.workspace", "Workspace")}
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full text-blue-600 border-blue-600">
+                      {t("nav.dashboard") || "Dashboard"}
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

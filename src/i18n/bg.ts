@@ -30,6 +30,7 @@ export default {
     savedJobs: "Запазени обяви",
     dashboard: "Табло",
     blog: "Блог",
+    workspace: "Работно място",
   },
   hero: {
     tagline_prefix: "Всичко за вашето",
@@ -698,5 +699,22 @@ export default {
     backToSettings: "Назад към настройките",
     workspaceSettings: "Настройки на работното пространство",
     signOut: "Изход",
+
+    // Sidebar nav
+    sidebarJobPostings: "Обяви за работа",
+    sidebarApplicants: "Кандидати",
+    sidebarAnalytics: "Анализи",
+    sidebarSettings: "Настройки",
+    sidebarTeam: "Екип",
+    backToWebsite: "Обратно към сайта",
+
+    // Trial banner
+    trialEnded: "Пробният период приключи",
+    paymentPastDue: "Плащането е просрочено",
+    upgradeRestore: "Надградете за възстановяване на достъпа →",
+    trialDaysLeft: "Пробен период: {{count}} ден остава",
+    trialDaysLeft_plural: "Пробен период: {{count}} дни остават",
+    trialExpiresToday: "Пробен период: изтича днес",
+    upgradeNow: "Надградете сега →",
   },
 };

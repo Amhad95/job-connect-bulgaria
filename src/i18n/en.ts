@@ -30,6 +30,7 @@ export default {
     savedJobs: "Saved Jobs",
     dashboard: "Dashboard",
     blog: "Blog",
+    workspace: "Workspace",
   },
   hero: {
     tagline_prefix: "All your",
@@ -699,6 +700,23 @@ export default {
     backToSettings: "Back to Settings",
     workspaceSettings: "Workspace Settings",
     signOut: "Sign Out",
+
+    // Sidebar nav
+    sidebarJobPostings: "Job Postings",
+    sidebarApplicants: "Applicants",
+    sidebarAnalytics: "Analytics",
+    sidebarSettings: "Settings",
+    sidebarTeam: "Team",
+    backToWebsite: "Back to website",
+
+    // Trial banner
+    trialEnded: "Trial ended",
+    paymentPastDue: "Payment past due",
+    upgradeRestore: "Upgrade to restore access →",
+    trialDaysLeft: "Trial: {{count}} day left",
+    trialDaysLeft_plural: "Trial: {{count}} days left",
+    trialExpiresToday: "Trial: expires today",
+    upgradeNow: "Upgrade now →",
   },
 
 };
