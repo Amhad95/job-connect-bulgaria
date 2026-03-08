@@ -20,7 +20,7 @@ export default function AdminApiSources() {
     const { data: sources, isLoading: configLoading } = useQuery({
         queryKey: ['job_api_sources'],
         queryFn: async () => {
-            const { data, error } = await supabase.from('job_api_sources').select('*').order('created_at', { ascending: false });
+            const { data, error } = await (supabase as any).from('job_api_sources').select('*').order('created_at', { ascending: false });
             if (error) throw error;
             return data;
         }
@@ -29,7 +29,7 @@ export default function AdminApiSources() {
     const { data: runs, isLoading: runsLoading } = useQuery({
         queryKey: ['job_import_runs'],
         queryFn: async () => {
-            const { data, error } = await supabase.from('job_import_runs').select('*, job_api_sources(name)').order('started_at', { ascending: false }).limit(50);
+            const { data, error } = await (supabase as any).from('job_import_runs').select('*, job_api_sources(name)').order('started_at', { ascending: false }).limit(50);
             if (error) throw error;
             return data;
         }
@@ -38,7 +38,7 @@ export default function AdminApiSources() {
     const { data: importedJobs, isLoading: jobsLoading } = useQuery({
         queryKey: ['job_import_items_jobs'],
         queryFn: async () => {
-            const { data, error } = await supabase.from('job_import_items')
+            const { data, error } = await (supabase as any).from('job_import_items')
                 .select(`
           id, status, apply_url, source_url, created_at,
           job_api_sources(name),
@@ -55,7 +55,7 @@ export default function AdminApiSources() {
     const { data: errorsList, isLoading: errorsLoading } = useQuery({
         queryKey: ['job_import_items_errors'],
         queryFn: async () => {
-            const { data, error } = await supabase.from('job_import_items')
+            const { data, error } = await (supabase as any).from('job_import_items')
                 .select('*, job_api_sources(name)')
                 .eq('status', 'failed')
                 .order('created_at', { ascending: false })
@@ -145,7 +145,7 @@ export default function AdminApiSources() {
                                             {/* We don't verify API key live, we just assume it's set if configs exist and are active */}
                                             <Badge variant="default" className="bg-green-100 text-green-800">Ready</Badge>
                                         </TableCell>
-                                        <TableCell>{sources?.filter(s => s.provider === 'theirstack' && s.status === 'active').length || 0}</TableCell>
+                                        <TableCell>{(sources as any[])?.filter(s => s.provider === 'theirstack' && s.status === 'active').length || 0}</TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
@@ -174,7 +174,7 @@ export default function AdminApiSources() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {sources?.map(source => (
+                                        {(sources as any[])?.map(source => (
                                             <TableRow key={source.id}>
                                                 <TableCell className="font-medium">{source.name}</TableCell>
                                                 <TableCell className="text-gray-500">{source.provider}</TableCell>
@@ -228,7 +228,7 @@ export default function AdminApiSources() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {runs?.map((run: any) => (
+                                        {(runs as any[])?.map((run: any) => (
                                             <TableRow key={run.id}>
                                                 <TableCell className="text-sm whitespace-nowrap">
                                                     {formatDistanceToNow(new Date(run.started_at), { addSuffix: true })}
@@ -271,7 +271,7 @@ export default function AdminApiSources() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {importedJobs?.map((item: any) => (
+                                        {(importedJobs as any[])?.map((item: any) => (
                                             <TableRow key={item.id}>
                                                 <TableCell className="font-medium max-w-xs xl:max-w-md truncate">
                                                     {item.job_postings?.title || "Unknown"}
@@ -323,7 +323,7 @@ export default function AdminApiSources() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {errorsList?.map((err: any) => (
+                                        {(errorsList as any[])?.map((err: any) => (
                                             <TableRow key={err.id}>
                                                 <TableCell className="text-sm whitespace-nowrap">
                                                     {formatDistanceToNow(new Date(err.created_at), { addSuffix: true })}
