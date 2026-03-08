@@ -271,14 +271,14 @@ export default function Index() {
 
           <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/dashboard"
+              to="/auth"
               aria-label={isBg ? "Създайте профил" : "Create your profile"}
               className="inline-flex justify-center items-center rounded-full bg-blue-600 px-8 py-4 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg"
             >
               {isBg ? "Създайте профил" : "Create your profile"}
             </Link>
             <Link
-              to="/tools"
+              to="/dashboard/apply-kit"
               aria-label={isBg ? "Пробвайте AI адаптиране" : "Try AI tailoring"}
               className="inline-flex justify-center items-center rounded-full border border-gray-300 bg-white px-8 py-4 text-gray-900 font-semibold text-lg hover:bg-gray-50 transition-colors"
             >
@@ -323,7 +323,7 @@ export default function Index() {
               </ul>
 
               <Link
-                to="/pricing"
+                to="/employers"
                 aria-label={isBg ? "Вижте пакетите за работодатели" : "View employer packages"}
                 className="mt-10 inline-flex justify-center items-center rounded-full bg-blue-600 px-8 py-4 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg"
               >
@@ -389,7 +389,7 @@ export default function Index() {
               : "Choose a package, post roles directly, unlock AI-assisted candidate ranking, and manage your entire pipeline in a modern ATS-style workflow."}
           </p>
           <Link
-            to="/pricing"
+            to="/employers"
             aria-label={isBg ? "Вижте пакетите за работодатели" : "View employer packages"}
             className="inline-block bg-white text-blue-600 font-bold text-lg px-8 py-4 rounded-full hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
           >
