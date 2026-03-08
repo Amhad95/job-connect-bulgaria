@@ -1,50 +1,48 @@
 
 
-## Plan: Fix Admin API Sources — RLS Policies and Query Bug
+## Capture First Name, Last Name, and Birthdate During Signup
 
-Two issues are blocking the Admin API Sources page:
+### Overview
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-### Issue 1: RLS enabled with no policies (tables return empty)
+### Database Changes
 
-`job_api_sources`, `job_import_runs`, and `job_import_items` all have RLS enabled but zero policies. This means all client-side queries return empty arrays, even for authenticated admins.
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-**Fix**: Add RLS policies allowing admin users (via `has_role()`) to read all rows. The edge functions use the service role key so they bypass RLS automatically.
+### Email Signup Form Changes
 
-```sql
--- job_api_sources: admin can read/update
-CREATE POLICY "Admins can manage api sources"
-  ON public.job_api_sources FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
--- job_import_runs: admin can read
-CREATE POLICY "Admins can view import runs"
-  ON public.job_import_runs FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+### OAuth Post-Signup: Complete Profile Page
 
--- job_import_items: admin can read
-CREATE POLICY "Admins can view import items"
-  ON public.job_import_items FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-```
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
 
-### Issue 2: Query references non-existent `company_name` column
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
 
-In `AdminApiSources.tsx`, the "Imported Jobs" query does:
-```
-job_postings(title, company_name)
-```
-But `job_postings` has no `company_name` column. The company name comes from the `employers` table via `employer_id`.
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
 
-**Fix**: Update the query to join through `employers` instead:
-```typescript
-job_postings(title, employers(name))
-```
-And update the rendering to use `item.job_postings?.employers?.name` instead of `item.job_postings?.company_name`.
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
 
-### Files Changed
-
-| File | Change |
-|------|--------|
-| Database migration | Add RLS policies for the 3 import tables |
-| `src/pages/admin/AdminApiSources.tsx` | Fix imported jobs query to not reference `company_name` |
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 
