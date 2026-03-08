@@ -366,6 +366,90 @@ export type Database = {
           },
         ]
       }
+      application_notes: {
+        Row: {
+          application_id: string
+          created_at: string
+          created_by: string
+          employer_id: string
+          id: string
+          note: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          created_by: string
+          employer_id: string
+          id?: string
+          note: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          created_by?: string
+          employer_id?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_notes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_notes_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_screening_answers: {
+        Row: {
+          answer: string
+          application_id: string
+          created_at: string
+          id: string
+          is_knockout: boolean
+          question_id: string
+        }
+        Insert: {
+          answer: string
+          application_id: string
+          created_at?: string
+          id?: string
+          is_knockout?: boolean
+          question_id: string
+        }
+        Update: {
+          answer?: string
+          application_id?: string
+          created_at?: string
+          id?: string
+          is_knockout?: boolean
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_screening_answers_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_screening_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "job_screening_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_tracker_items: {
         Row: {
           applied_date: string | null
@@ -425,6 +509,7 @@ export type Database = {
           id: string
           job_id: string
           last_name: string
+          profile_strength_score: number | null
           resume_url: string
           status: Database["public"]["Enums"]["application_status_enum"]
           user_id: string | null
@@ -442,6 +527,7 @@ export type Database = {
           id?: string
           job_id: string
           last_name: string
+          profile_strength_score?: number | null
           resume_url: string
           status?: Database["public"]["Enums"]["application_status_enum"]
           user_id?: string | null
@@ -459,6 +545,7 @@ export type Database = {
           id?: string
           job_id?: string
           last_name?: string
+          profile_strength_score?: number | null
           resume_url?: string
           status?: Database["public"]["Enums"]["application_status_enum"]
           user_id?: string | null
@@ -911,6 +998,98 @@ export type Database = {
         }
         Relationships: []
       }
+      employer_ai_reviews: {
+        Row: {
+          candidate_application_ids: string[]
+          created_at: string
+          created_by: string
+          employer_id: string
+          id: string
+          job_id: string
+          prompt_context: Json | null
+          report_markdown: string | null
+          status: string
+        }
+        Insert: {
+          candidate_application_ids: string[]
+          created_at?: string
+          created_by: string
+          employer_id: string
+          id?: string
+          job_id: string
+          prompt_context?: Json | null
+          report_markdown?: string | null
+          status?: string
+        }
+        Update: {
+          candidate_application_ids?: string[]
+          created_at?: string
+          created_by?: string
+          employer_id?: string
+          id?: string
+          job_id?: string
+          prompt_context?: Json | null
+          report_markdown?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_ai_reviews_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_ai_reviews_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employer_audit_events: {
+        Row: {
+          action_type: string
+          actor_user_id: string
+          created_at: string
+          employer_id: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action_type: string
+          actor_user_id: string
+          created_at?: string
+          employer_id: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string
+          created_at?: string
+          employer_id?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_audit_events_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "employers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employer_invites: {
         Row: {
           created_at: string
@@ -1226,6 +1405,183 @@ export type Database = {
         }
         Relationships: []
       }
+      job_api_sources: {
+        Row: {
+          auth_mode: string
+          base_url: string | null
+          config_json: Json
+          created_at: string
+          id: string
+          key: string
+          last_cursor: string | null
+          last_run_at: string | null
+          last_watermark_at: string | null
+          name: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_mode?: string
+          base_url?: string | null
+          config_json?: Json
+          created_at?: string
+          id?: string
+          key: string
+          last_cursor?: string | null
+          last_run_at?: string | null
+          last_watermark_at?: string | null
+          name: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_mode?: string
+          base_url?: string | null
+          config_json?: Json
+          created_at?: string
+          id?: string
+          key?: string
+          last_cursor?: string | null
+          last_run_at?: string | null
+          last_watermark_at?: string | null
+          name?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      job_import_items: {
+        Row: {
+          apply_url: string | null
+          created_at: string
+          dedupe_key: string | null
+          error_message: string | null
+          external_source_job_id: string
+          id: string
+          job_posting_id: string | null
+          provider: string
+          raw_payload: Json
+          run_id: string
+          source_id: string
+          source_url: string | null
+          status: string
+        }
+        Insert: {
+          apply_url?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          error_message?: string | null
+          external_source_job_id: string
+          id?: string
+          job_posting_id?: string | null
+          provider: string
+          raw_payload?: Json
+          run_id: string
+          source_id: string
+          source_url?: string | null
+          status: string
+        }
+        Update: {
+          apply_url?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          error_message?: string | null
+          external_source_job_id?: string
+          id?: string
+          job_posting_id?: string | null
+          provider?: string
+          raw_payload?: Json
+          run_id?: string
+          source_id?: string
+          source_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_import_items_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_import_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "job_import_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_import_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "job_api_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_import_runs: {
+        Row: {
+          error_summary: string | null
+          finished_at: string | null
+          id: string
+          meta: Json
+          pages_fetched: number
+          provider: string
+          records_failed: number
+          records_inserted: number
+          records_received: number
+          records_skipped_duplicate: number
+          records_updated: number
+          source_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          meta?: Json
+          pages_fetched?: number
+          provider: string
+          records_failed?: number
+          records_inserted?: number
+          records_received?: number
+          records_skipped_duplicate?: number
+          records_updated?: number
+          source_id: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          meta?: Json
+          pages_fetched?: number
+          provider?: string
+          records_failed?: number
+          records_inserted?: number
+          records_received?: number
+          records_skipped_duplicate?: number
+          records_updated?: number
+          source_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_import_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "job_api_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_interest_tags: {
         Row: {
           created_at: string
@@ -1297,9 +1653,13 @@ export type Database = {
           employer_id: string
           employer_source_id: string | null
           employment_type: string | null
+          external_source_job_id: string | null
+          external_source_provider: string | null
           extraction_method: string | null
           first_seen_at: string
           id: string
+          industry: string | null
+          ingestion_channel: string | null
           language: string | null
           last_scraped_at: string | null
           last_seen_at: string
@@ -1308,11 +1668,14 @@ export type Database = {
           location_region: string | null
           location_slug: string | null
           posted_at: string | null
+          professional_field: string | null
+          raw_source_payload: Json | null
           salary_max: number | null
           salary_min: number | null
           salary_period: string | null
           seniority: string | null
           source_type: string
+          source_url: string | null
           status: Database["public"]["Enums"]["job_status_enum"]
           title: string
           title_bg: string | null
@@ -1330,9 +1693,13 @@ export type Database = {
           employer_id: string
           employer_source_id?: string | null
           employment_type?: string | null
+          external_source_job_id?: string | null
+          external_source_provider?: string | null
           extraction_method?: string | null
           first_seen_at?: string
           id?: string
+          industry?: string | null
+          ingestion_channel?: string | null
           language?: string | null
           last_scraped_at?: string | null
           last_seen_at?: string
@@ -1341,11 +1708,14 @@ export type Database = {
           location_region?: string | null
           location_slug?: string | null
           posted_at?: string | null
+          professional_field?: string | null
+          raw_source_payload?: Json | null
           salary_max?: number | null
           salary_min?: number | null
           salary_period?: string | null
           seniority?: string | null
           source_type?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["job_status_enum"]
           title: string
           title_bg?: string | null
@@ -1363,9 +1733,13 @@ export type Database = {
           employer_id?: string
           employer_source_id?: string | null
           employment_type?: string | null
+          external_source_job_id?: string | null
+          external_source_provider?: string | null
           extraction_method?: string | null
           first_seen_at?: string
           id?: string
+          industry?: string | null
+          ingestion_channel?: string | null
           language?: string | null
           last_scraped_at?: string | null
           last_seen_at?: string
@@ -1374,11 +1748,14 @@ export type Database = {
           location_region?: string | null
           location_slug?: string | null
           posted_at?: string | null
+          professional_field?: string | null
+          raw_source_payload?: Json | null
           salary_max?: number | null
           salary_min?: number | null
           salary_period?: string | null
           seniority?: string | null
           source_type?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["job_status_enum"]
           title?: string
           title_bg?: string | null
@@ -1398,6 +1775,50 @@ export type Database = {
             columns: ["employer_source_id"]
             isOneToOne: false
             referencedRelation: "employer_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_screening_questions: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          knockout: boolean
+          knockout_answer: string | null
+          options: string[] | null
+          q_type: string
+          question: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          knockout?: boolean
+          knockout_answer?: string | null
+          options?: string[] | null
+          q_type?: string
+          question: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          knockout?: boolean
+          knockout_answer?: string | null
+          options?: string[] | null
+          q_type?: string
+          question?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_screening_questions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
             referencedColumns: ["id"]
           },
         ]
