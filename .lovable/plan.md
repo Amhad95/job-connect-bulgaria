@@ -1,36 +1,48 @@
 
 
-## Plan: Fix Favicon & Social Preview for Google Search
+## Capture First Name, Last Name, and Birthdate During Signup
 
-### Problem 1: Favicon not showing in Google results
+### Overview
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-The `index.html` has **no `<link rel="icon">` tag**. Browsers find `favicon.ico` by convention, but Google Search requires an explicit link tag. The project already has `public/favicon.ico` and `public/favicon.svg`.
+### Database Changes
 
-**Fix**: Add explicit favicon link tags to `index.html`:
-```html
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="icon" type="image/x-icon" href="/favicon.ico" />
-```
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-Google requires favicons to be at least 48×48px. The existing SVG scales fine. The ICO file should also work if it meets the size requirement.
+### Email Signup Form Changes
 
-### Problem 2: No preview image in search results
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
-The OG image URL points to a Lovable storage bucket (`storage.googleapis.com/gpt-engineer-file-uploads/...`). This is fine for social media cards (Twitter, Facebook), but Google Search "preview images" are not driven by OG tags — they're auto-generated from page content.
+### OAuth Post-Signup: Complete Profile Page
 
-However, for **social sharing** and **Google Discover**, the current OG image setup has issues:
-- The `og:url` tag is missing (Google recommends it)
-- The `twitter:site` says `@Lovable` instead of your brand
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
 
-**Fix**: Add `og:url` and fix `twitter:site` in `index.html`:
-```html
-<meta property="og:url" content="https://www.bachkam.com" />
-<meta name="twitter:site" content="@bachkam" />
-```
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
 
-### Files Changed
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
 
-| File | Change |
-|------|--------|
-| `index.html` | Add favicon `<link>` tags, add `og:url`, fix `twitter:site` |
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
+
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 
