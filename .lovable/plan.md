@@ -1,48 +1,33 @@
 
 
-## Capture First Name, Last Name, and Birthdate During Signup
+## Fix TheirStack Import — Reduce Page Size
 
-### Overview
-Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
+The edge function was not deployed (404). I've deployed it and confirmed it's now reachable. However, all 4 sources fail with TheirStack error **E-020**: "Your current plan allows up to 25 results per page."
 
-### Database Changes
+### Root Cause
+Each `job_api_sources` row has a `config_json` with `limit: 100`, but your TheirStack plan caps at 25 per page.
 
-**Migration: Add columns to `profiles` table**
-- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
-- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
-- Keep existing `full_name` column for backward compatibility
+### Fix
+Run a single SQL update to set the limit to 25 for all TheirStack sources:
 
-### Email Signup Form Changes
+```sql
+UPDATE job_api_sources
+SET config_json = jsonb_set(config_json, '{limit}', '25')
+WHERE provider = 'theirstack';
+```
 
-**File: `src/pages/Auth.tsx`**
-- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
-- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
-- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
-  ```typescript
-  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
-  ```
+Also update the edge function's fallback default from `100` to `25` (line in `import-theirstack/index.ts`):
 
-### OAuth Post-Signup: Complete Profile Page
+```typescript
+// Change:
+const limit = source.config_json?.limit || 100;
+// To:
+const limit = source.config_json?.limit || 25;
+```
 
-Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
+### Summary
+1. **Database migration**: Update `config_json.limit` to 25 for all TheirStack sources
+2. **Edge function code**: Change fallback limit from 100 to 25
 
-**New file: `src/pages/CompleteProfile.tsx`**
-- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
-- On submit, updates the `profiles` table row for the current user
-- Redirects to `/tracker` after completion
-
-**File: `src/App.tsx`**
-- Add `/complete-profile` route (protected, inside AppLayout)
-
-**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
-- After login, check if the user's `profiles.birth_date` is null
-- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
-- This ensures OAuth users must fill in their birthdate before proceeding
-
-### Files to Create/Modify
-1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
-2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
-3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
-4. **`src/App.tsx`** -- add complete-profile route
-5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
+After these changes, retry the import from the admin panel.
 
