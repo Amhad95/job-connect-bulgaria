@@ -36,7 +36,7 @@ export default function Auth() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
-  if (user) return <Navigate to="/tracker" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);

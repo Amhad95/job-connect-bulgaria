@@ -12,12 +12,14 @@ import { useJobs } from "@/hooks/useJobs";
 import heroIllustration from "@/assets/hero-illustration.svg";
 import { useState, useEffect, useMemo } from "react";
 import { useSEO } from "@/hooks/useSEO";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 
 export default function Index() {
   const { t, i18n } = useTranslation();
   const isBg = i18n.language === "bg";
+  const { user } = useAuth();
   const { data: jobs = [] } = useJobs();
   const trendingJobs = jobs.slice(0, 6);
   const recentJobs = jobs.slice(0, 4);
@@ -292,11 +294,11 @@ export default function Index() {
 
           <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/auth"
-              aria-label={isBg ? "Създайте профил" : "Create your profile"}
+              to={user ? "/dashboard" : "/auth"}
+              aria-label={user ? (isBg ? "Към таблото" : "Go to Dashboard") : (isBg ? "Създайте профил" : "Create your profile")}
               className="inline-flex justify-center items-center rounded-full bg-blue-600 px-8 py-4 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg"
             >
-              {isBg ? "Създайте профил" : "Create your profile"}
+              {user ? (isBg ? "Към таблото" : "Go to Dashboard") : (isBg ? "Създайте профил" : "Create your profile")}
             </Link>
             <Link
               to="/dashboard/apply-kit"
