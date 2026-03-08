@@ -42,7 +42,7 @@ export default function AdminApiSources() {
                 .select(`
           id, status, apply_url, source_url, created_at,
           job_api_sources(name),
-          job_postings(title, company_name)
+          job_postings(title, employer_id, employers(name))
         `)
                 .eq('status', 'inserted')
                 .order('created_at', { ascending: false })
@@ -296,7 +296,7 @@ export default function AdminApiSources() {
                                                     {item.job_postings?.title || "Unknown"}
                                                 </TableCell>
                                                 <TableCell className="text-gray-500">
-                                                    {item.job_postings?.company_name || "-"}
+                                                    {item.job_postings?.employers?.name || "-"}
                                                 </TableCell>
                                                 <TableCell className="text-sm">
                                                     {item.job_api_sources?.name}
