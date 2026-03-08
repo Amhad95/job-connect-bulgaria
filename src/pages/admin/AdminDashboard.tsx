@@ -486,6 +486,12 @@ export default function AdminDashboard() {
                                 </span>
                             </div>
 
+                            {/* Posted Date */}
+                            <div className="w-48">
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Posted Date</Label>
+                                <Input type="date" className="mt-1" value={editForm.posted_at} onChange={e => updateField("posted_at", e.target.value)} />
+                            </div>
+
                             {/* Titles */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
