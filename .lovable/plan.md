@@ -1,48 +1,63 @@
 
 
-## Capture First Name, Last Name, and Birthdate During Signup
+## Plan: Comprehensive SEO Overhaul
 
-### Overview
-Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
+The site is a client-side SPA with **zero per-page SEO**. Every page serves the same `<title>`, `<meta description>`, no canonical URL, and no structured data. Google sees every page as identical. Here's the fix:
 
-### Database Changes
+### 1. Create a `useSEO` hook
 
-**Migration: Add columns to `profiles` table**
-- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
-- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
-- Keep existing `full_name` column for backward compatibility
+A reusable hook that sets `document.title`, `<meta name="description">`, `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:url">`, `<link rel="canonical">`, and optionally `<meta property="og:image">` — all cleaned up on unmount/change.
 
-### Email Signup Form Changes
+**New file**: `src/hooks/useSEO.ts`
 
-**File: `src/pages/Auth.tsx`**
-- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
-- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
-- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
-  ```typescript
-  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
-  ```
+### 2. Add per-page SEO to all public pages
 
-### OAuth Post-Signup: Complete Profile Page
+Call `useSEO()` in each public page with appropriate Bulgarian title + description:
 
-Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
+| Page | Title (example) | Description |
+|------|--------|-------------|
+| `Index.tsx` | бачкам — Намери работа в България | Бачкам събира топ обяви от работодатели... |
+| `Jobs.tsx` | Обяви за работа — бачкам | Разгледай стотици обяви за работа... |
+| `JobDetail.tsx` | {job.title} @ {job.company} — бачкам | Dynamic from job data |
+| `BlogPost.tsx` | {post.title} — бачкам блог | Dynamic from post data |
+| `Blog.tsx` | Блог — бачкам | Съвети за кариера, CV, интервюта... |
+| `About.tsx` | За нас — бачкам | ... |
+| `Contact.tsx` | Контакти — бачкам | ... |
+| `Employers.tsx` | За работодатели — бачкам | ... |
+| `Privacy.tsx` | Поверителност — бачкам | ... |
+| `Terms.tsx` | Условия за ползване — бачкам | ... |
+| `OptOut.tsx` | Премахване на обява — бачкам | ... |
 
-**New file: `src/pages/CompleteProfile.tsx`**
-- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
-- On submit, updates the `profiles` table row for the current user
-- Redirects to `/tracker` after completion
+### 3. Add JSON-LD structured data
 
-**File: `src/App.tsx`**
-- Add `/complete-profile` route (protected, inside AppLayout)
+- **Index.tsx**: `WebSite` schema with `potentialAction` SearchAction
+- **JobDetail.tsx**: `JobPosting` schema (title, company, location, salary, datePosted) — this is the single most impactful change for Google Jobs
+- **BlogPost.tsx**: `Article` schema (headline, datePublished, author)
+- **Employers.tsx**: `Organization` schema
 
-**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
-- After login, check if the user's `profiles.birth_date` is null
-- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
-- This ensures OAuth users must fill in their birthdate before proceeding
+### 4. Add `<html lang="bg">` dynamically
 
-### Files to Create/Modify
-1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
-2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
-3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
-4. **`src/App.tsx`** -- add complete-profile route
-5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
+Update `index.html` to `lang="bg"` (primary audience is Bulgarian) and sync via i18n language changes.
+
+### 5. Fix `index.html` default lang
+
+Change `<html lang="en">` to `<html lang="bg">` since the site is primarily Bulgarian.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/hooks/useSEO.ts` | New — reusable SEO hook |
+| `index.html` | Change `lang="en"` to `lang="bg"` |
+| `src/pages/Index.tsx` | Add useSEO + WebSite JSON-LD |
+| `src/pages/Jobs.tsx` | Add useSEO |
+| `src/pages/JobDetail.tsx` | Add useSEO + JobPosting JSON-LD |
+| `src/pages/BlogPost.tsx` | Add useSEO + Article JSON-LD |
+| `src/pages/Blog.tsx` | Add useSEO |
+| `src/pages/About.tsx` | Add useSEO |
+| `src/pages/Contact.tsx` | Add useSEO |
+| `src/pages/Employers.tsx` | Add useSEO + Organization JSON-LD |
+| `src/pages/Privacy.tsx` | Add useSEO |
+| `src/pages/Terms.tsx` | Add useSEO |
+| `src/pages/OptOut.tsx` | Add useSEO |
 
