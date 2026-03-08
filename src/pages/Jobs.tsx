@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Search, SlidersHorizontal, X, ExternalLink, Clock, MapPin, ArrowRight, PenLine, FileText } from "lucide-react";
+import { renderInlineMarkdown } from "@/lib/renderInlineMarkdown";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -313,18 +314,18 @@ function JobPreviewContent({ job, jobDetail, t, lang, avatarUrl }: {
           <>
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.description")}</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.description}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{renderInlineMarkdown(jobDetail.description)}</p>
             </div>
             {jobDetail.requirements && (
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.requirements")}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.requirements}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{renderInlineMarkdown(jobDetail.requirements)}</p>
               </div>
             )}
             {jobDetail.benefits && (
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-1">{t("jobDetail.benefits")}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{jobDetail.benefits}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{renderInlineMarkdown(jobDetail.benefits)}</p>
               </div>
             )}
           </>
