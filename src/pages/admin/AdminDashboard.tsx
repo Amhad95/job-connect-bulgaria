@@ -137,6 +137,8 @@ const SENIORITY_OPTIONS = ["", "Junior", "Mid", "Senior", "Lead", "Principal", "
 const EMPLOYMENT_TYPES = ["", "Full-time", "Part-time", "Contract", "Internship", "Freelance"];
 const SALARY_PERIODS = ["", "month", "year", "hour"];
 
+type ApprovalTab = "PENDING" | "APPROVED" | "REJECTED";
+
 export default function AdminDashboard() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -149,6 +151,7 @@ export default function AdminDashboard() {
     const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [bulkWorking, setBulkWorking] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState<ApprovalTab>("PENDING");
 
     const fetchJobs = async () => {
         setLoading(true);
