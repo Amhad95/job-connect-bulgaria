@@ -46,10 +46,9 @@ async function fetchJobs(): Promise<DbJob[]> {
   const validJobs = (data ?? []).filter((row: any) => {
     const isDirect = row.source_type === 'DIRECT';
     const isApproved = row.approval_status === 'APPROVED';
-    const isApi = row.ingestion_channel === 'api';
 
-    // ── EMPLOYER-POSTED, ADMIN-APPROVED, or API jobs bypass scraped-job heuristics ──
-    if (isDirect || isApproved || isApi) {
+    // ── EMPLOYER-POSTED or ADMIN-APPROVED jobs bypass scraped-job heuristics ──
+    if (isDirect || isApproved) {
       // Only require a non-empty title
       if (!row.title || row.title.trim().length === 0) return false;
       return true;

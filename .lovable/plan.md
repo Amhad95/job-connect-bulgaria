@@ -1,39 +1,48 @@
 
 
-## Plan: Fix Moderation Queue & Import Pipeline
+## Capture First Name, Last Name, and Birthdate During Signup
 
-### Problem 1: Unapproved API jobs appear on public jobs page
-In `src/hooks/useJobs.ts` line 52, the filter `isDirect || isApproved || isApi` lets API-imported jobs bypass the approval check. Jobs with `ingestion_channel === 'api'` and `approval_status: 'PENDING'` show publicly.
+### Overview
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-**Fix**: Remove `isApi` from the bypass condition. API jobs should still require `isApproved` to display. Change line 52 from:
-```ts
-if (isDirect || isApproved || isApi) {
-```
-to:
-```ts
-if (isDirect || isApproved) {
-```
+### Database Changes
 
-### Problem 2: `posted_at` not editable in moderation dialog
-The edit form in `AdminDashboard.tsx` has no `posted_at` field. The date shown is read-only (`first_seen_at`).
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-**Fix**: Add `posted_at` to `EditForm` type, `jobToForm`, `formToUpdate`, and add a date input in the dialog (between company header and titles).
+### Email Signup Form Changes
 
-### Problem 3: Edge function should store correct posting date
-The edge function uses `job.date_posted` which is just TheirStack's discovery date. This is the best date available from the API — there's no separate "original posting date" field. However, the function should also try `job.discovered_at` as a fallback with full timestamp precision. The current logic is correct for what TheirStack provides.
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
-**Fix**: Keep `job.date_posted` as primary, but use `job.discovered_at` as fallback since it has timestamp precision. The admin can correct dates manually via the new editable field.
+### OAuth Post-Signup: Complete Profile Page
 
-### Problem 4: Admin should edit approved/live jobs too
-Currently `fetchJobs` filters `.eq("approval_status", "PENDING")`. Admin can't re-edit live jobs.
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
 
-**Fix**: Add an "Approved Jobs" tab or a status filter dropdown that lets the admin view and edit APPROVED jobs too. Add a simple tab bar: "Pending" | "Approved" | "Rejected", replacing the hardcoded filter. The dialog actions will adapt based on the job's current status (e.g. no "Approve" button for already-approved jobs, but "Save" still works).
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
 
-### Files Changed
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
 
-| File | Change |
-|------|--------|
-| `src/hooks/useJobs.ts` | Remove `isApi` from bypass condition (1 line) |
-| `src/pages/admin/AdminDashboard.tsx` | Add `posted_at` input to edit form; add status tab filter for Pending/Approved/Rejected; adapt dialog buttons per status |
-| `supabase/functions/import-theirstack/index.ts` | Add `discovered_at` fallback for `posted_at` |
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
+
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 

@@ -18,6 +18,7 @@ type Job = {
     title_en: string | null;
     title_bg: string | null;
     first_seen_at: string;
+    posted_at: string | null;
     location_city: string | null;
     location_slug: string | null;
     work_mode: string | null;
@@ -38,6 +39,7 @@ type Job = {
 type EditForm = {
     title_en: string;
     title_bg: string;
+    posted_at: string;
     location_city: string;
     work_mode: string;
     salary_min: string;
@@ -64,6 +66,7 @@ function jobToForm(job: Job): EditForm {
     return {
         title_en: job.title_en || job.title || "",
         title_bg: job.title_bg || "",
+        posted_at: job.posted_at ? job.posted_at.slice(0, 10) : "",
         location_city: cityMatch?.name_en || job.location_city || "",
         work_mode: job.work_mode || "",
         salary_min: job.salary_min?.toString() || "",
@@ -86,6 +89,7 @@ function formToUpdate(form: EditForm) {
         title: form.title_en || form.title_bg || null,
         title_en: form.title_en || null,
         title_bg: form.title_bg || null,
+        posted_at: form.posted_at ? new Date(form.posted_at + "T00:00:00Z").toISOString() : null,
         location_city: form.location_city || null,
         location_slug: city?.slug || null,
         work_mode: form.work_mode || null,
@@ -133,6 +137,8 @@ const SENIORITY_OPTIONS = ["", "Junior", "Mid", "Senior", "Lead", "Principal", "
 const EMPLOYMENT_TYPES = ["", "Full-time", "Part-time", "Contract", "Internship", "Freelance"];
 const SALARY_PERIODS = ["", "month", "year", "hour"];
 
+type ApprovalTab = "PENDING" | "APPROVED" | "REJECTED";
+
 export default function AdminDashboard() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -145,22 +151,26 @@ export default function AdminDashboard() {
     const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [bulkWorking, setBulkWorking] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState<ApprovalTab>("PENDING");
 
     const fetchJobs = async () => {
         setLoading(true);
-        const { data, error } = await supabase
+        let query = supabase
             .from("job_postings")
-            .select("id, title, title_en, title_bg, first_seen_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, extraction_method, last_scraped_at, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
-            .eq("approval_status", "PENDING")
-            .not("last_scraped_at", "is", null)
+            .select("id, title, title_en, title_bg, first_seen_at, posted_at, location_city, location_slug, work_mode, canonical_url, approval_status, salary_min, salary_max, salary_period, currency, employment_type, seniority, category, department, extraction_method, last_scraped_at, employers(name, logo_url), job_posting_content(description_text, requirements_text, benefits_text)")
+            .eq("approval_status", activeTab)
             .order(sortField, { ascending: sortDir === "asc" })
             .limit(200);
+        if (activeTab === "PENDING") {
+            query = query.not("last_scraped_at", "is", null);
+        }
+        const { data, error } = await query;
         if (error) toast.error("Failed to fetch queue: " + error.message);
         else setJobs((data || []) as unknown as Job[]);
         setLoading(false);
     };
 
-    useEffect(() => { fetchJobs(); }, [sortField, sortDir]);
+    useEffect(() => { fetchJobs(); }, [sortField, sortDir, activeTab]);
 
     const openReview = (job: Job) => {
         setReviewJob(job);
@@ -300,12 +310,25 @@ export default function AdminDashboard() {
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Moderation Queue</h1>
-                    <p className="text-gray-500 text-sm mt-0.5">Review scraped jobs before they go live. Only PENDING jobs appear here.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Job Management</h1>
+                    <p className="text-gray-500 text-sm mt-0.5">Review, edit, and manage all job postings.</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={fetchJobs} className="gap-2">
                     <RefreshCw className="w-4 h-4" /> Refresh
                 </Button>
+            </div>
+
+            {/* Status Tabs */}
+            <div className="flex gap-1 border-b border-gray-200">
+                {(["PENDING", "APPROVED", "REJECTED"] as ApprovalTab[]).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => { setActiveTab(tab); setSelected(new Set()); }}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"}`}
+                    >
+                        {tab === "PENDING" ? "Pending" : tab === "APPROVED" ? "Approved" : "Rejected"}
+                    </button>
+                ))}
             </div>
 
             {/* Filters + Bulk Actions */}
@@ -436,7 +459,7 @@ export default function AdminDashboard() {
                 </div>
                 {!loading && visible.length > 0 && (
                     <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-400 flex items-center justify-between">
-                        <span>{visible.length} pending job{visible.length !== 1 ? "s" : ""}</span>
+                        <span>{visible.length} {activeTab.toLowerCase()} job{visible.length !== 1 ? "s" : ""}</span>
                         {search || companyFilter !== "all" ? <span>Filtered from {jobs.length} total</span> : null}
                     </div>
                 )}
@@ -461,6 +484,12 @@ export default function AdminDashboard() {
                                     <Clock className="w-3 h-3 inline mr-1" />
                                     {new Date(reviewJob.first_seen_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                                 </span>
+                            </div>
+
+                            {/* Posted Date */}
+                            <div className="w-48">
+                                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Posted Date</Label>
+                                <Input type="date" className="mt-1" value={editForm.posted_at} onChange={e => updateField("posted_at", e.target.value)} />
                             </div>
 
                             {/* Titles */}
@@ -569,15 +598,19 @@ export default function AdminDashboard() {
                     )}
                     <DialogFooter className="gap-2 flex-wrap">
                         <Button variant="outline" onClick={closeReview} disabled={saving}>Cancel</Button>
-                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={reviewReject} disabled={saving}>
-                            <X className="w-4 h-4" /> Reject
-                        </Button>
+                        {reviewJob?.approval_status !== "REJECTED" && (
+                            <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={reviewReject} disabled={saving}>
+                                <X className="w-4 h-4" /> Reject
+                            </Button>
+                        )}
                         <Button variant="outline" className="gap-1.5" onClick={saveDraft} disabled={saving}>
-                            <Save className="w-4 h-4" /> Save Draft
+                            <Save className="w-4 h-4" /> Save
                         </Button>
-                        <Button onClick={saveAndApprove} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
-                            <Check className="w-4 h-4" /> Save & Approve
-                        </Button>
+                        {reviewJob?.approval_status !== "APPROVED" && (
+                            <Button onClick={saveAndApprove} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+                                <Check className="w-4 h-4" /> Save & Approve
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
