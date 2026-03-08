@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 import { useSearchParams, Link } from "react-router-dom";
 
 import { JobCard } from "@/components/JobCard";
@@ -32,6 +33,12 @@ function useIsLg() {
 export default function Jobs() {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
+
+  useSEO({
+    title: "Обяви за работа — бачкам",
+    description: "Разгледай стотици обяви за работа от водещи работодатели в България. Филтрирай по град, тип заетост и работен режим.",
+    canonical: "/jobs",
+  });
   const { data: jobs = [], isLoading } = useJobs();
   const isLg = useIsLg();
 

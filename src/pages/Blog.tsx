@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +48,13 @@ function BlogCardSkeleton() {
 
 export default function Blog() {
     const { t } = useTranslation();
+
+    useSEO({
+        title: "Блог — бачкам",
+        description: "Съвети за кариера, CV, мотивационни писма, интервюта и търсене на работа в България.",
+        canonical: "/blog",
+    });
+
     const { data: posts, isLoading, isError } = useQuery({
         queryKey: ["blog_posts"],
         queryFn: fetchPublishedPosts,

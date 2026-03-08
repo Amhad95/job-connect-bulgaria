@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/useSEO";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +32,12 @@ type ContactValues = z.infer<typeof schema>;
 export default function Contact() {
     const { t } = useTranslation();
     const [submitting, setSubmitting] = useState(false);
+
+    useSEO({
+        title: "Контакти — бачкам",
+        description: "Свържи се с екипа на бачкам. Изпрати съобщение, задай въпрос или сподели предложение.",
+        canonical: "/contact",
+    });
 
     const form = useForm<ContactValues>({
         resolver: zodResolver(schema),

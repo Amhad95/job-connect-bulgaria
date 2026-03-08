@@ -1,8 +1,15 @@
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Privacy() {
   const { i18n } = useTranslation();
   const isBg = i18n.language === "bg";
+
+  useSEO({
+    title: "Поверителност — бачкам",
+    description: "Политика за поверителност на бачкам. Какви данни събираме, как ги използваме и как можете да ги изтриете.",
+    canonical: "/privacy",
+  });
 
   return (
     <div className="container max-w-3xl py-12 md:py-16">
