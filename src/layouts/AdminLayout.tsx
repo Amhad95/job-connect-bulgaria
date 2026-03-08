@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Building2, LayoutDashboard, Settings, Menu, Handshake, ChevronRight } from "lucide-react";
+import { Building2, LayoutDashboard, Settings, Menu, Handshake, ChevronRight, Webhook } from "lucide-react";
 
 const NAV = [
     {
@@ -27,6 +27,12 @@ const NAV = [
             { label: "All Partners", path: "/admin/partners" },
             { label: "Signup Requests", path: "/admin/partners/requests" },
         ],
+    },
+    {
+        label: "API Sources",
+        path: "/admin/api-sources",
+        icon: <Webhook className="w-5 h-5" />,
+        exact: true,
     },
     {
         label: "System Settings",

@@ -32,7 +32,7 @@ async function fetchJobs(): Promise<DbJob[]> {
     .select(`
       id, title, canonical_url, apply_url, source_type, approval_status,
       location_city, location_slug, work_mode, employment_type, category,
-      salary_min, salary_max, currency,
+      salary_min, salary_max, currency, ingestion_channel,
       first_seen_at, last_seen_at, posted_at, last_scraped_at,
       employers!inner ( name, logo_url ),
       job_posting_content ( description_text )
@@ -46,9 +46,10 @@ async function fetchJobs(): Promise<DbJob[]> {
   const validJobs = (data ?? []).filter((row: any) => {
     const isDirect = row.source_type === 'DIRECT';
     const isApproved = row.approval_status === 'APPROVED';
+    const isApi = row.ingestion_channel === 'api';
 
-    // ── EMPLOYER-POSTED or ADMIN-APPROVED jobs bypass scraped-job heuristics ──
-    if (isDirect || isApproved) {
+    // ── EMPLOYER-POSTED, ADMIN-APPROVED, or API jobs bypass scraped-job heuristics ──
+    if (isDirect || isApproved || isApi) {
       // Only require a non-empty title
       if (!row.title || row.title.trim().length === 0) return false;
       return true;

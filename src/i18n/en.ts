@@ -522,6 +522,40 @@ export default {
     notifyNote: "🔔 Job suggestions and notifications based on your interests are coming soon.",
   },
 
+  admin: {
+    apiSources: {
+      title: "API Sources",
+      subtitle: "Manage external job API providers, run imports, and monitor ingestion.",
+      runAll: "Run All Active",
+      importStarted: "Import run completed",
+      importFailed: "Import failed: ",
+      tabs: {
+        providers: "Providers",
+        configs: "Source Configs",
+        runs: "Import Runs",
+        jobs: "Imported Jobs",
+        errors: "Errors"
+      },
+      providers: {
+        title: "Configured Providers",
+        desc: "API providers available to the system."
+      },
+      configs: {
+        title: "Source Configurations",
+        desc: "Individual queries and rules for each provider."
+      },
+      runs: {
+        title: "Recent Import Runs"
+      },
+      jobs: {
+        title: "Recently Imported Jobs"
+      },
+      errors: {
+        title: "Failed Items"
+      }
+    }
+  },
+
   employerAts: {
     // Job form
     professionalField: "Professional Field",

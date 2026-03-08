@@ -46,6 +46,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSources from "./pages/admin/AdminSources";
+import AdminApiSources from "./pages/admin/AdminApiSources";
 import AdminPartners from "./pages/admin/AdminPartners";
 import AdminPartnerRequests from "./pages/admin/AdminPartnerRequests";
 import AdminPartnerDetail from "./pages/admin/AdminPartnerDetail";
@@ -113,6 +114,7 @@ const App = () => (
                 <Route index element={<AdminDashboard />} />
                 <Route path="companies" element={<AdminCompanies />} />
                 <Route path="sources" element={<AdminSources />} />
+                <Route path="api-sources" element={<AdminApiSources />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="partners" element={<AdminPartners />} />
                 <Route path="partners/requests" element={<AdminPartnerRequests />} />
