@@ -2,6 +2,8 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { useMemo } from "react";
+import { useSEO } from "@/hooks/useSEO";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +59,25 @@ export default function BlogPost() {
         queryKey: ["blog_post", slug],
         queryFn: () => fetchPost(slug!),
         enabled: Boolean(slug),
+    });
+
+    const articleJsonLd = useMemo(() => post ? ({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: post.title,
+        datePublished: post.published_at,
+        image: post.cover_image_url || undefined,
+        author: { "@type": "Organization", name: "бачкам" },
+        publisher: { "@type": "Organization", name: "бачкам", url: "https://www.bachkam.com" },
+        mainEntityOfPage: `https://www.bachkam.com/blog/${post.slug}`,
+    }) : undefined, [post]);
+
+    useSEO({
+        title: post ? `${post.title} — бачкам блог` : "Блог — бачкам",
+        description: post?.excerpt || "Статия от блога на бачкам.",
+        canonical: post ? `/blog/${post.slug}` : "/blog",
+        ogImage: post?.cover_image_url || undefined,
+        jsonLd: articleJsonLd,
     });
 
     if (isLoading) {

@@ -10,7 +10,8 @@ import {
 import { JobCard } from "@/components/JobCard";
 import { useJobs } from "@/hooks/useJobs";
 import heroIllustration from "@/assets/hero-illustration.svg";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSEO } from "@/hooks/useSEO";
 
 
 
@@ -20,6 +21,26 @@ export default function Index() {
   const { data: jobs = [] } = useJobs();
   const trendingJobs = jobs.slice(0, 6);
   const recentJobs = jobs.slice(0, 4);
+
+  const websiteJsonLd = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "бачкам",
+    url: "https://www.bachkam.com",
+    description: "Агрегатор за обяви за работа в България с инструменти за CV и мотивационни писма.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://www.bachkam.com/jobs?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  }), []);
+
+  useSEO({
+    title: "бачкам — Намери работа в България",
+    description: "Бачкам събира топ обяви от работодатели + инструменти за CV, мотивационни писма и следене на кандидатстването. Всичко за успешно търсене на работа на едно място.",
+    canonical: "/",
+    jsonLd: websiteJsonLd,
+  });
 
   const roleTagKeys = [
     "hero.roleTags.softwareEngineer",

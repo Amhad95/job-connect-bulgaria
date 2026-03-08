@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 export default function OptOut() {
     const { t } = useTranslation();
     const { toast } = useToast();
+
+    useSEO({
+        title: "Премахване на обява — бачкам",
+        description: "Заявка за премахване на обява за работа от бачкам. Изпратете заявка и ние ще я обработим.",
+        canonical: "/opt-out",
+    });
     const [url, setUrl] = useState("");
     const [reason, setReason] = useState("");
     const [email, setEmail] = useState("");

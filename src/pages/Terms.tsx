@@ -1,8 +1,15 @@
 import { useTranslation } from "react-i18next";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Terms() {
   const { i18n } = useTranslation();
   const isBg = i18n.language === "bg";
+
+  useSEO({
+    title: "Условия за ползване — бачкам",
+    description: "Условия за ползване на бачкам. Информация за използване на услугата, точност на данните и премахване на съдържание.",
+    canonical: "/terms",
+  });
 
   return (
     <div className="container max-w-3xl py-12 md:py-16">

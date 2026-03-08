@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-
+import { useSEO } from "@/hooks/useSEO";
 import { Link, useNavigate } from "react-router-dom";
 import {
     ArrowRight, Sparkles, LayoutGrid, BadgeCheck,
@@ -13,6 +13,21 @@ export default function Employers() {
     const isBg = i18n.language === "bg";
     const navigate = useNavigate();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annually'>('monthly');
+
+    const orgJsonLd = useMemo(() => ({
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "бачкам",
+        url: "https://www.bachkam.com",
+        description: "Платформа за набиране на персонал в България.",
+    }), []);
+
+    useSEO({
+        title: "За работодатели — бачкам",
+        description: "Публикувай обяви за работа и намери най-добрите кандидати в България. AI класиране, директно кандидатстване и още.",
+        canonical: "/employers",
+        jsonLd: orgJsonLd,
+    });
 
     return (
         <>

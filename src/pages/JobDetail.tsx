@@ -1,7 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/useSEO";
 
 import { useJob } from "@/hooks/useJobs";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,35 @@ export default function JobDetail() {
 
   // Tracker
   const createTracker = useCreateExternalItem();
+
+  const jobPostingJsonLd = useMemo(() => job ? ({
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    datePosted: job.postedAt || job.firstSeenAt,
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company,
+      ...(job.companyLogo ? { logo: job.companyLogo } : {}),
+    },
+    ...(job.city ? { jobLocation: { "@type": "Place", address: { "@type": "PostalAddress", addressLocality: job.city, addressCountry: "BG" } } } : {}),
+    ...(job.salaryMin && job.salaryMax ? {
+      baseSalary: {
+        "@type": "MonetaryAmount",
+        currency: job.currency || "BGN",
+        value: { "@type": "QuantitativeValue", minValue: job.salaryMin, maxValue: job.salaryMax, unitText: "MONTH" },
+      },
+    } : {}),
+    ...(job.description ? { description: job.description.slice(0, 500) } : {}),
+    ...(job.applyUrl ? { url: job.applyUrl } : {}),
+  }) : undefined, [job]);
+
+  useSEO({
+    title: job ? `${job.title} @ ${job.company} — бачкам` : "Обява за работа — бачкам",
+    description: job ? `${job.title} в ${job.company}${job.city ? `, ${job.city}` : ""}. Кандидатствай сега в бачкам.` : "Преглед на обява за работа в бачкам.",
+    canonical: job ? `/jobs/${id}` : undefined,
+    jsonLd: jobPostingJsonLd,
+  });
 
   if (isLoading) {
     return (

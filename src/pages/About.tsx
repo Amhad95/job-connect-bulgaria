@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { useSEO } from "@/hooks/useSEO";
 
 import { Eye, Lock, MapPin, CheckCircle, ArrowRight } from "lucide-react";
 
@@ -8,6 +9,11 @@ const principleIcons = [Eye, Lock, MapPin];
 export default function About() {
     const { t } = useTranslation();
 
+    useSEO({
+        title: "За нас — бачкам",
+        description: "Научи повече за бачкам — агрегатор за обяви за работа в България. Нашата мисия, принципи и как работим.",
+        canonical: "/about",
+    });
     const expectItems = t("about.expect_items", { returnObjects: true }) as string[];
     const principles = t("about.principles_items", { returnObjects: true }) as {
         title: string;
