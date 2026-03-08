@@ -592,15 +592,19 @@ export default function AdminDashboard() {
                     )}
                     <DialogFooter className="gap-2 flex-wrap">
                         <Button variant="outline" onClick={closeReview} disabled={saving}>Cancel</Button>
-                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={reviewReject} disabled={saving}>
-                            <X className="w-4 h-4" /> Reject
-                        </Button>
+                        {reviewJob?.approval_status !== "REJECTED" && (
+                            <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1.5" onClick={reviewReject} disabled={saving}>
+                                <X className="w-4 h-4" /> Reject
+                            </Button>
+                        )}
                         <Button variant="outline" className="gap-1.5" onClick={saveDraft} disabled={saving}>
-                            <Save className="w-4 h-4" /> Save Draft
+                            <Save className="w-4 h-4" /> Save
                         </Button>
-                        <Button onClick={saveAndApprove} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
-                            <Check className="w-4 h-4" /> Save & Approve
-                        </Button>
+                        {reviewJob?.approval_status !== "APPROVED" && (
+                            <Button onClick={saveAndApprove} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+                                <Check className="w-4 h-4" /> Save & Approve
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
