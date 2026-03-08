@@ -30,6 +30,7 @@ export default {
     savedJobs: "Запазени обяви",
     dashboard: "Табло",
     blog: "Блог",
+    workspace: "Работно място",
   },
   hero: {
     tagline_prefix: "Всичко за вашето",
