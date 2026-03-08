@@ -15,6 +15,7 @@ import {
   Clock, MapPin, Building, Briefcase, Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { renderInlineMarkdown } from "@/lib/renderInlineMarkdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedJobIds, useToggleSaveJob, useRecordJobView } from "@/hooks/useSavedJobs";
 import { useCreateExternalItem } from "@/hooks/useTracker";
