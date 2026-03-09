@@ -43,7 +43,7 @@ export function Header() {
         <div className="flex flex-1">
           <Link to="/" className="flex items-center gap-1.5 font-display font-bold tracking-tight">
             <img src={logo} alt="бачкам" className="h-[46px] w-[46px]" />
-            <span className="text-2xl text-primary md:inline hidden lg:inline">бачкам</span>
+            <span className="text-2xl text-primary">бачкам</span>
           </Link>
         </div>
 
