@@ -1,48 +1,47 @@
 
 
-## Capture First Name, Last Name, and Birthdate During Signup
+## Plan: Prevent TheirStack Credit Waste
 
-### Overview
-Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
+### Root Cause
+When import was triggered, **4 TheirStack sources ran concurrently**, each paginating independently. Source `d4314563` alone consumed all 200 credits across 8 pages (5 + 3), mostly on duplicate results. The code lacked:
+1. **Early stop on duplicates** — kept paginating even when most results were already in the database
+2. **No credit awareness** — no way to cap total API calls across sources
+3. **Concurrent source execution** — all sources fire simultaneously against the same quota
 
-### Database Changes
+### Changes
 
-**Migration: Add columns to `profiles` table**
-- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
-- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
-- Keep existing `full_name` column for backward compatibility
+#### 1. `supabase/functions/import-theirstack/index.ts`
 
-### Email Signup Form Changes
+- **Add duplicate-ratio circuit breaker**: If >80% of a page's results are duplicates, stop paginating that source immediately. This alone would have saved ~75 credits.
+- **Reduce page safety cap** from 10 to 5 (matching TheirStack's free plan limit).
+- **Stop on 402/429 errors immediately** instead of continuing to the next source (they share the same API key/quota).
+- **Add a short delay between sources** to avoid rate-limit (429) errors.
 
-**File: `src/pages/Auth.tsx`**
-- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
-- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
-- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
-  ```typescript
-  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
-  ```
+#### 2. No other files need changes.
 
-### OAuth Post-Signup: Complete Profile Page
+### Key Code Changes
 
-Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
+```typescript
+// After processing each page, check duplicate ratio
+const dupeRatio = pageSkipped / jobs.length;
+if (dupeRatio > 0.8) {
+  console.log(`High duplicate ratio (${dupeRatio}), stopping pagination`);
+  hasMore = false;
+  break;
+}
 
-**New file: `src/pages/CompleteProfile.tsx`**
-- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
-- On submit, updates the `profiles` table row for the current user
-- Redirects to `/tracker` after completion
+// On 402 (no credits) or 429, abort ALL remaining sources
+if (tsResp.status === 402 || tsResp.status === 429) {
+  // ... update run as failed, then return early from the entire function
+}
+```
 
-**File: `src/App.tsx`**
-- Add `/complete-profile` route (protected, inside AppLayout)
+### Credit Math (if this had been in place)
+- Run 2 page 1: 25 jobs, ~15 new → continue
+- Run 2 page 2-3: increasingly duplicate → would have tripped 80% threshold
+- **Estimated savings: ~100-125 credits**
 
-**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
-- After login, check if the user's `profiles.birth_date` is null
-- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
-- This ensures OAuth users must fill in their birthdate before proceeding
-
-### Files to Create/Modify
-1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
-2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
-3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
-4. **`src/App.tsx`** -- add complete-profile route
-5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
+| File | Change |
+|------|--------|
+| `supabase/functions/import-theirstack/index.ts` | Add duplicate circuit breaker, reduce page cap, abort on 402/429 across all sources |
 
