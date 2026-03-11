@@ -72,20 +72,26 @@ export default function AdminApiSources() {
 
             if (sourceId && provider) {
                 // Run single source with correct function
-                const fnName = provider === 'linkedin_rapidapi' ? 'import-linkedin-rapidapi' : 'import-theirstack';
+                const fnMap: Record<string, string> = {
+                    linkedin_rapidapi: 'import-linkedin-rapidapi',
+                    theirstack: 'import-theirstack',
+                    jsearch: 'import-jsearch',
+                };
+                const fnName = fnMap[provider] || 'import-theirstack';
                 const { data, error } = await supabase.functions.invoke(fnName, { body: { source_id: sourceId } });
                 if (error) throw error;
                 return data;
             }
 
-            // Run all active — invoke both functions in parallel
-            const [ts, li] = await Promise.allSettled([
+            // Run all active — invoke all functions in parallel
+            const [ts, li, js] = await Promise.allSettled([
                 supabase.functions.invoke('import-theirstack', { body: {} }),
                 supabase.functions.invoke('import-linkedin-rapidapi', { body: {} }),
+                supabase.functions.invoke('import-jsearch', { body: {} }),
             ]);
-            const errors = [ts, li].filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason?.message);
-            if (errors.length === 2) throw new Error(errors.join('; '));
-            return { ts: ts.status === 'fulfilled' ? ts.value : null, li: li.status === 'fulfilled' ? li.value : null };
+            const errors = [ts, li, js].filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason?.message);
+            if (errors.length === 3) throw new Error(errors.join('; '));
+            return { ts: ts.status === 'fulfilled' ? ts.value : null, li: li.status === 'fulfilled' ? li.value : null, js: js.status === 'fulfilled' ? js.value : null };
         },
         onSuccess: (data) => {
             toast.success(t("admin.apiSources.importStarted", "Import run completed"));
