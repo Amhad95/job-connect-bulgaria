@@ -172,6 +172,13 @@ export default function AdminApiSources() {
                                         </TableCell>
                                         <TableCell>{(sources as any[])?.filter(s => s.provider === 'linkedin_rapidapi' && s.status === 'active').length || 0}</TableCell>
                                     </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-medium">JSearch (RapidAPI)</TableCell>
+                                        <TableCell>
+                                            <Badge variant="default" className="bg-green-100 text-green-800">{t("admin.apiSources.credentialsConfigured", "Configured")}</Badge>
+                                        </TableCell>
+                                        <TableCell>{(sources as any[])?.filter(s => s.provider === 'jsearch' && s.status === 'active').length || 0}</TableCell>
+                                    </TableRow>
                                 </TableBody>
                             </Table>
                         </CardContent>
