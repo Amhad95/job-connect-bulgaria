@@ -1,72 +1,48 @@
 
 
-## Plan: Add JSearch (RapidAPI) Import Integration
+## Capture First Name, Last Name, and Birthdate During Signup
 
 ### Overview
-Add a new edge function `import-jsearch` that uses the JSearch API (via RapidAPI) to search for jobs by query+location. This follows the exact same pattern as the existing `import-linkedin-rapidapi` and `import-theirstack` functions, reusing the same tables (`job_api_sources`, `job_import_runs`, `job_import_items`).
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-### Key Constraints
-- **200 monthly request limit** (free plan) — each page = 1 request credit
-- **10 results per page**, pages 1-50
-- Search-based: each source config stores a `query` (e.g. "marketing jobs in sofia") and `country` (e.g. "bg")
+### Database Changes
 
-### Changes
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-#### 1. Add API Key Secret
-- Use `add_secret` tool to request `RAPIDAPI_JSEARCH_KEY` from user (their RapidAPI key for JSearch)
-- Host is fixed: `jsearch.p.rapidapi.com`
+### Email Signup Form Changes
 
-#### 2. New Edge Function: `supabase/functions/import-jsearch/index.ts`
-Following the established pattern:
-- Reads `job_api_sources` where `provider = 'jsearch'` and `status = 'active'`
-- Each source's `config_json` holds: `{ query: "marketing jobs in sofia", country: "bg", date_posted: "week", num_pages: 2 }`
-- Calls `GET https://jsearch.p.rapidapi.com/search?query=...&country=bg&page=1&num_pages=1`
-- Maps JSearch response fields to `job_postings`:
-  - `job_title` → `title`
-  - `employer_name` → employer lookup/create
-  - `job_apply_link` → `apply_url` / `canonical_url`
-  - `job_city`, `job_country` → location fields
-  - `job_description` → `job_posting_content`
-  - `job_employment_type` → `employment_type`
-  - `job_is_remote` → `work_mode`
-  - `job_posted_at_datetime_utc` → `posted_at`
-  - `job_id` → `external_source_job_id`
-- **Credit protection** (same as other importers):
-  - Global abort on 429/402
-  - Duplicate circuit breaker (>80% dupes → stop)
-  - Max 3 pages per source (conservative given 200/month limit)
-  - Inter-source delay of 3 seconds
-  - Read `x-ratelimit-requests-remaining` header
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
-#### 3. Update `supabase/config.toml`
-Add `verify_jwt = false` entry for `import-jsearch`.
+### OAuth Post-Signup: Complete Profile Page
 
-#### 4. Update `AdminApiSources.tsx`
-- Add "JSearch (RapidAPI)" row to the Providers table
-- Wire `triggerImport` to call `import-jsearch` when `provider === 'jsearch'`
-- Add JSearch to the "Run All Active" parallel invocation
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
 
-#### 5. Create Source Configs in DB
-After deployment, you'll create `job_api_sources` rows like:
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
 
-| name | provider | config_json |
-|------|----------|-------------|
-| JSearch - Marketing Sofia | jsearch | `{ "query": "marketing jobs in sofia", "country": "bg", "date_posted": "week", "num_pages": 1 }` |
-| JSearch - Sales Sofia | jsearch | `{ "query": "sales jobs in sofia", "country": "bg", "date_posted": "week", "num_pages": 1 }` |
-| JSearch - Accountant Sofia | jsearch | `{ "query": "accountant jobs in sofia", "country": "bg", "date_posted": "week", "num_pages": 1 }` |
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
 
-Each config uses `num_pages: 1` (10 results) to stay well within the 200 request/month budget. With 3 queries, that's only 3 requests per run.
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
 
-### Files Changed
-
-| File | Change |
-|------|--------|
-| `supabase/functions/import-jsearch/index.ts` | New edge function (follows linkedin-rapidapi pattern) |
-| `supabase/config.toml` | Add `[functions.import-jsearch]` with `verify_jwt = false` |
-| `src/pages/admin/AdminApiSources.tsx` | Add JSearch provider row + wire trigger |
-
-### Credit Budget Strategy
-With 200 requests/month and `num_pages: 1` per source config:
-- 3 source configs × 1 page each = **3 requests per run**
-- You can safely run ~60 times per month (roughly twice daily)
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 
