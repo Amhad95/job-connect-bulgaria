@@ -32,7 +32,6 @@ function normalizeCitySlug(raw: string | null | undefined): string | null {
 function cleanCanonicalUrl(raw: string): string {
     try {
         const u = new URL(raw);
-        // Strip UTM and tracking params
         const stripPrefixes = ['utm_', 'fbclid', 'gclid', 'ref', 'trk', 'trackingId'];
         for (const key of [...u.searchParams.keys()]) {
             if (stripPrefixes.some(p => key.startsWith(p))) {
@@ -124,7 +123,6 @@ Deno.serve(async (req) => {
         const body = await req.json().catch(() => ({}));
         const { source_id } = body;
 
-        // Fetch sources to run
         let query = supabase.from("job_api_sources").select("*").eq("provider", "linkedin_rapidapi").eq("status", "active");
         if (source_id) {
             query = query.eq("id", source_id);
@@ -137,8 +135,22 @@ Deno.serve(async (req) => {
         }
 
         const results = [];
+        let globalAbort = false;
+        let globalAbortReason = '';
 
         for (const source of sources) {
+            // Global abort: skip remaining sources if quota exhausted
+            if (globalAbort) {
+                console.log(`Skipping source ${source.name} due to global abort: ${globalAbortReason}`);
+                results.push({ source: source.name, status: 'skipped', reason: globalAbortReason });
+                continue;
+            }
+
+            // Inter-source delay (skip for first source)
+            if (results.length > 0) {
+                await delay(3000);
+            }
+
             console.log(`Starting LinkedIn RapidAPI import for ${source.name}...`);
 
             const { data: run, error: runErr } = await supabase.from("job_import_runs").insert({
@@ -166,10 +178,14 @@ Deno.serve(async (req) => {
                 const limit = config.limit || 100;
                 let offset = config.offset || 0;
                 let hasMore = true;
-                const maxPages = 5; // Safety cap
+                const maxPages = 5;
 
                 while (hasMore && pagesFetched < maxPages) {
-                    // Build URL with query params
+                    if (globalAbort) {
+                        console.log(`Global abort during pagination for ${source.name}`);
+                        break;
+                    }
+
                     const params = new URLSearchParams();
                     params.set("limit", String(limit));
                     params.set("offset", String(offset));
@@ -193,13 +209,32 @@ Deno.serve(async (req) => {
                         }
                     });
 
+                    // Check for quota/rate-limit errors — abort ALL sources
+                    if (resp.status === 429 || resp.status === 402) {
+                        const errText = await resp.text();
+                        globalAbortReason = `API quota exceeded (HTTP ${resp.status})`;
+                        globalAbort = true;
+                        console.error(`${globalAbortReason}: ${errText}`);
+                        errors.push(globalAbortReason);
+                        break;
+                    }
+
+                    // Check rate-limit headers for remaining quota
+                    const jobsRemaining = parseInt(resp.headers.get('x-ratelimit-jobs-remaining') || '999');
+                    if (jobsRemaining <= 0) {
+                        globalAbortReason = `API quota exhausted (x-ratelimit-jobs-remaining: ${jobsRemaining})`;
+                        globalAbort = true;
+                        console.error(globalAbortReason);
+                        errors.push(globalAbortReason);
+                        // Still process this page's data since it was fetched
+                    }
+
                     if (!resp.ok) {
                         const errText = await resp.text();
                         throw new Error(`RapidAPI error ${resp.status}: ${errText}`);
                     }
 
                     const respData = await resp.json();
-                    // API returns array directly or { data: [...] }
                     const jobs = Array.isArray(respData) ? respData : (respData.data || respData.jobs || []);
 
                     if (jobs.length === 0) {
@@ -210,6 +245,8 @@ Deno.serve(async (req) => {
                     pagesFetched++;
                     recordsReceived += jobs.length;
 
+                    let pageSkipped = 0;
+
                     for (const job of jobs) {
                         try {
                             const jobId = String(job.id || job.job_id || '');
@@ -218,7 +255,6 @@ Deno.serve(async (req) => {
                                 continue;
                             }
 
-                            // Provider-level dedupe
                             const { data: existingItem } = await supabase
                                 .from('job_import_items')
                                 .select('id, status, job_posting_id')
@@ -229,6 +265,7 @@ Deno.serve(async (req) => {
 
                             if (existingItem && existingItem.status === 'inserted') {
                                 recordsSkippedDuplicate++;
+                                pageSkipped++;
                                 continue;
                             }
 
@@ -243,7 +280,6 @@ Deno.serve(async (req) => {
                             const applyUrl = rawApplyUrl;
                             const canonicalUrlStr = cleanCanonicalUrl(rawApplyUrl);
 
-                            // Normalization
                             const companyName = job.organization || 'Unknown Company';
                             const companyDomain = deriveDomain(job.organization_url || job.linkedin_org_url);
 
@@ -254,7 +290,6 @@ Deno.serve(async (req) => {
                                 continue;
                             }
 
-                            // Cross-source dedupe by canonical_url
                             let finalDedupeStatus = 'inserted';
                             const { data: publicDup } = await supabase
                                 .from('job_postings')
@@ -271,21 +306,19 @@ Deno.serve(async (req) => {
                                 }).eq('id', publicDup.id);
                                 finalDedupeStatus = 'duplicate_skipped';
                                 recordsSkippedDuplicate++;
+                                pageSkipped++;
                             } else {
-                                // Location
                                 const citiesArr = job.cities_derived || job.locations_derived || [];
                                 const cityRaw = Array.isArray(citiesArr) ? citiesArr[0] : null;
                                 const countriesArr = job.countries_derived || [];
                                 const countryRaw = Array.isArray(countriesArr) ? countriesArr[0] : null;
 
-                                // Date
                                 let postedAt = null;
                                 const rawDate = job.date_posted || job.date_created;
                                 if (rawDate) {
                                     try { postedAt = new Date(rawDate).toISOString(); } catch { /* skip */ }
                                 }
 
-                                // Work mode
                                 let workMode = null;
                                 if (job.remote_derived === true || job.ai_work_arrangement === 'remote') {
                                     workMode = 'remote';
@@ -295,7 +328,6 @@ Deno.serve(async (req) => {
                                     workMode = 'onsite';
                                 }
 
-                                // Employment type
                                 const empType = Array.isArray(job.employment_type) ? job.employment_type[0] : (job.ai_employment_type || null);
 
                                 const { data: newPost, error: ipErr } = await supabase.from('job_postings').insert({
@@ -333,7 +365,6 @@ Deno.serve(async (req) => {
                                 finalDedupeStatus = 'inserted';
                                 recordsInserted++;
 
-                                // Add content row
                                 const descText = job.description_text || job.description || null;
                                 if (descText) {
                                     await supabase.from('job_posting_content').insert({
@@ -344,7 +375,6 @@ Deno.serve(async (req) => {
                                 }
                             }
 
-                            // Audit record
                             await supabase.from('job_import_items').insert({
                                 run_id: run.id,
                                 source_id: source.id,
@@ -364,6 +394,21 @@ Deno.serve(async (req) => {
                         }
                     }
 
+                    // Duplicate circuit breaker: if >80% of page is dupes, stop paginating
+                    if (jobs.length > 0) {
+                        const dupeRatio = pageSkipped / jobs.length;
+                        if (dupeRatio > 0.8) {
+                            console.log(`High duplicate ratio (${(dupeRatio * 100).toFixed(0)}%) for ${source.name}, stopping pagination`);
+                            hasMore = false;
+                            break;
+                        }
+                    }
+
+                    // Stop if global abort was triggered by header check
+                    if (globalAbort) {
+                        break;
+                    }
+
                     if (jobs.length < limit) {
                         hasMore = false;
                     } else {
@@ -372,9 +417,8 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // Mark run completed
                 await supabase.from("job_import_runs").update({
-                    status: "completed",
+                    status: globalAbort ? "failed" : "completed",
                     finished_at: new Date().toISOString(),
                     pages_fetched: pagesFetched,
                     records_received: recordsReceived,
@@ -389,7 +433,7 @@ Deno.serve(async (req) => {
                     last_run_at: new Date().toISOString()
                 }).eq("id", source.id);
 
-                results.push({ source: source.name, status: 'completed', inserted: recordsInserted, skipped: recordsSkippedDuplicate, failed: recordsFailed });
+                results.push({ source: source.name, status: globalAbort ? 'aborted' : 'completed', inserted: recordsInserted, skipped: recordsSkippedDuplicate, failed: recordsFailed });
 
             } catch (runErr) {
                 console.error("Run failed", runErr);
