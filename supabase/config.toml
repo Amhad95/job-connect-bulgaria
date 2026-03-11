@@ -23,3 +23,5 @@ project_id = "aqspxvcgmvflbvpionnj"
     verify_jwt = false
   [functions.import-linkedin-rapidapi]
     verify_jwt = false
+  [functions.import-jsearch]
+    verify_jwt = false
