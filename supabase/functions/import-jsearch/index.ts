@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
                     params.set("query", searchQuery);
                     params.set("page", String(page));
                     params.set("num_pages", "1"); // Always fetch 1 page at a time for credit control
-                    params.set("country", country);
+                    if (country) params.set("country", country);
                     params.set("date_posted", datePosted);
                     if (config.employment_types) params.set("employment_types", config.employment_types);
                     if (config.work_from_home === true) params.set("work_from_home", "true");
