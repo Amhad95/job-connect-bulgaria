@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
                     params.set("query", searchQuery);
                     params.set("page", String(page));
                     params.set("num_pages", "1"); // Always fetch 1 page at a time for credit control
-                    params.set("country", country);
+                    if (country) params.set("country", country);
                     params.set("date_posted", datePosted);
                     if (config.employment_types) params.set("employment_types", config.employment_types);
                     if (config.work_from_home === true) params.set("work_from_home", "true");
@@ -232,6 +232,10 @@ Deno.serve(async (req) => {
                     }
 
                     const respData = await resp.json();
+                    console.log(`JSearch response status: ${respData.status}, data length: ${(respData.data || []).length}, request_id: ${respData.request_id || 'n/a'}`);
+                    if (!respData.data || respData.data.length === 0) {
+                        console.log(`JSearch raw response keys: ${Object.keys(respData).join(', ')}`);
+                    }
                     const jobs = respData.data || [];
 
                     if (jobs.length === 0) {
