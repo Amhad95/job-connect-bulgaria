@@ -232,6 +232,10 @@ Deno.serve(async (req) => {
                     }
 
                     const respData = await resp.json();
+                    console.log(`JSearch response status: ${respData.status}, data length: ${(respData.data || []).length}, request_id: ${respData.request_id || 'n/a'}`);
+                    if (!respData.data || respData.data.length === 0) {
+                        console.log(`JSearch raw response keys: ${Object.keys(respData).join(', ')}`);
+                    }
                     const jobs = respData.data || [];
 
                     if (jobs.length === 0) {
