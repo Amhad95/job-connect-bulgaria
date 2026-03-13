@@ -1,23 +1,48 @@
 
 
-## Diagnosis
+## Capture First Name, Last Name, and Birthdate During Signup
 
-The JSearch API calls succeed (HTTP 200) but consistently return **0 results** for Bulgaria. Here's why:
+### Overview
+Currently the signup form has a single "Full Name" field and no birthdate. OAuth providers (Google/Apple) supply the user's name automatically but never provide birthdate. The plan adds proper name splitting and birthdate capture for all signup paths.
 
-1. **`country` defaults to `"bg"`** — Line 176 in the edge function: `const country = config.country || "bg"`. Since your source configs don't include a `country` field, it always sends `country=bg`.
-2. **Google Jobs coverage in Bulgaria is extremely limited** — JSearch is powered by Google Jobs, which has minimal indexing for Bulgaria. Setting `country=bg` restricts results to the Bulgarian Google Jobs index, which is nearly empty for these roles.
-3. **One prior run actually worked** — Run `3e3b50a1` on Mar 12 fetched 10 results and inserted 9. That was likely before the `country` parameter was being sent (or when a US-based test query was used).
+### Database Changes
 
-## Plan
+**Migration: Add columns to `profiles` table**
+- Add `first_name TEXT`, `last_name TEXT`, `birth_date DATE` columns to `profiles`
+- Update `handle_new_user()` trigger to extract `first_name`, `last_name`, and `birth_date` from `raw_user_meta_data` (Google provides `given_name`/`family_name`; Apple provides `first_name`/`last_name` or `full_name`)
+- Keep existing `full_name` column for backward compatibility
 
-### Fix: Remove `country` default and let query location do the work
+### Email Signup Form Changes
 
-1. **Update edge function** (`supabase/functions/import-jsearch/index.ts`):
-   - Change line 176 from `const country = config.country || "bg"` to `const country = config.country || null`
-   - This way, if no `country` is set in config, the parameter is omitted entirely
-   - The location context ("in bulgaria") in the query string itself is sufficient for JSearch to return geographically relevant results
+**File: `src/pages/Auth.tsx`**
+- Replace single `fullName` field with `firstName` and `lastName` inputs (both required)
+- Add a date-of-birth input (using a standard date input or the Shadcn date picker popover)
+- Pass `first_name`, `last_name`, `birth_date` in `signUp()` options metadata:
+  ```typescript
+  options: { data: { first_name: firstName, last_name: lastName, birth_date: birthDate } }
+  ```
 
-2. **Optionally update source configs** to explicitly set `country` to empty/null, or add a note that country should only be set if results are too broad.
+### OAuth Post-Signup: Complete Profile Page
 
-This is a one-line change in the edge function. The query "marketing jobs in bulgaria" already contains the location — adding `country=bg` over-constrains it to a sparse Google Jobs regional index.
+Since Google/Apple do not provide birthdate, OAuth users need a one-time "complete your profile" step.
+
+**New file: `src/pages/CompleteProfile.tsx`**
+- A simple form with first name (pre-filled from OAuth metadata), last name (pre-filled), and birthdate (required)
+- On submit, updates the `profiles` table row for the current user
+- Redirects to `/tracker` after completion
+
+**File: `src/App.tsx`**
+- Add `/complete-profile` route (protected, inside AppLayout)
+
+**File: `src/components/ProtectedRoute.tsx`** (or AuthContext)
+- After login, check if the user's `profiles.birth_date` is null
+- If null, redirect to `/complete-profile` instead of allowing access to dashboard routes
+- This ensures OAuth users must fill in their birthdate before proceeding
+
+### Files to Create/Modify
+1. **New migration** -- add `first_name`, `last_name`, `birth_date` to `profiles`; update trigger
+2. **`src/pages/Auth.tsx`** -- split name fields, add birthdate for email signup
+3. **`src/pages/CompleteProfile.tsx`** (new) -- post-OAuth birthdate capture
+4. **`src/App.tsx`** -- add complete-profile route
+5. **`src/components/ProtectedRoute.tsx`** -- redirect if profile incomplete
 

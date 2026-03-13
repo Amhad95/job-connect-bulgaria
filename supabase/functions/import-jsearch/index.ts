@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
             try {
                 const config = source.config_json || {};
                 const searchQuery = config.query || "jobs in sofia";
-                const country = config.country || "bg";
+                const country = config.country || null;
                 const datePosted = config.date_posted || "week";
                 const maxPages = Math.min(config.num_pages || 1, 3); // Cap at 3 pages to conserve credits
                 let page = 1;
